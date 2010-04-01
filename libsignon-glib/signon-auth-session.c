@@ -1,0 +1,608 @@
+/* vi: set et sw=4 ts=4 cino=t0,(0: */
+/* -*- Mode: C; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/*
+ * This file is part of libsignon-glib
+ *
+ * Copyright (C) 2009-2010 Nokia Corporation.
+ *
+ * Contact: Alberto Mardegan <alberto.mardegan@nokia.com>
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public License
+ * version 2.1 as published by the Free Software Foundation.
+ *
+ * This library is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
+ * 02110-1301 USA
+ */
+
+#include "signon-internals.h"
+#include "signon-auth-session.h"
+#include "signon-dbus-queue.h"
+#include "signon-client-glib-gen.h"
+#include "signon-auth-session-client-glib-gen.h"
+#include "signon-marshal.h"
+#include "signon-proxy.h"
+
+G_DEFINE_TYPE (SignonAuthSession, signon_auth_session, G_TYPE_OBJECT);
+
+/* Signals */
+enum
+{
+        STATE_CHANGED,
+        LAST_SIGNAL
+};
+
+static guint auth_session_signals[LAST_SIGNAL] = { 0 };
+static gchar auth_session_process_pending_message[] = "The request is added to queue.";
+
+struct _SignonAuthSessionPrivate
+{
+    DBusGProxy *proxy;
+    SignonProxy *signon_proxy;
+
+    gint id;
+    gchar *method_name;
+
+    gboolean busy;
+    gboolean canceled;
+};
+
+typedef struct _AuthSessionQueryAvailableMechanismsData
+{
+    gchar **wanted_mechanisms;
+    gpointer cb_data;
+} AuthSessionQueryAvailableMechanismsData;
+
+typedef struct _AuthSessionProcessData
+{
+    GHashTable *session_data;
+    gchar *mechanism;
+    gpointer cb_data;
+} AuthSessionProcessData;
+
+typedef struct _AuthSessionQueryAvailableMechanismsCbData
+{
+    SignonAuthSession *self;
+    SignonAuthSessionQueryAvailableMethodsCb cb;
+    gpointer user_data;
+} AuthSessionQueryAvailableMechanismsCbData;
+
+typedef struct _AuthSessionProcessCbData
+{
+    SignonAuthSession *self;
+    SignonAuthSessionProcessCb cb;
+    gpointer user_data;
+} AuthSessionProcessCbData;
+
+#define SIGNON_AUTH_SESSION_PRIV(obj) (SIGNON_AUTH_SESSION(obj)->priv)
+#define SIGNON_AUTH_SESSION_GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), SIGNON_TYPE_AUTH_SESSION, SignonAuthSessionPrivate))
+
+
+//TODO: remove with implementing normal error management
+#define SSO_AUTH_SESSION_CONNECTION_PROBLEM_G \
+    "Cannot create remote AuthSession object: check the signon daemon and authentication plugin."
+#define SSO_AUTH_SESSION_BUSY_PROBLEM_G \
+    "AuthSession: client is busy."
+#define SSO_AUTH_SESSION_CANCELED_PROBLEM_G \
+    "Challenge was canceled"
+static void auth_session_state_changed_cb (DBusGProxy *proxy, gint state, gchar *message, gpointer user_data);
+
+static gboolean auth_session_priv_init (SignonAuthSession *self, guint id, const gchar *method_name, GError **err);
+static void auth_session_get_object_path_reply (DBusGProxy *proxy, char * object_path, GError *error, gpointer userdata);
+
+static void auth_session_query_available_mechanisms_ready_cb (gpointer object, const GError *error, gpointer user_data);
+static void auth_session_process_ready_cb (gpointer object, const GError *error, gpointer user_data);
+static void auth_session_cancel_ready_cb (gpointer object, const GError *error, gpointer user_data);
+
+static void auth_session_query_mechanisms_reply (DBusGProxy *proxy, char **object_path, GError *error, gpointer userdata);
+static void auth_session_process_reply (DBusGProxy *proxy, GHashTable *object_path, GError *error, gpointer userdata);
+
+static GHashTable* auth_session_copy_sessiondata (const GHashTable* old_session_data);
+static void auth_session_copy_gvalue (gchar* key, GValue* value, GHashTable* dest);
+static void auth_session_free_gvalue (gpointer val);
+
+static GQuark
+auth_session_errors_quark ()
+{
+  static GQuark quark = 0;
+
+  if (!quark)
+    quark = g_quark_from_static_string ("com.nokia.singlesignon.AuthSession.Errors");
+
+  return quark;
+}
+
+static GQuark
+auth_session_object_quark ()
+{
+  static GQuark quark = 0;
+
+  if (!quark)
+    quark = g_quark_from_static_string ("auth_session_object_quark");
+
+  return quark;
+}
+
+static void
+signon_auth_session_init (SignonAuthSession *self)
+{
+    self->priv = SIGNON_AUTH_SESSION_GET_PRIV (self);
+    self->priv->signon_proxy = signon_proxy_new ();
+}
+
+static void
+signon_auth_session_dispose (GObject *object)
+{
+    g_return_if_fail (SIGNON_IS_AUTH_SESSION (object));
+    SignonAuthSession *self = SIGNON_AUTH_SESSION (object);
+    SignonAuthSessionPrivate *priv = self->priv;
+    g_return_if_fail (priv != NULL);
+
+    if (self->dispose_has_run)
+        return;
+
+    GError *err = NULL;
+
+    if (priv->proxy)
+    {
+        com_nokia_singlesignon_SignonAuthSession_object_unref (priv->proxy, &err);
+        g_object_unref (priv->proxy);
+        priv->proxy = NULL;
+    }
+
+    if (priv->signon_proxy)
+    {
+        g_object_unref (priv->signon_proxy);
+        priv->signon_proxy = NULL;
+    }
+
+    G_OBJECT_CLASS (signon_auth_session_parent_class)->dispose (object);
+
+    self->dispose_has_run = TRUE;
+}
+
+static void
+signon_auth_session_finalize (GObject *object)
+{
+    g_return_if_fail (SIGNON_IS_AUTH_SESSION(object));
+    SignonAuthSessionPrivate *priv = SIGNON_AUTH_SESSION_PRIV (object);
+    g_return_if_fail (priv != NULL);
+
+    g_free (priv->method_name);
+
+    G_OBJECT_CLASS (signon_auth_session_parent_class)->finalize (object);
+}
+
+static void
+signon_auth_session_class_init (SignonAuthSessionClass *klass)
+{
+    GObjectClass *object_class = G_OBJECT_CLASS (klass);
+
+    g_type_class_add_private (object_class, sizeof (SignonAuthSessionPrivate));
+
+    auth_session_signals[STATE_CHANGED] =
+            g_signal_new ("auth_sesson_state_changed",
+                          G_TYPE_FROM_CLASS (klass),
+                          G_SIGNAL_RUN_LAST | G_SIGNAL_ACTION,
+                          0,
+                          NULL,
+                          NULL,
+                          signon_marshal_VOID__INT_STRING,
+                          G_TYPE_NONE, 2,
+                          G_TYPE_INT,
+                          G_TYPE_STRING);
+
+    object_class->dispose = signon_auth_session_dispose;
+    object_class->finalize = signon_auth_session_finalize;
+}
+
+SignonAuthSession *
+signon_auth_session_new (gint id,
+                         const gchar *method_name,
+                         SignonAuthSessionStateCahngedCb cb,
+                         gpointer user_data,
+                         GError **err)
+{
+    SignonAuthSession *self = SIGNON_AUTH_SESSION(g_object_new (SIGNON_TYPE_AUTH_SESSION, NULL));
+    g_return_val_if_fail (self != NULL, NULL);
+
+    if (!auth_session_priv_init(self, id, method_name, err))
+    {
+        if (*err)
+            g_warning ("%s returned error: %s", G_STRFUNC, (*err)->message);
+
+        g_object_unref (self);
+        return NULL;
+    }
+
+    if (cb)
+    {
+        g_signal_connect (self,
+                          "auth_sesson_state_changed",
+                          G_CALLBACK (cb),
+                          user_data);
+    }
+
+    return self;
+}
+
+gchar *
+signon_auth_session_name (SignonAuthSession *self)
+{
+    g_return_val_if_fail (SIGNON_IS_AUTH_SESSION (self), NULL);
+    SignonAuthSessionPrivate *priv = self->priv;
+    gchar *result = (priv ? priv->method_name : NULL);
+    return result;
+}
+
+void
+signon_auth_session_query_available_mechanisms (SignonAuthSession *self,
+                                                const gchar **wanted_mechanisms,
+                                                SignonAuthSessionQueryAvailableMethodsCb cb,
+                                                gpointer user_data)
+{
+    g_return_if_fail (SIGNON_IS_AUTH_SESSION (self));
+    SignonAuthSessionPrivate* priv = self->priv;
+    g_return_if_fail (priv != NULL);
+
+    AuthSessionQueryAvailableMechanismsCbData *cb_data = g_slice_new0 (AuthSessionQueryAvailableMechanismsCbData);
+    cb_data->self = self;
+    cb_data->cb = cb;
+    cb_data->user_data = user_data;
+
+    AuthSessionQueryAvailableMechanismsData *operation_data = g_slice_new0 (AuthSessionQueryAvailableMechanismsData);
+    operation_data->wanted_mechanisms = g_strdupv ((gchar **)wanted_mechanisms);
+    operation_data->cb_data = cb_data;
+
+    _signon_object_call_when_ready (self,
+                                    auth_session_object_quark(),
+                                    auth_session_query_available_mechanisms_ready_cb,
+                                    operation_data);
+}
+
+void
+signon_auth_session_process (SignonAuthSession *self,
+                             const GHashTable *session_data,
+                             const gchar* mechanism,
+                             SignonAuthSessionProcessCb cb,
+                             gpointer user_data)
+{
+    g_return_if_fail (SIGNON_IS_AUTH_SESSION (self));
+    SignonAuthSessionPrivate *priv = self->priv;
+    g_return_if_fail (priv != NULL);
+
+    AuthSessionProcessCbData *cb_data = g_slice_new0 (AuthSessionProcessCbData);
+    cb_data->self = self;
+    cb_data->cb = cb;
+    cb_data->user_data = user_data;
+
+    AuthSessionProcessData *operation_data = g_slice_new0 (AuthSessionProcessData);
+
+    operation_data->session_data = auth_session_copy_sessiondata (session_data);
+    operation_data->mechanism = g_strdup (mechanism);
+    operation_data->cb_data = cb_data;
+
+    priv->busy = TRUE;
+
+    _signon_object_call_when_ready (self,
+                                    auth_session_object_quark(),
+                                    auth_session_process_ready_cb,
+                                    operation_data);
+}
+
+void
+signon_auth_session_cancel (SignonAuthSession *self)
+{
+    g_return_if_fail (SIGNON_IS_AUTH_SESSION (self));
+    SignonAuthSessionPrivate *priv = self->priv;
+    g_return_if_fail (priv != NULL);
+
+    if (!priv->busy)
+        return;
+
+    priv->canceled = TRUE;
+    _signon_object_call_when_ready (self,
+                                    auth_session_object_quark(),
+                                    auth_session_cancel_ready_cb,
+                                    NULL);
+}
+
+static void
+auth_session_get_object_path_reply (DBusGProxy *proxy, char * object_path,
+                                    GError *error, gpointer userdata)
+{
+    g_return_if_fail (SIGNON_IS_AUTH_SESSION (userdata));
+    SignonAuthSession *self = SIGNON_AUTH_SESSION (userdata);
+    SignonAuthSessionPrivate *priv = self->priv;
+    g_return_if_fail (priv != NULL);
+
+    if (!g_strcmp0(object_path, "") || error)
+    {
+        if (error)
+            DEBUG ("Error message is %s", error->message);
+        else
+            error = g_error_new (auth_session_errors_quark(), 1, SSO_AUTH_SESSION_CONNECTION_PROBLEM_G);
+    }
+    else
+    {
+        priv->proxy = dbus_g_proxy_new_from_proxy (DBUS_G_PROXY (priv->signon_proxy),
+                                                   SIGNON_AUTH_SESSION_IFACE,
+                                                   object_path);
+
+        dbus_g_object_register_marshaller (signon_marshal_VOID__INT_STRING,
+                                           G_TYPE_NONE,
+                                           G_TYPE_INT,
+                                           G_TYPE_STRING,
+                                           G_TYPE_INVALID);
+
+        dbus_g_proxy_add_signal (priv->proxy,
+                                 "stateChanged",
+                                 G_TYPE_INT,
+                                 G_TYPE_STRING,
+                                 G_TYPE_INVALID);
+
+
+        dbus_g_proxy_connect_signal (priv->proxy,
+                                     "stateChanged",
+                                     G_CALLBACK (auth_session_state_changed_cb),
+                                     self,
+                                     NULL);
+    }
+
+    _signon_object_ready (self, auth_session_object_quark (), error);
+    g_clear_error (&error);
+}
+
+static void
+auth_session_state_changed_cb (DBusGProxy *proxy,
+                               gint state,
+                               gchar *message,
+                               gpointer user_data)
+{
+    g_return_if_fail (SIGNON_IS_AUTH_SESSION (user_data));
+    SignonAuthSession *self = SIGNON_AUTH_SESSION (user_data);
+
+    g_signal_emit ((GObject *)self,
+                    auth_session_signals[STATE_CHANGED],
+                    0,
+                    state,
+                    message);
+}
+
+static gboolean
+auth_session_priv_init (SignonAuthSession *self, guint id,
+                        const gchar *method_name, GError **err)
+{
+    g_return_val_if_fail (SIGNON_IS_AUTH_SESSION (self), FALSE);
+    SignonAuthSessionPrivate *priv = SIGNON_AUTH_SESSION_PRIV (self);
+    g_return_val_if_fail (priv, FALSE);
+
+    priv->id = id;
+    priv->method_name = g_strdup (method_name);
+
+    (void)com_nokia_singlesignon_SignonDaemon_get_auth_session_object_path_async (DBUS_G_PROXY (priv->signon_proxy),
+                                                                                  (const guint)id,
+                                                                                  method_name,
+                                                                                  auth_session_get_object_path_reply,
+                                                                                  self);
+    priv->busy = FALSE;
+    priv->canceled = FALSE;
+    return TRUE;
+}
+
+static void
+auth_session_query_mechanisms_reply (DBusGProxy *proxy, char **object_path,
+                                     GError *error, gpointer userdata)
+{
+    GError *new_error = NULL;
+    AuthSessionQueryAvailableMechanismsCbData *cb_data =
+        (AuthSessionQueryAvailableMechanismsCbData *)userdata;
+    g_return_if_fail (cb_data != NULL);
+
+    if (error)
+        new_error = _signon_errors_get_error_from_dbus (error);
+
+    (cb_data->cb)
+        (cb_data->self, object_path, new_error, cb_data->user_data);
+
+    if (new_error)
+        g_error_free (new_error);
+
+    g_slice_free (AuthSessionQueryAvailableMechanismsCbData, cb_data);
+}
+
+static void
+auth_session_process_reply (DBusGProxy *proxy, GHashTable *object_path,
+                            GError *error, gpointer userdata)
+{
+    GError *new_error = NULL;
+    AuthSessionProcessCbData *cb_data = (AuthSessionProcessCbData *)userdata;
+    g_return_if_fail (cb_data != NULL);
+    g_return_if_fail (cb_data->self != NULL);
+    g_return_if_fail (cb_data->self->priv != NULL);
+
+    if (error)
+        new_error = _signon_errors_get_error_from_dbus (error);
+
+    (cb_data->cb)
+        (cb_data->self, object_path, new_error, cb_data->user_data);
+
+    cb_data->self->priv->busy = FALSE;
+    if (new_error)
+        g_error_free (new_error);
+
+    g_slice_free (AuthSessionProcessCbData, cb_data);
+}
+
+static void
+auth_session_query_available_mechanisms_ready_cb (gpointer object, const GError *error,
+                                                  gpointer user_data)
+{
+    g_return_if_fail (SIGNON_IS_AUTH_SESSION (object));
+    SignonAuthSession *self = SIGNON_AUTH_SESSION (object);
+    SignonAuthSessionPrivate *priv = SIGNON_AUTH_SESSION_PRIV (self);
+
+    AuthSessionQueryAvailableMechanismsData *operation_data =
+        (AuthSessionQueryAvailableMechanismsData *)user_data;
+    g_return_if_fail (operation_data != NULL);
+
+    AuthSessionQueryAvailableMechanismsCbData *cb_data = operation_data->cb_data;
+    g_return_if_fail (cb_data != NULL);
+
+    if (error)
+    {
+        (cb_data->cb)
+            (self, NULL, error, cb_data->user_data);
+
+        g_slice_free (AuthSessionQueryAvailableMechanismsCbData, cb_data);
+    }
+    else if (priv->proxy)
+    {
+        (void) com_nokia_singlesignon_SignonAuthSession_query_available_mechanisms_async (
+                    priv->proxy,
+                    (const char **)operation_data->wanted_mechanisms,
+                    auth_session_query_mechanisms_reply,
+                    cb_data);
+
+        g_signal_emit (self,
+                       auth_session_signals[STATE_CHANGED],
+                       0,
+                       (gint)AS_STATE_PROCESS_PENDING,
+                       auth_session_process_pending_message);
+
+    }
+    else if (!priv->proxy)
+        g_critical ("AuthSessionError: proxy is not initialized but error is NULL");
+
+    g_strfreev (operation_data->wanted_mechanisms);
+    g_slice_free (AuthSessionQueryAvailableMechanismsData, operation_data);
+}
+
+static void
+auth_session_process_ready_cb (gpointer object, const GError *error, gpointer user_data)
+{
+    g_return_if_fail (SIGNON_IS_AUTH_SESSION (object));
+
+    SignonAuthSession *self = SIGNON_AUTH_SESSION (object);
+    SignonAuthSessionPrivate *priv = SIGNON_AUTH_SESSION_PRIV (self);
+
+    AuthSessionProcessData *operation_data =
+        (AuthSessionProcessData *)user_data;
+    g_return_if_fail (operation_data != NULL);
+
+    AuthSessionProcessCbData *cb_data = operation_data->cb_data;
+    g_return_if_fail (cb_data != NULL);
+
+    if (error || priv->canceled)
+    {
+        GError *err = ( error ? (GError *)error : g_error_new(auth_session_errors_quark(),
+                                                              1,
+                                                              SSO_AUTH_SESSION_CANCELED_PROBLEM_G) );
+
+        DEBUG ("AuthSessionError: %s", err->message);
+
+        (cb_data->cb)
+            (self, operation_data->session_data, err, cb_data->user_data);
+
+        if (!error)
+            g_clear_error (&err);
+
+        g_slice_free (AuthSessionProcessCbData, cb_data);
+
+        priv->busy = FALSE;
+        priv->canceled = FALSE;
+    }
+    else if (priv->proxy)
+    {
+
+        (void)com_nokia_singlesignon_SignonAuthSession_process_async(
+                    priv->proxy,
+                    operation_data->session_data,
+                    operation_data->mechanism,
+                    auth_session_process_reply,
+                    cb_data);
+
+        g_hash_table_destroy (operation_data->session_data);
+
+        g_signal_emit (self,
+                       auth_session_signals[STATE_CHANGED],
+                       0,
+                       (gint)AS_STATE_PROCESS_PENDING,
+                       auth_session_process_pending_message);
+    }
+    else if (!priv->proxy)
+    {
+        g_critical ("AuthSessionError: proxy is not initialized but error is NULL");
+        return;
+    }
+
+    g_free (operation_data->mechanism);
+    g_slice_free (AuthSessionProcessData, operation_data);
+}
+
+static void
+auth_session_cancel_ready_cb (gpointer object, const GError *error, gpointer user_data)
+{
+    g_return_if_fail (SIGNON_IS_AUTH_SESSION (object));
+    g_return_if_fail (user_data == NULL);
+
+    SignonAuthSession *self = SIGNON_AUTH_SESSION (object);
+    SignonAuthSessionPrivate *priv = SIGNON_AUTH_SESSION_PRIV (self);
+    g_return_if_fail (priv != NULL);
+
+    if (error)
+    {
+        //TODO: in general this function does not return any values,
+        // that is why I think it should not emit anything for this particular case
+        DEBUG("error during initialization");
+    }
+    else if (priv->proxy && priv->busy)
+        com_nokia_singlesignon_SignonAuthSession_cancel (priv->proxy, NULL);
+
+    priv->busy = FALSE;
+    priv->canceled = FALSE;
+}
+
+static GHashTable*
+auth_session_copy_sessiondata (const GHashTable* old_session_data)
+{
+    GHashTable* new_session_data = g_hash_table_new_full (g_str_hash,
+                                                          g_str_equal,
+                                                          g_free,
+                                                          auth_session_free_gvalue);
+
+   g_hash_table_foreach ((GHashTable*)old_session_data,
+                         (GHFunc)auth_session_copy_gvalue,
+                         (gpointer)new_session_data);
+
+   return new_session_data;
+}
+
+static void
+auth_session_copy_gvalue (gchar* key,
+                          GValue* value,
+                          GHashTable* dest)
+{
+    GValue *copy_value = g_new0 (GValue, 1);
+    g_value_init (copy_value, value->g_type);
+    g_value_copy (value, copy_value);
+
+    g_hash_table_insert (dest, g_strdup(key), copy_value);
+}
+
+static void
+auth_session_free_gvalue (gpointer val)
+{
+    g_return_if_fail (G_IS_VALUE(val));
+
+    GValue* value = (GValue*)val;
+    g_value_unset (value);
+    g_free (value);
+}
