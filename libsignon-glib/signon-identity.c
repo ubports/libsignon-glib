@@ -63,6 +63,16 @@ struct _SignonIdentityPrivate
     guint id;
 };
 
+void _signon_identity_info_free (SignonIdentityInfo *identity_info)
+{
+    g_return_if_fail (identity_info != NULL);
+
+    g_free (identity_info->user_name);
+    g_free (identity_info->password);
+    g_free (identity_info->caption);
+    g_slice_free (SignonIdentityInfo, identity_info);
+}
+
 #define SIGNON_IDENTITY_PRIV(obj) (SIGNON_IDENTITY(obj)->priv)
 
 static void
@@ -120,7 +130,7 @@ signon_identity_dispose (GObject *object)
 
     if (priv->identityInfo)
     {
-        g_slice_free (SignonIdentityInfo, priv->identityInfo);
+        _signon_identity_info_free (priv->identityInfo);
         priv->identityInfo = NULL;
     }
 
