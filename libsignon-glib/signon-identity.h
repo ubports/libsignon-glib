@@ -93,7 +93,6 @@ typedef void (*SignonIdentityStoreCredentialsCb) (SignonIdentity *self,
  * or just simple signon_identity_store_credentials
  * */
 void signon_identity_store_credentials_with_info(SignonIdentity *self,
-                                                 const gint id,
                                                  const SignonIdentityInfo *info,
                                                  const gboolean store_secret,
                                                  const GHashTable *methods,
@@ -109,7 +108,6 @@ void signon_identity_store_credentials_with_info(SignonIdentity *self,
  * or just simple signon_identity_store_credentials
  * */
 void signon_identity_store_credentials_with_args(SignonIdentity *self,
-                                                 const gint id,
                                                  const gchar *username,
                                                  const gchar *secret,
                                                  const gboolean store_secret,
