@@ -119,6 +119,21 @@ void signon_identity_store_credentials_with_args(SignonIdentity *self,
                                                  SignonIdentityStoreCredentialsCb cb,
                                                  gpointer user_data);
 
+typedef void (*SignonIdentityVerifyCb) (SignonIdentity *self,
+                                        gboolean valid,
+                                        const GError *error,
+                                        gpointer user_data);
+
+void sigon_identity_verify_user(SignonIdentity *self,
+                                const gchar *message,
+                                SignonIdentityVerifyCb cb,
+                                gpointer user_data);
+
+void sigon_identity_verify_secret(SignonIdentity *self,
+                                  const gchar *secret,
+                                  SignonIdentityVerifyCb cb,
+                                  gpointer user_data);
+
 G_END_DECLS
 
 #endif /* _SIGNON_IDENTITY_H_ */
