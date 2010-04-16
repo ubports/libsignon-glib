@@ -68,7 +68,6 @@ struct _SignonIdentityPrivate
 
 typedef struct _IdentityStoreCredentialsData
 {
-    gint id;
     gchar *username;
     gchar *secret;
     gboolean store_secret;
@@ -487,7 +486,6 @@ SignonAuthSession *signon_identity_create_session(SignonIdentity *self,
  * Returns: an instance of an #SignonIdentity.
  */
 void signon_identity_store_credentials_with_info(SignonIdentity *self,
-                                                 const gint id,
                                                  const SignonIdentityInfo *info,
                                                  const gboolean store_secret,
                                                  const GHashTable *methods,
@@ -499,7 +497,6 @@ void signon_identity_store_credentials_with_info(SignonIdentity *self,
 {
     g_return_if_fail(info != NULL);
     signon_identity_store_credentials_with_args(self,
-                                                id,
                                                 info->user_name,
                                                 info->password,
                                                 store_secret,
@@ -529,7 +526,6 @@ void signon_identity_store_credentials_with_info(SignonIdentity *self,
  * Returns: an instance of an #SignonIdentity.
  */
 void signon_identity_store_credentials_with_args(SignonIdentity *self,
-                                                 const gint id,
                                                  const gchar *username,
                                                  const gchar *secret,
                                                  const gboolean store_secret,
@@ -560,7 +556,6 @@ void signon_identity_store_credentials_with_args(SignonIdentity *self,
 
     IdentityStoreCredentialsData *operation_data = g_slice_new0 (IdentityStoreCredentialsData);
 
-    operation_data->id = id;
     operation_data->username = g_strdup (username);
     operation_data->secret = g_strdup (secret);
     operation_data->store_secret = store_secret;
@@ -608,7 +603,7 @@ identity_store_credentials_ready_cb (gpointer object, const GError *error, gpoin
     {
         (void)com_nokia_singlesignon_SignonIdentity_store_credentials_async(
                     priv->proxy,
-                    operation_data->id,
+                    priv->id,
                     operation_data->username,
                     operation_data->secret,
                     operation_data->store_secret,
