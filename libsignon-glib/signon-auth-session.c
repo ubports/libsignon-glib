@@ -29,14 +29,16 @@
 #include "signon-auth-session-client-glib-gen.h"
 #include "signon-marshal.h"
 #include "signon-proxy.h"
+#include "signon-utils.h"
 
 G_DEFINE_TYPE (SignonAuthSession, signon_auth_session, G_TYPE_OBJECT);
 
 /* Signals */
 enum
 {
-        STATE_CHANGED,
-        LAST_SIGNAL
+    STATE_CHANGED,
+
+    LAST_SIGNAL
 };
 
 static guint auth_session_signals[LAST_SIGNAL] = { 0 };
@@ -92,21 +94,19 @@ typedef struct _AuthSessionProcessCbData
     "AuthSession: client is busy."
 #define SSO_AUTH_SESSION_CANCELED_PROBLEM_G \
     "Challenge was canceled"
+
 static void auth_session_state_changed_cb (DBusGProxy *proxy, gint state, gchar *message, gpointer user_data);
 
 static gboolean auth_session_priv_init (SignonAuthSession *self, guint id, const gchar *method_name, GError **err);
 static void auth_session_get_object_path_reply (DBusGProxy *proxy, char * object_path, GError *error, gpointer userdata);
 
+static void auth_session_set_id_ready_cb (gpointer object, const GError *error, gpointer user_data);
 static void auth_session_query_available_mechanisms_ready_cb (gpointer object, const GError *error, gpointer user_data);
 static void auth_session_process_ready_cb (gpointer object, const GError *error, gpointer user_data);
 static void auth_session_cancel_ready_cb (gpointer object, const GError *error, gpointer user_data);
 
 static void auth_session_query_mechanisms_reply (DBusGProxy *proxy, char **object_path, GError *error, gpointer userdata);
 static void auth_session_process_reply (DBusGProxy *proxy, GHashTable *object_path, GError *error, gpointer userdata);
-
-static GHashTable* auth_session_copy_sessiondata (const GHashTable* old_session_data);
-static void auth_session_copy_gvalue (gchar* key, GValue* value, GHashTable* dest);
-static void auth_session_free_gvalue (gpointer val);
 
 static GQuark
 auth_session_errors_quark ()
@@ -152,6 +152,7 @@ signon_auth_session_dispose (GObject *object)
 
     if (priv->proxy)
     {
+        signon_auth_session_cancel (self);
         com_nokia_singlesignon_SignonAuthSession_object_unref (priv->proxy, &err);
         g_object_unref (priv->proxy);
         priv->proxy = NULL;
@@ -172,7 +173,9 @@ static void
 signon_auth_session_finalize (GObject *object)
 {
     g_return_if_fail (SIGNON_IS_AUTH_SESSION(object));
-    SignonAuthSessionPrivate *priv = SIGNON_AUTH_SESSION_PRIV (object);
+
+    SignonAuthSession *self = SIGNON_AUTH_SESSION(object);
+    SignonAuthSessionPrivate *priv = self->priv;
     g_return_if_fail (priv != NULL);
 
     g_free (priv->method_name);
@@ -233,13 +236,63 @@ signon_auth_session_new (gint id,
     return self;
 }
 
+static void
+auth_session_set_id_ready_cb (gpointer object,
+                              const GError *error,
+                              gpointer user_data)
+{
+    if (error)
+    {
+        g_warning ("%s returned error: %s", G_STRFUNC, error->message);
+        return;
+    }
+
+    g_return_if_fail (SIGNON_IS_AUTH_SESSION (object));
+    SignonAuthSession *self = SIGNON_AUTH_SESSION (object);
+    SignonAuthSessionPrivate *priv = self->priv;
+    g_return_if_fail (priv != NULL);
+
+    gint id = GPOINTER_TO_INT(user_data);
+
+    GError *err = NULL;
+    com_nokia_singlesignon_SignonAuthSession_set_id (priv->proxy,
+                                                     id,
+                                                     &err);
+    priv->id = id;
+
+    if (err)
+        g_warning ("%s returned error: %s", G_STRFUNC, err->message);
+
+    g_clear_error(&err);
+}
+
+void
+signon_auth_session_set_id(SignonAuthSession* self,
+                           gint id)
+{
+    g_return_if_fail (SIGNON_IS_AUTH_SESSION (self));
+
+    SignonAuthSessionPrivate *priv = self->priv;
+    g_return_if_fail (priv != NULL);
+
+    g_return_if_fail (id > 0);
+    g_return_if_fail (self->priv->id == 0);
+
+    _signon_object_call_when_ready (self,
+                                    auth_session_object_quark(),
+                                    auth_session_set_id_ready_cb,
+                                    GINT_TO_POINTER(id));
+}
+
 gchar *
 signon_auth_session_name (SignonAuthSession *self)
 {
     g_return_val_if_fail (SIGNON_IS_AUTH_SESSION (self), NULL);
     SignonAuthSessionPrivate *priv = self->priv;
-    gchar *result = (priv ? priv->method_name : NULL);
-    return result;
+
+    g_return_val_if_fail (priv != NULL, NULL);
+
+    return priv->method_name;
 }
 
 void
@@ -250,6 +303,7 @@ signon_auth_session_query_available_mechanisms (SignonAuthSession *self,
 {
     g_return_if_fail (SIGNON_IS_AUTH_SESSION (self));
     SignonAuthSessionPrivate* priv = self->priv;
+
     g_return_if_fail (priv != NULL);
 
     AuthSessionQueryAvailableMechanismsCbData *cb_data = g_slice_new0 (AuthSessionQueryAvailableMechanismsCbData);
@@ -276,6 +330,7 @@ signon_auth_session_process (SignonAuthSession *self,
 {
     g_return_if_fail (SIGNON_IS_AUTH_SESSION (self));
     SignonAuthSessionPrivate *priv = self->priv;
+
     g_return_if_fail (priv != NULL);
 
     AuthSessionProcessCbData *cb_data = g_slice_new0 (AuthSessionProcessCbData);
@@ -285,7 +340,7 @@ signon_auth_session_process (SignonAuthSession *self,
 
     AuthSessionProcessData *operation_data = g_slice_new0 (AuthSessionProcessData);
 
-    operation_data->session_data = auth_session_copy_sessiondata (session_data);
+    operation_data->session_data = signon_copy_variant_map (session_data);
     operation_data->mechanism = g_strdup (mechanism);
     operation_data->cb_data = cb_data;
 
@@ -302,6 +357,7 @@ signon_auth_session_cancel (SignonAuthSession *self)
 {
     g_return_if_fail (SIGNON_IS_AUTH_SESSION (self));
     SignonAuthSessionPrivate *priv = self->priv;
+
     g_return_if_fail (priv != NULL);
 
     if (!priv->busy)
@@ -447,7 +503,8 @@ auth_session_query_available_mechanisms_ready_cb (gpointer object, const GError 
 {
     g_return_if_fail (SIGNON_IS_AUTH_SESSION (object));
     SignonAuthSession *self = SIGNON_AUTH_SESSION (object);
-    SignonAuthSessionPrivate *priv = SIGNON_AUTH_SESSION_PRIV (self);
+    SignonAuthSessionPrivate *priv = self->priv;
+    g_return_if_fail (priv != NULL);
 
     AuthSessionQueryAvailableMechanismsData *operation_data =
         (AuthSessionQueryAvailableMechanismsData *)user_data;
@@ -521,7 +578,6 @@ auth_session_process_ready_cb (gpointer object, const GError *error, gpointer us
     }
     else if (priv->proxy)
     {
-
         (void)com_nokia_singlesignon_SignonAuthSession_process_async(
                     priv->proxy,
                     operation_data->session_data,
@@ -554,7 +610,7 @@ auth_session_cancel_ready_cb (gpointer object, const GError *error, gpointer use
     g_return_if_fail (user_data == NULL);
 
     SignonAuthSession *self = SIGNON_AUTH_SESSION (object);
-    SignonAuthSessionPrivate *priv = SIGNON_AUTH_SESSION_PRIV (self);
+    SignonAuthSessionPrivate *priv = self->priv;
     g_return_if_fail (priv != NULL);
 
     if (error)
@@ -570,39 +626,3 @@ auth_session_cancel_ready_cb (gpointer object, const GError *error, gpointer use
     priv->canceled = FALSE;
 }
 
-static GHashTable*
-auth_session_copy_sessiondata (const GHashTable* old_session_data)
-{
-    GHashTable* new_session_data = g_hash_table_new_full (g_str_hash,
-                                                          g_str_equal,
-                                                          g_free,
-                                                          auth_session_free_gvalue);
-
-   g_hash_table_foreach ((GHashTable*)old_session_data,
-                         (GHFunc)auth_session_copy_gvalue,
-                         (gpointer)new_session_data);
-
-   return new_session_data;
-}
-
-static void
-auth_session_copy_gvalue (gchar* key,
-                          GValue* value,
-                          GHashTable* dest)
-{
-    GValue *copy_value = g_new0 (GValue, 1);
-    g_value_init (copy_value, value->g_type);
-    g_value_copy (value, copy_value);
-
-    g_hash_table_insert (dest, g_strdup(key), copy_value);
-}
-
-static void
-auth_session_free_gvalue (gpointer val)
-{
-    g_return_if_fail (G_IS_VALUE(val));
-
-    GValue* value = (GValue*)val;
-    g_value_unset (value);
-    g_free (value);
-}

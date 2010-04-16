@@ -39,6 +39,7 @@
 #define SIGNON_PATH  "/SignonDaemon"
 #define SIGNON_IFACE  "com.nokia.singlesignon.SignonDaemon"
 #define SIGNON_AUTH_SESSION_IFACE  "com.nokia.singlesignon.SignonAuthSession"
+#define SIGNON_IDENTITY_IFACE  "com.nokia.singlesignon.SignonIdentity"
 
 #include "signon-identity.h"
 #include "signon-auth-session.h"
@@ -52,6 +53,10 @@ void _signon_identity_registered (SignonIdentity *identity, DBusGProxy *proxy,
 
 G_GNUC_INTERNAL
 GError *_signon_errors_get_error_from_dbus (GError *error);
+
+G_GNUC_INTERNAL
+void signon_auth_session_set_id(SignonAuthSession* self,
+                                gint32 id);
 
 G_END_DECLS
 

@@ -25,7 +25,7 @@
 #ifndef SIGNONAUTHSESSION_H_
 #define SIGNONAUTHSESSION_H_
 
-#include <glib.h>
+#include "signon-identity.h"
 #include <glib-object.h>
 
 G_BEGIN_DECLS
@@ -92,12 +92,15 @@ struct _SignonAuthSessionClass {
 
 GType signon_auth_session_get_type (void) G_GNUC_CONST;
 
-//TODO: move it to private header
 typedef void (*SignonAuthSessionStateCahngedCb) (SignonAuthSession* self,
                                                  gint state,
                                                  gchar *message,
                                                  gpointer user_data);
 
+/*
+ * Despite my arguments it was decided to keep this
+ * function as public
+ * */
 SignonAuthSession *signon_auth_session_new(gint id,
                                            const gchar *method_name,
                                            SignonAuthSessionStateCahngedCb cb,
