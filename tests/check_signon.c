@@ -658,7 +658,6 @@ START_TEST(test_store_credentials_identity)
     gint last_id = new_identity();
 
     signon_identity_store_credentials_with_args (idty,
-                                                 0,
                                                  "James Bond",
                                                  "007",
                                                  1,
