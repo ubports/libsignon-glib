@@ -23,10 +23,8 @@
 #include <dbus/dbus-glib.h>
 
 static GMainLoop *main_loop = NULL;
-static SignonAuthService *auth_service = NULL;
 static SignonIdentity *identity = NULL;
-
-static SignonAuthSession *auth_session = NULL;
+static SignonAuthService *auth_service = NULL;
 
 static void
 end_test ()
@@ -168,6 +166,14 @@ START_TEST(test_query_mechanisms)
 }
 END_TEST
 
+
+static gboolean
+test_quit_main_loop_cb (gpointer data)
+{
+    g_main_loop_quit (main_loop);
+    return FALSE;
+}
+
 static void
 test_auth_session_query_mechanisms_cb (SignonAuthSession *self,
                                       gchar **mechanisms,
@@ -202,13 +208,19 @@ START_TEST(test_auth_session_query_mechanisms)
 {
     g_type_init();
 
-    if(!auth_session)
-    {
-        GError *err = NULL;
-        auth_session = signon_auth_session_new(0, "ssotest", NULL, NULL, &err);
-        g_clear_error(&err);
-        fail_unless (auth_session != NULL, "Cannot create AuthSession object");
-    }
+    GError *err = NULL;
+
+    SignonIdentity *idty = signon_identity_new();
+    fail_unless (idty != NULL, "Cannot create Iddentity object");
+
+    SignonAuthSession *auth_session = signon_identity_create_session(idty,
+                                                                     "ssotest",
+                                                                     NULL,
+                                                                     NULL,
+                                                                     &err);
+    fail_unless (auth_session != NULL, "Cannot create AuthSession object");
+
+    g_clear_error(&err);
 
     gchar* patterns[4];
     patterns[0] = g_strdup("mech1");
@@ -246,6 +258,8 @@ START_TEST(test_auth_session_query_mechanisms)
     g_main_loop_run (main_loop);
 
     g_free(patterns[0]);
+    g_object_unref(idty);
+
     end_test ();
 }
 END_TEST
@@ -270,17 +284,20 @@ test_auth_session_query_mechanisms_nonexisting_cb (SignonAuthSession *self,
 START_TEST(test_auth_session_query_mechanisms_nonexisting)
 {
     g_type_init();
-
-    if(!auth_session)
-    {
-        g_object_unref(auth_session);
-        auth_session = NULL;
-    }
-
     GError *err = NULL;
-    auth_session = signon_auth_session_new(0, "nonexisting", NULL, NULL, &err);
-    g_clear_error(&err);
+
+    SignonIdentity *idty = signon_identity_new();
+    fail_unless (idty != NULL, "Cannot create Iddentity object");
+
+    SignonAuthSession *auth_session = signon_identity_create_session(idty,
+                                                                     "nonexisting",
+                                                                     NULL,
+                                                                     NULL,
+                                                                     &err);
+
     fail_unless (auth_session != NULL, "Cannot create AuthSession object");
+
+    g_clear_error(&err);
 
     gchar* patterns[4];
     patterns[0] = g_strdup("mech1");
@@ -298,6 +315,8 @@ START_TEST(test_auth_session_query_mechanisms_nonexisting)
     g_main_loop_run (main_loop);
 
     g_free(patterns[0]);
+    g_object_unref(idty);
+
     end_test ();
 }
 END_TEST
@@ -309,8 +328,6 @@ test_auth_session_states_cb (SignonAuthSession *self,
                              gpointer user_data)
 {
     gint *state_counter = (gint *)user_data;
-    g_printf("State: %d %s\n", *state_counter, message);
-
     (*state_counter)++;
 }
 
@@ -346,22 +363,52 @@ test_auth_session_process_cb (SignonAuthSession *self,
     g_main_loop_quit (main_loop);
 }
 
+START_TEST(test_auth_session_creation)
+{
+    g_type_init();
+    gint state_counter = 0;
+    GError *err = NULL;
+
+    SignonIdentity *idty = signon_identity_new();
+    fail_unless (idty != NULL, "Cannot create Iddentity object");
+
+    SignonAuthSession *auth_session = signon_identity_create_session(idty,
+                                                                    "ssotest",
+                                                                    test_auth_session_states_cb,
+                                                                    &state_counter,
+                                                                    &err);
+
+    fail_unless (auth_session != NULL, "Cannot create AuthSession object");
+
+    g_object_unref (idty);
+    fail_unless (SIGNON_IS_IDENTITY(idty), "Identity must stay untill all its session are not destroyed");
+    g_object_unref (auth_session);
+
+    fail_if (SIGNON_IS_AUTH_SESSION(auth_session), "AuthSession is not synchronized with parent Identity");
+    fail_if (SIGNON_IS_IDENTITY(idty), "Identity is not synchronized with its AuthSession");
+
+    g_clear_error(&err);
+}
+END_TEST
+
 START_TEST(test_auth_session_process)
 {
     g_type_init();
-
     gint state_counter = 0;
-
-    if(auth_session)
-    {
-        g_object_unref(auth_session);
-        fail_unless (auth_session == NULL, "Cannot delete AuthSession object");
-    }
-
     GError *err = NULL;
-    auth_session = signon_auth_session_new (0, "ssotest", test_auth_session_states_cb, &state_counter, &err);
-    g_clear_error(&err);
+
+    SignonIdentity *idty = signon_identity_new();
+    fail_unless (idty != NULL, "Cannot create Iddentity object");
+
+    SignonAuthSession *auth_session = signon_identity_create_session(idty,
+                                                                     "ssotest",
+                                                                     test_auth_session_states_cb,
+                                                                     &state_counter,
+                                                                     &err);
+
     fail_unless (auth_session != NULL, "Cannot create AuthSession object");
+
+    g_clear_error(&err);
 
     GHashTable* sessionData = g_hash_table_new(g_str_hash,
                                                g_str_equal);
@@ -392,15 +439,6 @@ START_TEST(test_auth_session_process)
     if(!main_loop)
         main_loop = g_main_loop_new (NULL, FALSE);
 
-    g_main_loop_run (main_loop);
-    fail_unless (state_counter == 12, "Wrong numer of state change signals: %d", state_counter);
-    state_counter = 0;
-
-    signon_auth_session_process(auth_session,
-                               sessionData,
-                               "mech1",
-                               test_auth_session_process_cb,
-                               sessionData);
 
     g_main_loop_run (main_loop);
     fail_unless (state_counter == 12, "Wrong numer of state change signals: %d", state_counter);
@@ -416,6 +454,18 @@ START_TEST(test_auth_session_process)
     fail_unless (state_counter == 12, "Wrong numer of state change signals: %d", state_counter);
     state_counter = 0;
 
+    signon_auth_session_process(auth_session,
+                               sessionData,
+                               "mech1",
+                               test_auth_session_process_cb,
+                               sessionData);
+
+    g_main_loop_run (main_loop);
+    fail_unless (state_counter == 12, "Wrong numer of state change signals: %d", state_counter);
+    state_counter = 0;
+
+    g_object_unref (auth_session);
+    g_object_unref (idty);
 
     g_value_unset(usernameVa);
     g_free(usernameVa);
@@ -424,6 +474,8 @@ START_TEST(test_auth_session_process)
     g_value_unset(passwordVa);
     g_free(passwordVa);
     g_free(passwordKey);
+
+
 }
 END_TEST
 
@@ -485,6 +537,7 @@ new_identity()
                                                              "caption",
                                                              NULL,
                                                              NULL,
+                                                             0,
                                                              &id,
                                                              &error);
 
@@ -525,7 +578,7 @@ START_TEST(test_get_existing_identity)
 
     gchar *user_name;
     user_name = signon_identity_get_username(identity);
-    fail_unless (strcmp (user_name, "James Bond") == 0);
+    fail_unless (g_strcmp0 (user_name, "James Bond") == 0);
 
     g_free (user_name);
     end_test ();
@@ -536,7 +589,7 @@ START_TEST(test_get_nonexisting_identity)
 {
     g_type_init ();
 
-    identity = signon_identity_new_from_db(65556546);
+    identity = signon_identity_new_from_db(G_MAXINT);
 
     fail_unless (identity != NULL);
     fail_unless (SIGNON_IS_IDENTITY (identity),
@@ -560,6 +613,75 @@ START_TEST(test_get_nonexisting_identity)
 }
 END_TEST
 
+static void store_credentials_identity_cb(SignonIdentity *self,
+                                         guint32 id,
+                                         const GError *error,
+                                         gpointer user_data)
+{
+    if(error)
+    {
+        g_warning ("%s %d: %s", G_STRFUNC, __LINE__, error->message);
+        fail();
+    }
+
+    gint *last_id = (gint *)user_data;
+
+    g_warning ("%s (prev_id vs new_id): %d vs %d", G_STRFUNC, *last_id, id);
+
+    fail_unless (id > 0);
+    fail_unless (id == (*last_id) + 1);
+
+    (*last_id) += 1;
+
+    g_main_loop_quit (main_loop);
+}
+
+START_TEST(test_store_credentials_identity)
+{
+    g_type_init ();
+    SignonIdentity *idty = signon_identity_new();
+    fail_unless (idty != NULL);
+    fail_unless (SIGNON_IS_IDENTITY (idty),
+                 "Failed to initialize the Identity.");
+
+    GHashTable *methods;
+    gchar *key = "key";
+    GValue value = {0};
+
+    g_type_init ();
+    g_value_init (&value, G_TYPE_STRING);
+    g_value_set_static_string (&value, "value");
+
+    methods = g_hash_table_new (g_str_hash, g_str_equal);
+    g_hash_table_insert (methods, g_strdup(key),&value);
+
+    gint last_id = new_identity();
+
+    signon_identity_store_credentials_with_args (idty,
+                                                 "James Bond",
+                                                 "007",
+                                                 1,
+                                                 methods,
+                                                 "caption",
+                                                 NULL,
+                                                 NULL,
+                                                 0,
+                                                 store_credentials_identity_cb,
+                                                 &last_id);
+
+    g_timeout_add (1000, test_quit_main_loop_cb, idty);
+    main_loop = g_main_loop_new (NULL, FALSE);
+    g_main_loop_run (main_loop);
+
+    gchar *user_name = signon_identity_get_username(idty);
+    fail_unless (g_strcmp0 (user_name, "James Bond") == 0);
+
+    g_free (user_name);
+    g_object_unref(idty);
+    end_test ();
+}
+END_TEST
+
 Suite *
 signon_suite(void)
 {
@@ -574,9 +696,11 @@ signon_suite(void)
     tcase_add_test (tc_core, test_get_existing_identity);
     tcase_add_test (tc_core, test_get_nonexisting_identity);
 
+    tcase_add_test (tc_core, test_auth_session_creation);
     tcase_add_test (tc_core, test_auth_session_query_mechanisms);
     tcase_add_test (tc_core, test_auth_session_query_mechanisms_nonexisting);
     tcase_add_test (tc_core, test_auth_session_process);
+    tcase_add_test (tc_core, test_store_credentials_identity);
 
     suite_add_tcase (s, tc_core);
 

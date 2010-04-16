@@ -33,6 +33,8 @@ libsignon_glib_la_SOURCES = \
 	signon-errors.c \
 	signon-proxy.h \
 	signon-proxy.c \
+	signon-utils.h \
+	signon-utils.c \
 	$(BUILT_SOURCES)
 
 libsignon_glib_includedir = $(includedir)/libsignon-glib

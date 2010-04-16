@@ -35,6 +35,7 @@
       <arg name="caption" type="s" direction="in"/>
       <arg name="realms" type="as" direction="in"/>
       <arg name="accessControlList" type="as" direction="in"/>
+      <arg name="type" type="i" direction="in"/>
     </method>
   </interface>
 </node>
