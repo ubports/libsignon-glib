@@ -40,7 +40,7 @@ static void signon_free_gvalue (gpointer val)
 
     GValue* value = (GValue*)val;
     g_value_unset (value);
-    g_free (value);
+    g_slice_free (GValue, value);
 }
 
 GHashTable *signon_copy_variant_map (const GHashTable *old_map)
