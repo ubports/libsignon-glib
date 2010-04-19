@@ -682,6 +682,85 @@ START_TEST(test_store_credentials_identity)
 }
 END_TEST
 
+static void identity_verify_secret_cb(SignonIdentity *self,
+                                      gboolean valid,
+                                      const GError *error,
+                                      gpointer user_data)
+{
+    fail_unless (error == NULL, "The callback returned error for proper secret");
+    fail_unless (valid == TRUE, "The callback gives FALSE for proper secret");
+    g_main_loop_quit((GMainLoop *)user_data);
+}
+
+static void identity_verify_username_cb(SignonIdentity *self,
+                                        gboolean valid,
+                                        const GError *error,
+                                        gpointer user_data)
+{
+    fail_unless (error != NULL, "The callback returned NULL error for unimplemented function");
+    g_warning ("Error: %s ", error->message);
+
+    g_main_loop_quit((GMainLoop *)user_data);
+}
+
+
+START_TEST(test_verify_secret_identity)
+{
+    g_type_init ();
+    SignonIdentity *idty = signon_identity_new();
+    fail_unless (idty != NULL);
+    fail_unless (SIGNON_IS_IDENTITY (idty),
+                 "Failed to initialize the Identity.");
+
+    GHashTable *methods;
+    gchar *key = "key";
+    GValue value = {0};
+
+    g_type_init ();
+    g_value_init (&value, G_TYPE_STRING);
+    g_value_set_static_string (&value, "value");
+
+    methods = g_hash_table_new (g_str_hash, g_str_equal);
+    g_hash_table_insert (methods, g_strdup(key),&value);
+
+    gint last_id = new_identity();
+
+    gchar username[] = "James Bond";
+    gchar secret[] = "007";
+    gchar caption[] = "caption";
+
+    signon_identity_store_credentials_with_args (idty,
+                                                 username,
+                                                 secret,
+                                                 1,
+                                                 methods,
+                                                 caption,
+                                                 NULL,
+                                                 NULL,
+                                                 0,
+                                                 store_credentials_identity_cb,
+                                                 &last_id);
+    main_loop = g_main_loop_new (NULL, FALSE);
+
+    sigon_identity_verify_secret(idty,
+                                 secret,
+                                 identity_verify_secret_cb,
+                                 main_loop);
+
+    g_main_loop_run (main_loop);
+
+    sigon_identity_verify_user(idty,
+                               username,
+                               identity_verify_username_cb,
+                               main_loop);
+
+    g_main_loop_run (main_loop);
+
+    g_object_unref(idty);
+    end_test ();
+}
+END_TEST
+
 Suite *
 signon_suite(void)
 {
@@ -701,6 +780,7 @@ signon_suite(void)
     tcase_add_test (tc_core, test_auth_session_query_mechanisms_nonexisting);
     tcase_add_test (tc_core, test_auth_session_process);
     tcase_add_test (tc_core, test_store_credentials_identity);
+    tcase_add_test (tc_core, test_verify_secret_identity);
 
     suite_add_tcase (s, tc_core);
 
