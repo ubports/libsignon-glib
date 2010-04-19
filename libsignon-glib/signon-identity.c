@@ -79,6 +79,11 @@ typedef struct _IdentityStoreCredentialsData
     gpointer cb_data;
 } IdentityStoreCredentialsData;
 
+enum {
+    SIGNON_VERIFY_USER,
+    SIGNON_VERIFY_SECRET
+};
+
 typedef struct _IdentityVerifyCbData
 {
     SignonIdentity *self;
@@ -101,13 +106,16 @@ typedef struct _IdentityStoreCredentialsCbData
 } IdentityStoreCredentialsCbData;
 
 static void identity_info_free (SignonIdentityInfo *identity_info);
-static void identity_registered (SignonIdentity *identity, DBusGProxy *proxy, char *object_path, GPtrArray *identity_array, GError *error);
+static void identity_registered (SignonIdentity *identity, DBusGProxy *proxy, char *object_path,
+                                 GPtrArray *identity_array, GError *error);
 static void identity_new_cb (DBusGProxy *proxy, char *objectPath, GError *error, gpointer userdata);
-static void identity_new_from_db_cb (DBusGProxy *proxy, char *objectPath, GPtrArray *identityData, GError *error, gpointer userdata);
+static void identity_new_from_db_cb (DBusGProxy *proxy, char *objectPath, GPtrArray *identityData,
+                                      GError *error, gpointer userdata);
 static void identity_store_credentials_ready_cb (gpointer object, const GError *error, gpointer user_data);
 static void identity_store_credentials_reply (DBusGProxy *proxy, guint id, GError *error, gpointer userdata);
 static void identity_session_object_destroyed_cb (gpointer data, GObject *where_the_session_was);
-static void identity_verify_data (SignonIdentity *self, const gchar *data_to_send, gboolean verify_secret, SignonIdentityVerifyCb cb, gpointer user_data);
+static void identity_verify_data (SignonIdentity *self, const gchar *data_to_send, gboolean verify_secret,
+                                    SignonIdentityVerifyCb cb, gpointer user_data);
 static void identity_verify_ready_cb (gpointer object, const GError *error, gpointer user_data);
 static void identity_verify_reply (DBusGProxy *proxy, gboolean valid, GError *error, gpointer userdata);
 
@@ -766,18 +774,18 @@ identity_verify_ready_cb (gpointer object, const GError *error, gpointer user_da
     {
         DEBUG ("%s %d", G_STRFUNC, __LINE__);
 
-        if (operation_data->verify_secret == TRUE)
-            (void)com_nokia_singlesignon_SignonIdentity_verify_secret_async(
-                        priv->proxy,
-                        operation_data->data_to_send,
-                        identity_verify_reply,
-                        cb_data);
-        else
-            (void)com_nokia_singlesignon_SignonIdentity_verify_user_async(
-                        priv->proxy,
-                        operation_data->data_to_send,
-                        identity_verify_reply,
-                        cb_data);
+        if (operation_data->verify_secret == SIGNON_VERIFY_SECRET)
+            com_nokia_singlesignon_SignonIdentity_verify_secret_async(
+                    priv->proxy,
+                    operation_data->data_to_send,
+                    identity_verify_reply,
+                    cb_data);
+        else if (operation_data->verify_secret == SIGNON_VERIFY_USER)
+            com_nokia_singlesignon_SignonIdentity_verify_user_async(
+                    priv->proxy,
+                    operation_data->data_to_send,
+                    identity_verify_reply,
+                    cb_data);
     }
     else if (!priv->proxy)
     {
@@ -827,7 +835,7 @@ void sigon_identity_verify_user(SignonIdentity *self,
 {
     identity_verify_data (self,
                           message,
-                          FALSE,
+                          SIGNON_VERIFY_USER,
                           cb,
                           user_data);
 }
@@ -840,7 +848,7 @@ void sigon_identity_verify_secret(SignonIdentity *self,
 {
     identity_verify_data (self,
                           secret,
-                          TRUE,
+                          SIGNON_VERIFY_SECRET,
                           cb,
                           user_data);
 }
