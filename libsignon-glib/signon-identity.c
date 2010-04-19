@@ -547,9 +547,8 @@ void signon_identity_store_credentials_with_info(SignonIdentity *self,
  * @cb: callback
  * @user_data : user_data.
  *
- * Construct an identity object associated with an existing identity record.
- * Returns: an instance of an #SignonIdentity.
- */
+ * Stores the given identity into credentials DB
+  */
 void signon_identity_store_credentials_with_args(SignonIdentity *self,
                                                  const gchar *username,
                                                  const gchar *secret,
@@ -828,6 +827,15 @@ identity_verify_data(SignonIdentity *self,
                                     operation_data);
 }
 
+/**
+ * sigon_identity_verify_user:
+ * @message: message.
+ * @cb: callback
+ * @user_data : user_data.
+ *
+ * Verifies the given username
+ * gboolean result: is verified or not
+ */
 void sigon_identity_verify_user(SignonIdentity *self,
                                 const gchar *message,
                                 SignonIdentityVerifyCb cb,
@@ -840,7 +848,15 @@ void sigon_identity_verify_user(SignonIdentity *self,
                           user_data);
 }
 
-
+/**
+ * sigon_identity_verify_secret:
+ * @message: secret.
+ * @cb: callback
+ * @user_data : user_data.
+ *
+ * Verifies the given secret
+ * gboolean result: is verified or not
+ */
 void sigon_identity_verify_secret(SignonIdentity *self,
                                   const gchar *secret,
                                   SignonIdentityVerifyCb cb,
