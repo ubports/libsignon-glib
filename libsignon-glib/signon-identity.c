@@ -796,7 +796,6 @@ identity_verify_ready_cb (gpointer object, const GError *error, gpointer user_da
     g_slice_free (IdentityVerifyData, operation_data);
 }
 
-
 static void
 identity_verify_data(SignonIdentity *self,
                      const gchar *data_to_send,

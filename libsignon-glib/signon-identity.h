@@ -134,6 +134,32 @@ void sigon_identity_verify_secret(SignonIdentity *self,
                                   SignonIdentityVerifyCb cb,
                                   gpointer user_data);
 
+typedef void (*SignonIdentityRemoveCb) (SignonIdentity *self,
+                                        const GError *error,
+                                        gpointer user_data);
+
+void sigon_identity_remove(SignonIdentity *self,
+                           SignonIdentityRemoveCb cb,
+                           gpointer user_data);
+
+typedef void (*SignonIdentityInfoCb) (SignonIdentity *self,
+                                        SignonIdentityInfo *info,
+                                        const GError *error,
+                                        gpointer user_data);
+
+void sigon_identity_info(SignonIdentity *self,
+                         SignonIdentityInfoCb cb,
+                         gpointer user_data);
+
+typedef void (*SignonIdentitySignOutCb) (SignonIdentity *self,
+                                      const GError *error,
+                                      gpointer user_data);
+
+void sigon_identity_signout(SignonIdentity *self,
+                            SignonIdentitySignOutCb cb,
+                            gpointer user_data);
+
+
 G_END_DECLS
 
 #endif /* _SIGNON_IDENTITY_H_ */
