@@ -58,25 +58,25 @@ typedef void (*SignonIdentityVoidCb) (SignonIdentity *self,
                                       const GError *error,
                                       gpointer user_data);
 
-typedef SignonIdentityVoidCb SignonIdentitySignOutCb;
+typedef SignonIdentityVoidCb SignonIdentityRemovedCb;
+typedef SignonIdentityVoidCb SignonIdentitySignedOutCb;
 
 /*
  * types used in SignonIdentityInfo
  * */
-enum {
+enum _SignonIdentityType {
     SIGNON_TYPE_OTHER = 0,
     SIGNON_TYPE_APP = 1 << 0,
     SIGNON_TYPE_WEB = 1 << 1,
     SIGNON_TYPE_NETWORK = 1 << 2
 };
 
+typedef enum _SignonIdentityType SignonIdentityType;
+
 GType signon_identity_get_type (void) G_GNUC_CONST;
 
-SignonIdentity *signon_identity_new_from_db (guint32 id,
-                                             SignonIdentitySignOutCb signout_cb,
-                                             gpointer signout_cb_data);
-SignonIdentity *signon_identity_new (SignonIdentitySignOutCb signout_cb,
-                                     gpointer signout_cb_data);
+SignonIdentity *signon_identity_new_from_db (guint32 id);
+SignonIdentity *signon_identity_new ();
 
 GError *signon_identity_get_last_error (SignonIdentity *identity);
 
@@ -114,7 +114,7 @@ void signon_identity_store_credentials_with_args(SignonIdentity *self,
                                                  const gchar *caption,
                                                  const gchar **realms,
                                                  const gchar **access_control_list,
-                                                 const gint type,
+                                                 SignonIdentityType type,
                                                  SignonIdentityStoreCredentialsCb cb,
                                                  gpointer user_data);
 
@@ -143,10 +143,12 @@ void signon_identity_query_info(SignonIdentity *self,
                                gpointer user_data);
 
 void signon_identity_remove(SignonIdentity *self,
-                           SignonIdentityVoidCb cb,
+                           SignonIdentityRemovedCb cb,
                            gpointer user_data);
 
-void signon_identity_signout(SignonIdentity *self);
+void signon_identity_signout(SignonIdentity *self,
+                            SignonIdentitySignedOutCb cb,
+                            gpointer user_data);
 
 SignonIdentityInfo *signon_identity_info_new ();
 
@@ -168,7 +170,7 @@ const gchar **signon_identity_info_get_realms (const SignonIdentityInfo *info);
 
 const gchar **signon_identity_info_get_access_control_list (const SignonIdentityInfo *info);
 
-gint signon_identity_info_get_type (const SignonIdentityInfo *info);
+SignonIdentityType signon_identity_info_get_type (const SignonIdentityInfo *info);
 
 void signon_identity_info_set_username (SignonIdentityInfo *info, const gchar *username);
 
@@ -184,7 +186,7 @@ void signon_identity_info_set_realms (SignonIdentityInfo *info, const gchar **re
 
 void signon_identity_info_set_access_control_list (SignonIdentityInfo *info, const gchar **access_control_list);
 
-void signon_identity_info_set_type (SignonIdentityInfo *info, gint type);
+void signon_identity_info_set_type (SignonIdentityInfo *info, SignonIdentityType type);
 
 G_END_DECLS
 
