@@ -38,6 +38,7 @@
 #include "signon-client-glib-gen.h"
 #include "signon-dbus-queue.h"
 #include "signon-utils.h"
+#include "signon-errors.h"
 
 #define SIGNON_IDENTITY_IFACE  "com.nokia.singlesignon.SignonIdentity"
 
@@ -46,8 +47,19 @@ G_DEFINE_TYPE (SignonIdentity, signon_identity, G_TYPE_OBJECT);
 enum
 {
     PROP_0,
-
     PROP_ID
+};
+
+enum {
+    NOT_READY,
+    READY,
+    REMOVED,
+};
+
+enum  {
+    DATA_UPDATED = 0,
+    IDENTITY_REMOVED,
+    IDENTITY_SIGNED_OUT
 };
 
 struct _SignonIdentityPrivate
@@ -58,13 +70,41 @@ struct _SignonIdentityPrivate
     SignonIdentityInfo *identity_info;
     GError *last_error;
 
-    GPtrArray *tmp_identity_ptrarray;
     GSList *sessions;
+
+    gint state;
+
+    gboolean signed_out;
+    gboolean updated;
+
+    SignonIdentitySignOutCb signout_cb;
+    gpointer signout_cb_data;
 
     guint id;
 };
 
+struct _SignonIdentityInfo
+{
+    gint id;
+    gchar *username;
+    gchar *secret;
+    gchar *caption;
+    gboolean store_secret;
+    GHashTable *methods;
+    gchar **realms;
+    gchar **access_control_list;
+    gint type;
+};
+
+
 #define SIGNON_IDENTITY_PRIV(obj) (SIGNON_IDENTITY(obj)->priv)
+
+typedef struct _IdentityStoreCredentialsCbData
+{
+    SignonIdentity *self;
+    SignonIdentityStoreCredentialsCb cb;
+    gpointer user_data;
+} IdentityStoreCredentialsCbData;
 
 typedef struct _IdentityStoreCredentialsData
 {
@@ -81,7 +121,10 @@ typedef struct _IdentityStoreCredentialsData
 
 enum {
     SIGNON_VERIFY_USER,
-    SIGNON_VERIFY_SECRET
+    SIGNON_VERIFY_SECRET,
+    SIGNON_INFO,
+    SIGNON_REMOVE,
+    SIGNON_SIGNOUT
 };
 
 typedef struct _IdentityVerifyCbData
@@ -94,18 +137,30 @@ typedef struct _IdentityVerifyCbData
 typedef struct _IdentityVerifyData
 {
     gchar *data_to_send;
-    gboolean verify_secret;
+    gint operation;
     gpointer cb_data;
 } IdentityVerifyData;
 
-typedef struct _IdentityStoreCredentialsCbData
+typedef struct _IdentityInfoCbData
 {
     SignonIdentity *self;
-    SignonIdentityStoreCredentialsCb cb;
+    SignonIdentityInfoCb cb;
     gpointer user_data;
-} IdentityStoreCredentialsCbData;
+} IdentityInfoCbData;
 
-static void identity_info_free (SignonIdentityInfo *identity_info);
+typedef struct _IdentityVoidCbData
+{
+    SignonIdentity *self;
+    SignonIdentityVoidCb cb;
+    gpointer user_data;
+} IdentityVoidCbData;
+
+typedef struct _IdentityVoidData
+{
+    gint operation;
+    gpointer cb_data;
+} IdentityVoidData;
+
 static void identity_registered (SignonIdentity *identity, DBusGProxy *proxy, char *object_path,
                                  GPtrArray *identity_array, GError *error);
 static void identity_new_cb (DBusGProxy *proxy, char *objectPath, GError *error, gpointer userdata);
@@ -114,10 +169,35 @@ static void identity_new_from_db_cb (DBusGProxy *proxy, char *objectPath, GPtrAr
 static void identity_store_credentials_ready_cb (gpointer object, const GError *error, gpointer user_data);
 static void identity_store_credentials_reply (DBusGProxy *proxy, guint id, GError *error, gpointer userdata);
 static void identity_session_object_destroyed_cb (gpointer data, GObject *where_the_session_was);
-static void identity_verify_data (SignonIdentity *self, const gchar *data_to_send, gboolean verify_secret,
+static void identity_verify_data (SignonIdentity *self, const gchar *data_to_send, gint operation,
                                     SignonIdentityVerifyCb cb, gpointer user_data);
 static void identity_verify_ready_cb (gpointer object, const GError *error, gpointer user_data);
 static void identity_verify_reply (DBusGProxy *proxy, gboolean valid, GError *error, gpointer userdata);
+
+static void identity_signout_reply (DBusGProxy *proxy, gboolean result, GError *error, gpointer userdata);
+static void identity_removed_reply (DBusGProxy *proxy, GError *error, gpointer userdata);
+static void identity_info_reply(DBusGProxy *proxy, GPtrArray *identity_array,
+                                    GError *error, gpointer userdata);
+void static identity_void_operation (SignonIdentity *self, gint operation, gpointer cb_data);
+static void identity_void_ready_cb (gpointer object, const GError *error, gpointer user_data);
+static void identity_info_ready_cb (gpointer object, const GError *error, gpointer user_data);
+static void identity_state_changed_cb (DBusGProxy *proxy, gint state, gpointer user_data);
+
+static SignonIdentityInfo *identity_ptrarray_to_identity_info (const GPtrArray *identity_array);
+
+static void identity_process_signout (SignonIdentity *self, const GError *error);
+static void identity_process_updated (SignonIdentity *self);
+static void identity_process_removed (SignonIdentity *self);
+
+static const gchar *identity_info_get_secret (const SignonIdentityInfo *info);
+static void identity_info_set_id (SignonIdentityInfo *info, gint id);
+static void identity_info_set_methods (SignonIdentityInfo *info, const GHashTable *methods);
+static void identity_methods_copy (gpointer key, gpointer value, gpointer user_data);
+
+static GHashTable *identity_methods_to_valuearray (const GHashTable *methods);
+static void identity_stringarray_to_value (gpointer key, gpointer value, gpointer user_data);
+static void identity_value_to_stringarray (gpointer key, gpointer value, gpointer user_data);
+static void identity_gvalue_free (GValue *value);
 
 
 static GQuark
@@ -147,7 +227,6 @@ signon_identity_set_property (GObject *object,
     default:
         G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
         break;
-
     }
 }
 
@@ -179,9 +258,12 @@ signon_identity_init (SignonIdentity *identity)
 
     identity->priv->signon_proxy = signon_proxy_new();
 
+    identity->priv->state = FALSE;
     identity->priv->proxy = NULL;
-    identity->priv->tmp_identity_ptrarray = NULL;
     identity->priv->identity_info = NULL;
+    identity->priv->signed_out = FALSE;
+    identity->priv->updated = FALSE;
+    identity->priv->state = NOT_READY;
 }
 
 static void
@@ -192,7 +274,7 @@ signon_identity_dispose (GObject *object)
 
     if (priv->identity_info)
     {
-        identity_info_free (priv->identity_info);
+        signon_identity_info_free (priv->identity_info);
         priv->identity_info = NULL;
     }
 
@@ -203,11 +285,6 @@ signon_identity_dispose (GObject *object)
     {
         g_object_unref (priv->signon_proxy);
         priv->signon_proxy = NULL;
-    }
-
-    if (priv->tmp_identity_ptrarray)
-    {
-        g_ptr_array_free (priv->tmp_identity_ptrarray, TRUE);
     }
 
     if (priv->proxy)
@@ -256,15 +333,29 @@ signon_identity_class_init (SignonIdentityClass *klass)
 }
 
 static void
-identity_info_free (SignonIdentityInfo *identity_info)
+identity_state_changed_cb (DBusGProxy *proxy,
+                           gint state,
+                           gpointer user_data)
 {
-    g_return_if_fail (identity_info != NULL);
+    g_return_if_fail (SIGNON_IS_IDENTITY (user_data));
+    SignonIdentity *self = SIGNON_IDENTITY (user_data);
 
-    g_free (identity_info->user_name);
-    g_free (identity_info->password);
-    g_free (identity_info->caption);
-
-    g_slice_free (SignonIdentityInfo, identity_info);
+    switch (state) {
+        case DATA_UPDATED:
+            DEBUG ("State changed to DATA_UPDATED");
+            identity_process_updated (self);
+            break;
+        case IDENTITY_REMOVED:
+            DEBUG ("State changed to IDENTITY_REMOVED");
+            identity_process_removed (self);
+            break;
+        case IDENTITY_SIGNED_OUT:
+            DEBUG ("State changed to IDENTITY_SIGNED_OUT");
+            identity_process_signout (self, NULL);
+            break;
+        default:
+            g_critical ("wrong state value obtained from signon daemon");
+    };
 }
 
 static void
@@ -295,58 +386,42 @@ identity_registered (SignonIdentity *identity, DBusGProxy *proxy,
          * TODO: as Aurel will finalize the code polishing so we will
          * need to implement the refresh of the proxy to SignonIdentity
          * */
-        priv->proxy = dbus_g_proxy_new_from_proxy (DBUS_G_PROXY (priv->signon_proxy),
-                                                   SIGNON_IDENTITY_IFACE,
-                                                   object_path);
-        DEBUG("%s: ", G_STRFUNC);
+
+        if (!priv->proxy)
+        {
+            priv->proxy = dbus_g_proxy_new_from_proxy (DBUS_G_PROXY (priv->signon_proxy),
+                                                       SIGNON_IDENTITY_IFACE,
+                                                       object_path);
+
+            dbus_g_object_register_marshaller (g_cclosure_marshal_VOID__INT,
+                                               G_TYPE_NONE,
+                                               G_TYPE_INT,
+                                               G_TYPE_INVALID);
+
+            dbus_g_proxy_add_signal (priv->proxy,
+                                     "infoUpdated",
+                                     G_TYPE_INT,
+                                     G_TYPE_INVALID);
+
+            dbus_g_proxy_connect_signal (priv->proxy,
+                                         "infoUpdated",
+                                         G_CALLBACK (identity_state_changed_cb),
+                                         identity,
+                                         NULL);
+        }
 
         if (identity_array)
         {
-            priv->identity_info = g_slice_new(SignonIdentityInfo);
-
             DEBUG("%s: ", G_STRFUNC);
-            GValue *value;
-
-            /* get the user name (gchar*) */
-            value = g_ptr_array_index (identity_array, 1);
-            g_assert (G_VALUE_HOLDS_STRING(value));
-            priv->identity_info->user_name = g_value_dup_string (value);
-            g_value_unset (value);
-
-            /* get the password (gchar*) */
-            value = g_ptr_array_index (identity_array, 2);
-            g_assert (G_VALUE_HOLDS_STRING(value));
-            priv->identity_info->password = g_value_dup_string (value);
-            g_value_unset (value);
-
-            /* get the caption (gchar*) */
-            value = g_ptr_array_index (identity_array, 3);
-            g_assert (G_VALUE_HOLDS_STRING(value));
-            priv->identity_info->caption = g_value_dup_string (value);
-            g_value_unset (value);
-
-            DEBUG("%s: %s %s %s", G_STRFUNC, priv->identity_info->user_name,
-                                             priv->identity_info->password,
-                                             priv->identity_info->caption);
-
+            priv->identity_info = identity_ptrarray_to_identity_info (identity_array);
             g_ptr_array_free (identity_array, TRUE);
         }
+
+        priv->updated = TRUE;
     }
+
     _signon_object_ready (identity, identity_object_quark (), error);
-}
-
-gchar*
-signon_identity_get_username (SignonIdentity *identity)
-{
-    g_return_val_if_fail (SIGNON_IS_IDENTITY (identity), NULL);
-    SignonIdentityPrivate *priv;
-
-    DEBUG ("%s %d", G_STRFUNC, __LINE__);
-    priv = identity->priv;
-    g_return_val_if_fail(priv != NULL, NULL);
-    g_return_val_if_fail(priv->identity_info != NULL, NULL);
-
-    return g_strdup (priv->identity_info->user_name);
+    identity->priv->state = READY;
 }
 
 GError*
@@ -373,7 +448,6 @@ identity_new_cb (DBusGProxy *proxy,
     identity_registered (identity, proxy, object_path, NULL, new_error);
 }
 
-
 static void
 identity_new_from_db_cb (DBusGProxy *proxy,
                          char *objectPath,
@@ -396,7 +470,9 @@ identity_new_from_db_cb (DBusGProxy *proxy,
  * Returns: an instance of an #SignonIdentity.
  */
 SignonIdentity*
-signon_identity_new_from_db (guint32 id)
+signon_identity_new_from_db (guint32 id,
+                             SignonIdentitySignOutCb signout_cb,
+                             gpointer signout_cb_data)
 {
     SignonIdentity *identity;
     DEBUG ("%s %d: %d\n", G_STRFUNC, __LINE__, id);
@@ -404,12 +480,15 @@ signon_identity_new_from_db (guint32 id)
         return NULL;
 
     identity = g_object_new (SIGNON_TYPE_IDENTITY, "id", id, NULL);
+    g_return_val_if_fail (SIGNON_IS_IDENTITY (identity), NULL);
+    g_return_val_if_fail (identity->priv != NULL, NULL);
+
     identity->priv->id = id;
+    identity->priv->signout_cb = signout_cb;
+    identity->priv->signout_cb_data = signout_cb_data;
 
     com_nokia_singlesignon_SignonDaemon_register_stored_identity_async
         (DBUS_G_PROXY (identity->priv->signon_proxy), id, identity_new_from_db_cb, identity);
-
-    g_return_val_if_fail (SIGNON_IS_IDENTITY (identity), NULL);
 
     return identity;
 }
@@ -422,11 +501,16 @@ signon_identity_new_from_db (guint32 id)
  * Returns: an instance of an #SignonIdentity.
  */
 SignonIdentity*
-signon_identity_new ()
+signon_identity_new (SignonIdentitySignOutCb signout_cb,
+                     gpointer signout_cb_data)
 {
     DEBUG ("%s %d", G_STRFUNC, __LINE__);
     SignonIdentity *identity = g_object_new (SIGNON_TYPE_IDENTITY, NULL);
     g_return_val_if_fail (SIGNON_IS_IDENTITY (identity), NULL);
+    g_return_val_if_fail (identity->priv != NULL, NULL);
+
+    identity->priv->signout_cb = signout_cb;
+    identity->priv->signout_cb_data = signout_cb_data;
 
     com_nokia_singlesignon_SignonDaemon_register_new_identity_async
         (DBUS_G_PROXY (identity->priv->signon_proxy), identity_new_cb, identity);
@@ -491,6 +575,7 @@ SignonAuthSession *signon_identity_create_session(SignonIdentity *self,
          * first
          * */
         g_object_ref (self);
+        priv->signed_out = FALSE;
     }
 
     return session;
@@ -500,38 +585,57 @@ SignonAuthSession *signon_identity_create_session(SignonIdentity *self,
  * signon_identity_store_credentials:
  * @id: identity ID.
  * @info: info.
- * @store_secret: store secret flag.
- * @methods: methods.
- * @realms: relams.
- * @access_control_list: access control list.
  * @cb: callback
  * @user_data : user_data.
  *
- * Construct an identity object associated with an existing identity record.
- * Returns: an instance of an #SignonIdentity.
+ * Stores info for correspondent identity
+ * Returns: result
  */
 void signon_identity_store_credentials_with_info(SignonIdentity *self,
                                                  const SignonIdentityInfo *info,
-                                                 const gboolean store_secret,
-                                                 const GHashTable *methods,
-                                                 const gchar **realms,
-                                                 const gchar **access_control_list,
-                                                 const gint type,
                                                  SignonIdentityStoreCredentialsCb cb,
                                                  gpointer user_data)
 {
     g_return_if_fail(info != NULL);
+
     signon_identity_store_credentials_with_args(self,
-                                                info->user_name,
-                                                info->password,
-                                                store_secret,
-                                                methods,
+                                                info->username,
+                                                info->secret,
+                                                info->store_secret,
+                                                info->methods,
                                                 info->caption,
-                                                realms,
-                                                access_control_list,
-                                                type,
+                                                (const gchar**)info->realms,
+                                                (const gchar**)info->access_control_list,
+                                                info->type,
                                                 cb,
                                                 user_data);
+}
+
+static void
+identity_gvalue_free(GValue *value)
+{
+    g_value_unset(value);
+    g_free(value);
+}
+
+static void
+identity_stringarray_to_value (gpointer key, gpointer value, gpointer user_data)
+{
+    GValue *gvalue = g_value_init(g_new0(GValue, 1), G_TYPE_STRV);
+    g_value_set_boxed (gvalue, (gchar **)value);
+    g_hash_table_insert ((GHashTable *)user_data, g_strdup((gchar *)key), gvalue);
+}
+
+
+static GHashTable *
+identity_methods_to_valuearray (const GHashTable *methods)
+{
+    DEBUG ("%s", __func__);
+    GHashTable *valuearray = g_hash_table_new_full (g_str_hash, g_str_equal,
+                                                g_free, (GDestroyNotify)identity_gvalue_free);
+    g_hash_table_foreach ((GHashTable *)methods,
+                            identity_stringarray_to_value, valuearray);
+    return valuearray;
 }
 
 /**
@@ -566,10 +670,12 @@ void signon_identity_store_credentials_with_args(SignonIdentity *self,
     SignonIdentityPrivate *priv = self->priv;
     g_return_if_fail (priv != NULL);
 
-    g_return_if_fail (type == SIGNON_TYPE_OTHER ||
-                      type == SIGNON_TYPE_APP ||
-                      type == SIGNON_TYPE_WEB ||
-                      type == SIGNON_TYPE_NETWORK);
+    g_return_if_fail ( methods != NULL );
+    g_return_if_fail (type >= SIGNON_TYPE_OTHER);
+    g_return_if_fail (type <= (SIGNON_TYPE_OTHER |
+                               SIGNON_TYPE_APP |
+                               SIGNON_TYPE_WEB |
+                               SIGNON_TYPE_NETWORK) );
 
     DEBUG ("%s %d", G_STRFUNC, __LINE__);
 
@@ -583,7 +689,7 @@ void signon_identity_store_credentials_with_args(SignonIdentity *self,
     operation_data->username = g_strdup (username);
     operation_data->secret = g_strdup (secret);
     operation_data->store_secret = store_secret;
-    operation_data->methods = signon_copy_variant_map (methods);
+    operation_data->methods = identity_methods_to_valuearray (methods);
     operation_data->caption = g_strdup (caption);
     operation_data->realms = g_strdupv((gchar **)realms);
     operation_data->access_control_list = g_strdupv((gchar **)access_control_list);
@@ -618,13 +724,17 @@ identity_store_credentials_ready_cb (gpointer object, const GError *error, gpoin
     {
         DEBUG ("IdentityError: %s", error->message);
 
-        (cb_data->cb)
-            (self, 0, error, cb_data->user_data);
+        if (cb_data->cb)
+        {
+            (cb_data->cb) (self, 0, error, cb_data->user_data);
+        }
 
         g_slice_free (IdentityStoreCredentialsCbData, cb_data);
     }
-    else if (priv->proxy)
+    else
     {
+        g_return_if_fail (priv->proxy != NULL);
+
         (void)com_nokia_singlesignon_SignonIdentity_store_credentials_async(
                     priv->proxy,
                     priv->id,
@@ -638,22 +748,11 @@ identity_store_credentials_ready_cb (gpointer object, const GError *error, gpoin
                     operation_data->type,
                     identity_store_credentials_reply,
                     cb_data);
-
-        DEBUG ("%s %d", G_STRFUNC, __LINE__);
-
-        GPtrArray *ptrarray = g_ptr_array_new_with_free_func(g_free);
-
-        g_ptr_array_add(ptrarray, operation_data->username);
-        g_ptr_array_add(ptrarray, operation_data->secret);
-        g_ptr_array_add(ptrarray, operation_data->caption);
-
-        priv->tmp_identity_ptrarray = ptrarray;
-    }
-    else if (!priv->proxy)
-    {
-        g_critical ("IdentityError: proxy is not initialized but error is NULL");
     }
 
+    g_free (operation_data->username);
+    g_free (operation_data->secret);
+    g_free (operation_data->caption);
     g_hash_table_destroy (operation_data->methods);
     g_strfreev (operation_data->realms);
     g_strfreev (operation_data->access_control_list);
@@ -678,42 +777,32 @@ identity_store_credentials_reply (DBusGProxy *proxy,
 
     new_error = _signon_errors_get_error_from_dbus (error);
 
-    (cb_data->cb)
-        (cb_data->self, id, new_error, cb_data->user_data);
-
-    GPtrArray *ptrarray = priv->tmp_identity_ptrarray;
+    if (cb_data->cb)
+    {
+        (cb_data->cb) (cb_data->self, id, new_error, cb_data->user_data);
+    }
 
     if (error == NULL)
     {
-        if (priv->identity_info)
-        {
-            g_free (priv->identity_info->user_name);
-            g_free (priv->identity_info->password);
-            g_free (priv->identity_info->caption);
-        }
-        else
-            priv->identity_info = g_slice_new(SignonIdentityInfo);
-
-        DEBUG ("%s %d", G_STRFUNC, __LINE__);
-
-        priv->identity_info->user_name = g_strdup((gchar *)g_ptr_array_index (ptrarray, 0));
-        priv->identity_info->password = g_strdup((gchar *)g_ptr_array_index (ptrarray, 1));
-        priv->identity_info->caption = g_strdup((gchar *)g_ptr_array_index (ptrarray, 2));
-
-        g_ptr_array_free (ptrarray, TRUE);
-        priv->tmp_identity_ptrarray = NULL;
+        g_return_if_fail (priv->identity_info == NULL);
 
         GSList *slist = priv->sessions;
 
         while (slist)
         {
             SignonAuthSession *session = SIGNON_AUTH_SESSION (priv->sessions->data);
-            signon_auth_session_set_id(session, id);
-            slist = g_slist_next(slist);
+            signon_auth_session_set_id (session, id);
+            slist = g_slist_next (slist);
         }
 
         g_object_set (cb_data->self, "id", id, NULL);
         cb_data->self->priv->id = id;
+
+        /*
+         * if the previous state was REMOVED
+         * then we need to reset it
+         * */
+        priv->state = READY;
     }
 
     g_clear_error(&new_error);
@@ -734,13 +823,14 @@ identity_verify_reply (DBusGProxy *proxy,
 
     new_error = _signon_errors_get_error_from_dbus (error);
 
-    (cb_data->cb)
-        (cb_data->self, valid, new_error, cb_data->user_data);
+    if (cb_data->cb)
+    {
+        (cb_data->cb) (cb_data->self, valid, new_error, cb_data->user_data);
+    }
 
     g_clear_error(&new_error);
     g_slice_free (IdentityVerifyCbData, cb_data);
 }
-
 
 static void
 identity_verify_ready_cb (gpointer object, const GError *error, gpointer user_data)
@@ -760,35 +850,53 @@ identity_verify_ready_cb (gpointer object, const GError *error, gpointer user_da
     IdentityVerifyCbData *cb_data = operation_data->cb_data;
     g_return_if_fail (cb_data != NULL);
 
-    if (error)
+    if (priv->state == REMOVED)
+    {
+        GError *new_error = g_error_new (signon_error_quark(),
+                                         SIGNON_ERROR_NOT_FOUND,
+                                         "Already removed from database.");
+
+        if (cb_data->cb)
+        {
+            (cb_data->cb) (self, FALSE, new_error, cb_data->user_data);
+        }
+
+        g_error_free (new_error);
+        g_slice_free (IdentityVerifyCbData, cb_data);
+    }
+    else if (error)
     {
         DEBUG ("IdentityError: %s", error->message);
 
-        (cb_data->cb)
-            (self, FALSE, error, cb_data->user_data);
+        if (cb_data->cb)
+        {
+            (cb_data->cb) (self, FALSE, error, cb_data->user_data);
+        }
 
         g_slice_free (IdentityVerifyCbData, cb_data);
     }
-    else if (priv->proxy)
+    else
     {
         DEBUG ("%s %d", G_STRFUNC, __LINE__);
+        g_return_if_fail (priv->proxy != NULL);
 
-        if (operation_data->verify_secret == SIGNON_VERIFY_SECRET)
-            com_nokia_singlesignon_SignonIdentity_verify_secret_async(
-                    priv->proxy,
-                    operation_data->data_to_send,
-                    identity_verify_reply,
-                    cb_data);
-        else if (operation_data->verify_secret == SIGNON_VERIFY_USER)
+        switch (operation_data->operation) {
+            case SIGNON_VERIFY_SECRET:
+                com_nokia_singlesignon_SignonIdentity_verify_secret_async(
+                        priv->proxy,
+                        operation_data->data_to_send,
+                        identity_verify_reply,
+                        cb_data);
+            break;
+            case SIGNON_VERIFY_USER:
             com_nokia_singlesignon_SignonIdentity_verify_user_async(
                     priv->proxy,
                     operation_data->data_to_send,
                     identity_verify_reply,
                     cb_data);
-    }
-    else if (!priv->proxy)
-    {
-        g_critical ("IdentityError: proxy is not initialized but error is NULL");
+            break;
+            default: g_critical ("Wrong operation code");
+        };
     }
 
     g_free (operation_data->data_to_send);
@@ -798,7 +906,7 @@ identity_verify_ready_cb (gpointer object, const GError *error, gpointer user_da
 static void
 identity_verify_data(SignonIdentity *self,
                      const gchar *data_to_send,
-                     gboolean verify_secret,
+                     gint operation,
                      SignonIdentityVerifyCb cb,
                      gpointer user_data)
 {
@@ -817,7 +925,7 @@ identity_verify_data(SignonIdentity *self,
     IdentityVerifyData *operation_data = g_slice_new0 (IdentityVerifyData);
 
     operation_data->data_to_send = g_strdup (data_to_send);
-    operation_data->verify_secret = verify_secret;
+    operation_data->operation = operation;
     operation_data->cb_data = cb_data;
 
     _signon_object_call_when_ready (self,
@@ -835,7 +943,7 @@ identity_verify_data(SignonIdentity *self,
  * Verifies the given username
  * gboolean result: is verified or not
  */
-void sigon_identity_verify_user(SignonIdentity *self,
+void signon_identity_verify_user(SignonIdentity *self,
                                 const gchar *message,
                                 SignonIdentityVerifyCb cb,
                                 gpointer user_data)
@@ -856,7 +964,7 @@ void sigon_identity_verify_user(SignonIdentity *self,
  * Verifies the given secret
  * gboolean result: is verified or not
  */
-void sigon_identity_verify_secret(SignonIdentity *self,
+void signon_identity_verify_secret(SignonIdentity *self,
                                   const gchar *secret,
                                   SignonIdentityVerifyCb cb,
                                   gpointer user_data)
@@ -866,4 +974,691 @@ void sigon_identity_verify_secret(SignonIdentity *self,
                           SIGNON_VERIFY_SECRET,
                           cb,
                           user_data);
+}
+
+static void
+identity_value_to_stringarray (gpointer key, gpointer value, gpointer user_data)
+{
+    gchar **stringarray = (gchar **)g_value_get_boxed ((const GValue *)value);
+    g_hash_table_insert ((GHashTable *)user_data, g_strdup((gchar *)key),
+                            g_strdupv (stringarray));
+}
+
+static SignonIdentityInfo *
+identity_ptrarray_to_identity_info (const GPtrArray *identity_array)
+{
+    if (!identity_array)
+        return NULL;
+
+    SignonIdentityInfo *info = signon_identity_info_new ();
+
+    DEBUG("%s: ", G_STRFUNC);
+    GValue *value;
+
+    /* get the id (gint) */
+    value = g_ptr_array_index (identity_array, 0);
+    g_assert (G_VALUE_HOLDS_UINT(value));
+    identity_info_set_id (info, g_value_get_uint (value));
+    g_value_unset (value);
+
+    /* get the user name (gchar*) */
+    value = g_ptr_array_index (identity_array, 1);
+    g_assert (G_VALUE_HOLDS_STRING(value));
+    signon_identity_info_set_username (info, g_value_get_string (value));
+    g_value_unset (value);
+
+    /* get the password (gchar*)
+     * TODO: FIX THESE PART
+     * AS SOON AS THE REPLY FROM
+     * THE SERVER WILL BE FIXED
+     * BECAUSE SERVER DOES NOAT HAVE
+     * TO RETURN PASSWORD; BUT storedSecret
+     * VALUE
+     * */
+
+    value = g_ptr_array_index (identity_array, 2);
+    g_assert (G_VALUE_HOLDS_STRING(value));
+    signon_identity_info_set_secret (info, g_value_get_string (value), TRUE);
+    g_value_unset (value);
+
+    /* get the caption (gchar*) */
+    value = g_ptr_array_index (identity_array, 3);
+    g_assert (G_VALUE_HOLDS_STRING(value));
+    signon_identity_info_set_caption (info, g_value_get_string (value));
+    g_value_unset (value);
+
+    /* get the realms (gchar**) */
+    value = g_ptr_array_index (identity_array, 4);
+    g_assert (G_VALUE_TYPE (value) == G_TYPE_STRV);
+    signon_identity_info_set_realms (info, (const gchar **)g_value_get_boxed (value));
+    g_value_unset (value);
+
+    /* get the methods GPtrArray (QVariantMap in original) */
+    value = g_ptr_array_index (identity_array, 5);
+    g_assert (G_VALUE_HOLDS_BOXED (value));
+
+    info->methods = g_hash_table_new_full (g_str_hash, g_str_equal,
+                                            g_free, (GDestroyNotify)g_strfreev);
+    g_hash_table_foreach ((GHashTable *)g_value_get_boxed(value),
+                                            identity_value_to_stringarray,
+                                                info->methods);
+    g_value_unset (value);
+    /* get the accessControlList (gchar**) */
+    value = g_ptr_array_index (identity_array, 6);
+    g_assert (G_VALUE_TYPE (value) == G_TYPE_STRV);
+    signon_identity_info_set_realms (info, (const gchar **)g_value_get_boxed (value));
+    g_value_unset (value);
+
+    /* get the type (gint) */
+    value = g_ptr_array_index (identity_array, 7);
+    g_assert (G_VALUE_HOLDS_INT(value));
+    signon_identity_info_set_type (info, g_value_get_int (value));
+    g_value_unset (value);
+
+    return info;
+}
+
+static void
+identity_process_updated (SignonIdentity *self)
+{
+    DEBUG ("%d %s", __LINE__, __func__);
+
+    g_return_if_fail (self != NULL);
+    g_return_if_fail (self->priv != NULL);
+
+    SignonIdentityPrivate *priv = self->priv;
+    g_return_if_fail (priv->state != NOT_READY);
+    g_return_if_fail (priv->proxy != NULL);
+
+    signon_identity_info_free (priv->identity_info);
+    priv->identity_info = NULL;
+    priv->updated = FALSE;
+}
+
+static void
+identity_process_removed (SignonIdentity *self)
+{
+    g_return_if_fail (self != NULL);
+    g_return_if_fail (self->priv != NULL);
+
+    DEBUG ("%d %s", __LINE__, __func__);
+
+    SignonIdentityPrivate *priv = self->priv;
+
+    if (priv->state == REMOVED)
+        return;
+
+    priv->state = REMOVED;
+    signon_identity_info_free (priv->identity_info);
+    priv->identity_info = NULL;
+
+    g_object_set (self, "id", 0, NULL);
+    priv->id = 0;
+}
+
+static void
+identity_process_signout(SignonIdentity *self, const GError *error)
+{
+    g_return_if_fail (self != NULL);
+    g_return_if_fail (self->priv != NULL);
+
+    SignonIdentityPrivate *priv = self->priv;
+
+    if (priv->signed_out == TRUE)
+        return;
+
+    if (error == NULL)
+    {
+        while (priv->sessions)
+        {
+            /*
+             * TODO: figure out what need
+             * to be done with sessions
+             * */
+            g_object_unref (G_OBJECT(priv->sessions->data));
+            priv->sessions = g_slist_delete_link (priv->sessions, priv->sessions);
+        }
+
+        priv->signed_out = TRUE;
+    }
+
+    /*
+     * Here is the main problem: should we let the user
+     * to know that his signout attempt failed?
+     * If no then we have to change this code and remove
+     * GError* from callback's signature
+     * */
+    if (priv->signout_cb)
+    {
+        (priv->signout_cb) (self, error, priv->signout_cb_data);
+    }
+}
+
+static void
+identity_signout_reply (DBusGProxy *proxy,
+                        gboolean result,
+                        GError *error,
+                        gpointer userdata)
+{
+    GError *new_error = NULL;
+    IdentityVoidCbData *cb_data = (IdentityVoidCbData *)userdata;
+
+    g_return_if_fail (cb_data != NULL);
+    g_return_if_fail (cb_data->self != NULL);
+
+    (void)result;
+    new_error = _signon_errors_get_error_from_dbus (error);
+
+    identity_process_signout (cb_data->self, new_error);
+
+    g_clear_error(&new_error);
+    g_slice_free (IdentityVoidCbData, cb_data);
+}
+
+static void
+identity_removed_reply (DBusGProxy *proxy,
+                        GError *error,
+                        gpointer userdata)
+{
+    GError *new_error = NULL;
+    IdentityVoidCbData *cb_data = (IdentityVoidCbData *)userdata;
+
+    g_return_if_fail (cb_data != NULL);
+    g_return_if_fail (cb_data->self != NULL);
+    g_return_if_fail (cb_data->self->priv != NULL);
+
+    new_error = _signon_errors_get_error_from_dbus (error);
+
+    if (cb_data->cb)
+    {
+        (cb_data->cb) (cb_data->self, new_error, cb_data->user_data);
+    }
+
+    g_clear_error(&new_error);
+    g_slice_free (IdentityVoidCbData, cb_data);
+}
+
+static void
+identity_info_reply(DBusGProxy *proxy, GPtrArray *identity_array,
+                    GError *error, gpointer userdata)
+{
+    DEBUG ("%d %s", __LINE__, __func__);
+
+    GError *new_error = NULL;
+    IdentityInfoCbData *cb_data = (IdentityInfoCbData *)userdata;
+
+    g_return_if_fail (cb_data != NULL);
+    g_return_if_fail (cb_data->self != NULL);
+    g_return_if_fail (cb_data->self->priv != NULL);
+
+    SignonIdentityPrivate *priv = cb_data->self->priv;
+
+    new_error = _signon_errors_get_error_from_dbus (error);
+    priv->identity_info = identity_ptrarray_to_identity_info (identity_array);
+    g_ptr_array_free (identity_array, TRUE);
+
+    if (cb_data->cb)
+    {
+        (cb_data->cb) (cb_data->self, priv->identity_info, new_error, cb_data->user_data);
+    }
+
+    g_clear_error(&new_error);
+    g_slice_free (IdentityInfoCbData, cb_data);
+
+    priv->updated = TRUE;
+}
+
+static void
+identity_info_ready_cb(gpointer object, const GError *error, gpointer user_data)
+{
+    g_return_if_fail (SIGNON_IS_IDENTITY (object));
+
+    SignonIdentity *self = SIGNON_IDENTITY (object);
+    SignonIdentityPrivate *priv = self->priv;
+    g_return_if_fail (priv != NULL);
+
+    DEBUG ("%s %d", G_STRFUNC, __LINE__);
+
+    IdentityVoidData *operation_data =
+        (IdentityVoidData *)user_data;
+    g_return_if_fail (operation_data != NULL);
+
+    IdentityInfoCbData *cb_data = operation_data->cb_data;
+    g_return_if_fail (cb_data != NULL);
+
+    if (priv->state == REMOVED)
+    {
+        GError *new_error = g_error_new (signon_error_quark(),
+                                         SIGNON_ERROR_NOT_FOUND,
+                                         "Already removed from database.");
+        if (cb_data->cb)
+        {
+            (cb_data->cb) (self, NULL, new_error, cb_data->user_data);
+        }
+
+        g_error_free (new_error);
+    }
+    else if (error || priv->id == 0)
+    {
+        if (error)
+            DEBUG ("IdentityError: %s", error->message);
+        else
+            DEBUG ("Identity is not stored and has no info yet");
+
+        if (cb_data->cb)
+        {
+            (cb_data->cb) (self, NULL, error, cb_data->user_data);
+        }
+    }
+    else if (priv->updated == FALSE)
+    {
+        g_return_if_fail (priv->proxy != NULL);
+        com_nokia_singlesignon_SignonIdentity_query_info_async (
+                                                        priv->proxy,
+                                                        identity_info_reply,
+                                                        cb_data);
+    }
+    else
+    {
+        if (cb_data->cb)
+        {
+            (cb_data->cb) (self, priv->identity_info, error, cb_data->user_data);
+        }
+    }
+
+    if (priv->updated == TRUE)
+        g_slice_free (IdentityInfoCbData, cb_data);
+
+    g_slice_free (IdentityVoidData, operation_data);
+}
+
+
+static void
+identity_void_ready_cb(gpointer object, const GError *error, gpointer user_data)
+{
+    g_return_if_fail (SIGNON_IS_IDENTITY (object));
+
+    SignonIdentity *self = SIGNON_IDENTITY (object);
+    SignonIdentityPrivate *priv = self->priv;
+    g_return_if_fail (priv != NULL);
+
+    DEBUG ("%s %d", G_STRFUNC, __LINE__);
+
+    IdentityVoidData *operation_data =
+        (IdentityVoidData *)user_data;
+    g_return_if_fail (operation_data != NULL);
+
+    IdentityVoidCbData *cb_data = operation_data->cb_data;
+    g_return_if_fail (cb_data != NULL);
+
+    if (priv->state == REMOVED)
+    {
+        GError *new_error = g_error_new (signon_error_quark(),
+                                         SIGNON_ERROR_NOT_FOUND,
+                                         "Already removed from database.");
+        if (cb_data->cb)
+        {
+            (cb_data->cb) (self, new_error, cb_data->user_data);
+        }
+
+        g_error_free (new_error);
+        g_slice_free (IdentityVoidCbData, cb_data);
+    }
+    else if (error)
+    {
+        DEBUG ("IdentityError: %s", error->message);
+        if (cb_data->cb)
+        {
+            (cb_data->cb) (self, error, cb_data->user_data);
+        }
+
+        g_slice_free (IdentityVoidCbData, cb_data);
+    }
+    else
+    {
+        g_return_if_fail (priv->proxy != NULL);
+
+        switch (operation_data->operation) {
+            case SIGNON_REMOVE:
+                com_nokia_singlesignon_SignonIdentity_remove_async(
+                        priv->proxy,
+                        identity_removed_reply,
+                        cb_data);
+                break;
+            case SIGNON_SIGNOUT:
+                com_nokia_singlesignon_SignonIdentity_sign_out_async(
+                        priv->proxy,
+                        identity_signout_reply,
+                        cb_data);
+            break;
+            default: g_critical ("Wrong operation code!");
+        };
+    }
+
+    g_slice_free (IdentityVoidData, operation_data);
+}
+
+void static
+identity_void_operation(SignonIdentity *self,
+                        gint operation,
+                        gpointer cb_data)
+{
+    g_return_if_fail (SIGNON_IS_IDENTITY (self));
+
+    SignonIdentityPrivate *priv = self->priv;
+    g_return_if_fail (priv != NULL);
+
+    DEBUG ("%s %d", G_STRFUNC, __LINE__);
+
+    IdentityVoidData *operation_data = g_slice_new0 (IdentityVoidData);
+
+    operation_data->operation = operation;
+    operation_data->cb_data = cb_data;
+
+    if (operation == SIGNON_INFO)
+        _signon_object_call_when_ready (self,
+                                        identity_object_quark(),
+                                        identity_info_ready_cb,
+                                        operation_data);
+    else
+        _signon_object_call_when_ready (self,
+                                        identity_object_quark(),
+                                        identity_void_ready_cb,
+                                        operation_data);
+}
+
+/**
+ * signon_identity_verify_secret:
+ * @message: secret.
+ * @cb: callback
+ * @user_data : user_data.
+ *
+ * Removes correspondent credentials record
+ */
+void signon_identity_remove(SignonIdentity *self,
+                           SignonIdentityVoidCb cb,
+                           gpointer user_data)
+{
+    g_return_if_fail (SIGNON_IS_IDENTITY (self));
+
+    SignonIdentityPrivate *priv = self->priv;
+    g_return_if_fail (priv != NULL);
+
+    IdentityVoidCbData *cb_data = g_slice_new0 (IdentityVoidCbData);
+    cb_data->self = self;
+    cb_data->cb = cb;
+    cb_data->user_data = user_data;
+
+    identity_void_operation(self,
+                            SIGNON_REMOVE,
+                            cb_data);
+}
+
+/**
+ * signon_identity_signout:
+ * @cb: callback
+ * @user_data : user_data.
+ *
+ * Makes SignOut
+ */
+void signon_identity_signout(SignonIdentity *self)
+{
+    g_return_if_fail (SIGNON_IS_IDENTITY (self));
+
+    SignonIdentityPrivate *priv = self->priv;
+    g_return_if_fail (priv != NULL);
+
+    IdentityVoidCbData *cb_data = g_slice_new0 (IdentityVoidCbData);
+    cb_data->self = self;
+
+    //The generic structure is kept here for simplicity
+    cb_data->cb = priv->signout_cb;
+    cb_data->user_data = priv->signout_cb_data;
+
+    identity_void_operation(self,
+                            SIGNON_SIGNOUT,
+                            cb_data);
+}
+
+/**
+ * signon_identity_info:
+ * @cb: callback
+ * @user_data : user_data.
+ *
+ * Returns info of the associated record in credentials DB (NULL for new identity)
+ */
+void signon_identity_query_info(SignonIdentity *self,
+                                SignonIdentityInfoCb cb,
+                                gpointer user_data)
+{
+    g_return_if_fail (SIGNON_IS_IDENTITY (self));
+
+    SignonIdentityPrivate *priv = self->priv;
+    g_return_if_fail (priv != NULL);
+
+    IdentityInfoCbData *cb_data = g_slice_new0 (IdentityInfoCbData);
+    cb_data->self = self;
+    cb_data->cb = cb;
+    cb_data->user_data = user_data;
+
+    identity_void_operation(self,
+                            SIGNON_INFO,
+                            cb_data);
+}
+
+SignonIdentityInfo *signon_identity_info_new ()
+{
+    SignonIdentityInfo *info = g_slice_new0 (SignonIdentityInfo);
+    info->methods = g_hash_table_new_full (g_str_hash, g_str_equal,
+                                            g_free, (GDestroyNotify)g_strfreev);
+    info->store_secret = FALSE;
+
+    return info;
+}
+
+void signon_identity_info_free (SignonIdentityInfo *info)
+{
+    if (info == NULL) return;
+
+    g_free (info->username);
+    g_free (info->secret);
+    g_free (info->caption);
+
+    g_hash_table_destroy (info->methods);
+
+    g_strfreev (info->realms);
+    g_strfreev (info->access_control_list);
+
+    g_slice_free (SignonIdentityInfo, info);
+}
+
+SignonIdentityInfo *signon_identity_info_copy (const SignonIdentityInfo *other)
+{
+    g_return_val_if_fail (other != NULL, NULL);
+    SignonIdentityInfo *info = signon_identity_info_new ();
+
+    identity_info_set_id (info, signon_identity_info_get_id (other));
+
+    signon_identity_info_set_username (info, signon_identity_info_get_username (other));
+
+    signon_identity_info_set_secret (info, identity_info_get_secret(other),
+                                      signon_identity_info_get_storing_secret (other));
+
+    signon_identity_info_set_caption (info, signon_identity_info_get_caption(other));
+
+    identity_info_set_methods (info, signon_identity_info_get_methods (other));
+
+    signon_identity_info_set_realms (info, signon_identity_info_get_realms (other));
+
+    signon_identity_info_set_access_control_list (info,
+                            signon_identity_info_get_access_control_list (other));
+
+    signon_identity_info_set_type (info, signon_identity_info_get_type (other));
+
+    return info;
+}
+
+gint signon_identity_info_get_id (const SignonIdentityInfo *info)
+{
+    g_return_val_if_fail (info != NULL, -1);
+    return info->id;
+}
+
+const gchar *signon_identity_info_get_username (const SignonIdentityInfo *info)
+{
+    g_return_val_if_fail (info != NULL, NULL);
+    return info->username;
+}
+
+gboolean signon_identity_info_get_storing_secret (const SignonIdentityInfo *info)
+{
+    g_return_val_if_fail (info != NULL, FALSE);
+    return info->store_secret;
+}
+
+const gchar *signon_identity_info_get_caption (const SignonIdentityInfo *info)
+{
+    g_return_val_if_fail (info != NULL, NULL);
+    return info->caption;
+}
+
+const GHashTable *signon_identity_info_get_methods (const SignonIdentityInfo *info)
+{
+    g_return_val_if_fail (info != NULL, NULL);
+    return info->methods;
+}
+
+const gchar **signon_identity_info_get_realms (const SignonIdentityInfo *info)
+{
+    g_return_val_if_fail (info != NULL, NULL);
+    return (const gchar **)info->realms;
+}
+
+const gchar **signon_identity_info_get_access_control_list (const SignonIdentityInfo *info)
+{
+    g_return_val_if_fail (info != NULL, NULL);
+    return (const gchar **)info->access_control_list;
+}
+
+gint signon_identity_info_get_type (const SignonIdentityInfo *info)
+{
+    g_return_val_if_fail (info != NULL, -1);
+    return info->type;
+}
+
+void signon_identity_info_set_username (SignonIdentityInfo *info, const gchar *username)
+{
+    g_return_if_fail (info != NULL);
+
+    if (info->username) g_free (info->username);
+
+    info->username = g_strdup (username);
+}
+
+void signon_identity_info_set_secret (SignonIdentityInfo *info, const gchar *secret,
+                                            gboolean store_secret)
+{
+    g_return_if_fail (info != NULL);
+
+    if (info->secret) g_free (info->secret);
+
+    info->secret = g_strdup (info->secret);
+    info->store_secret = store_secret;
+}
+
+void signon_identity_info_set_caption (SignonIdentityInfo *info, const gchar *caption)
+{
+    g_return_if_fail (info != NULL);
+
+    if (info->caption) g_free (info->caption);
+
+    info->caption = g_strdup (caption);
+}
+
+void signon_identity_info_set_method (SignonIdentityInfo *info, const gchar *method, const gchar **mechanisms)
+{
+    g_return_if_fail (info != NULL);
+
+    g_return_if_fail (info->methods != NULL);
+    g_return_if_fail (method != NULL);
+    g_return_if_fail (mechanisms != NULL);
+
+    g_hash_table_replace (info->methods, g_strdup(method), g_strdupv((gchar **)mechanisms));
+}
+
+void signon_identity_info_remove_method (SignonIdentityInfo *info, const gchar *method)
+{
+    g_return_if_fail (info != NULL);
+    g_return_if_fail (info->methods != NULL);
+
+    g_hash_table_remove (info->methods, method);
+}
+
+void signon_identity_info_set_realms (SignonIdentityInfo *info, const gchar **realms)
+{
+    g_return_if_fail (info != NULL);
+
+    if (info->realms) g_strfreev (info->realms);
+
+    info->realms = g_strdupv ((gchar **)realms);
+}
+
+void signon_identity_info_set_access_control_list (SignonIdentityInfo *info,
+                                                    const gchar **access_control_list)
+{
+    g_return_if_fail (info != NULL);
+
+    if (info->access_control_list) g_strfreev (info->access_control_list);
+
+    info->access_control_list = g_strdupv ((gchar **)access_control_list);
+}
+
+void signon_identity_info_set_type (SignonIdentityInfo *info, gint type)
+{
+    g_return_if_fail (info != NULL);
+
+    g_return_if_fail (type >= SIGNON_TYPE_OTHER);
+    g_return_if_fail (type <= (SIGNON_TYPE_OTHER |
+                               SIGNON_TYPE_APP |
+                               SIGNON_TYPE_WEB |
+                               SIGNON_TYPE_NETWORK) );
+    info->type = type;
+}
+
+static const gchar *identity_info_get_secret (const SignonIdentityInfo *info)
+{
+    g_return_val_if_fail (info != NULL, NULL);
+
+    return info->secret;
+}
+
+static void identity_info_set_id (SignonIdentityInfo *info, gint id)
+{
+    g_return_if_fail (info != NULL);
+    g_return_if_fail (id >= 0);
+
+    info->id = id;
+}
+
+static void identity_methods_copy (gpointer key, gpointer value, gpointer user_data)
+{
+    signon_identity_info_set_method ((SignonIdentityInfo *)user_data,
+                                     (const gchar *)key,
+                                     (const gchar **)value);
+}
+
+static void identity_info_set_methods (SignonIdentityInfo *info, const GHashTable *methods)
+{
+    g_return_if_fail (info != NULL);
+    g_return_if_fail (methods != NULL);
+
+    DEBUG("%s", G_STRFUNC);
+
+    if (info->methods)
+        g_hash_table_remove_all (info->methods);
+    else
+        info->methods = g_hash_table_new_full (g_str_hash, g_str_equal,
+                                                g_free, (GDestroyNotify)g_strfreev);
+
+    g_hash_table_foreach ((GHashTable *)methods, identity_methods_copy, info);
 }
