@@ -94,8 +94,8 @@ _signon_object_call_when_ready (gpointer object, GQuark quark, SignonReadyCb cal
     g_return_if_fail (quark != 0);
     g_return_if_fail (callback != NULL);
 
-    if (g_object_get_qdata((GObject *)object,
-                           _signon_object_ready_quark()))
+    if (GPOINTER_TO_INT (g_object_get_qdata((GObject *)object,
+                           _signon_object_ready_quark())) == TRUE)
     {
         //TODO: specify the last error in object initialization
         GError * err = g_object_get_qdata((GObject *)object,
@@ -125,7 +125,7 @@ _signon_object_ready (gpointer object, GQuark quark, const GError *error)
 {
     SignonReadyData *rd;
 
-    g_object_set_qdata((GObject *)object, _signon_object_ready_quark(), (gpointer)TRUE);
+    g_object_set_qdata((GObject *)object, _signon_object_ready_quark(), GINT_TO_POINTER(TRUE));
 
     if(error)
         g_object_set_qdata_full ((GObject *)object, _signon_object_error_quark(),
