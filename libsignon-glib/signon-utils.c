@@ -45,6 +45,9 @@ static void signon_free_gvalue (gpointer val)
 
 GHashTable *signon_copy_variant_map (const GHashTable *old_map)
 {
+    if (old_map == NULL)
+        return NULL;
+
     GHashTable *new_map = g_hash_table_new_full (g_str_hash,
                                                  g_str_equal,
                                                  g_free,
