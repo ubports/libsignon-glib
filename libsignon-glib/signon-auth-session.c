@@ -332,6 +332,7 @@ signon_auth_session_process (SignonAuthSession *self,
     SignonAuthSessionPrivate *priv = self->priv;
 
     g_return_if_fail (priv != NULL);
+    g_return_if_fail (session_data != NULL);
 
     AuthSessionProcessCbData *cb_data = g_slice_new0 (AuthSessionProcessCbData);
     cb_data->self = self;
@@ -403,7 +404,6 @@ auth_session_get_object_path_reply (DBusGProxy *proxy, char * object_path,
                                  G_TYPE_INT,
                                  G_TYPE_STRING,
                                  G_TYPE_INVALID);
-
 
         dbus_g_proxy_connect_signal (priv->proxy,
                                      "stateChanged",
@@ -520,8 +520,9 @@ auth_session_query_available_mechanisms_ready_cb (gpointer object, const GError 
 
         g_slice_free (AuthSessionQueryAvailableMechanismsCbData, cb_data);
     }
-    else if (priv->proxy)
+    else
     {
+        g_return_if_fail (priv->proxy != NULL);
         (void) com_nokia_singlesignon_SignonAuthSession_query_available_mechanisms_async (
                     priv->proxy,
                     (const char **)operation_data->wanted_mechanisms,
@@ -533,10 +534,7 @@ auth_session_query_available_mechanisms_ready_cb (gpointer object, const GError 
                        0,
                        (gint)AS_STATE_PROCESS_PENDING,
                        auth_session_process_pending_message);
-
     }
-    else if (!priv->proxy)
-        g_critical ("AuthSessionError: proxy is not initialized but error is NULL");
 
     g_strfreev (operation_data->wanted_mechanisms);
     g_slice_free (AuthSessionQueryAvailableMechanismsData, operation_data);
@@ -576,8 +574,10 @@ auth_session_process_ready_cb (gpointer object, const GError *error, gpointer us
         priv->busy = FALSE;
         priv->canceled = FALSE;
     }
-    else if (priv->proxy)
+    else
     {
+        g_return_if_fail (priv->proxy != NULL);
+
         (void)com_nokia_singlesignon_SignonAuthSession_process_async(
                     priv->proxy,
                     operation_data->session_data,
@@ -585,18 +585,13 @@ auth_session_process_ready_cb (gpointer object, const GError *error, gpointer us
                     auth_session_process_reply,
                     cb_data);
 
-        g_hash_table_destroy (operation_data->session_data);
+       g_hash_table_destroy (operation_data->session_data);
 
-        g_signal_emit (self,
+       g_signal_emit (self,
                        auth_session_signals[STATE_CHANGED],
                        0,
                        (gint)AS_STATE_PROCESS_PENDING,
                        auth_session_process_pending_message);
-    }
-    else if (!priv->proxy)
-    {
-        g_critical ("AuthSessionError: proxy is not initialized but error is NULL");
-        return;
     }
 
     g_free (operation_data->mechanism);
