@@ -75,9 +75,6 @@ void signon_auth_service_query_mechanisms (SignonAuthService *auth_service,
                                            const gchar *method,
                                            SignonQueryMechanismCb cb,
                                            gpointer user_data);
-SignonIdentity* signon_auth_service_get_existing_identity (SignonAuthService *auth_service,
-                                                           guint32 id);
-
 G_END_DECLS
 
 #endif /* _SIGNON_AUTH_SERVICE_H_ */
