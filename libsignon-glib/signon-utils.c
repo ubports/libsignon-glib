@@ -34,7 +34,7 @@ static void signon_copy_gvalue (gchar *key,
     g_hash_table_insert (dest, g_strdup(key), copy_value);
 }
 
-static void signon_free_gvalue (gpointer val)
+void signon_free_gvalue (gpointer val)
 {
     g_return_if_fail (G_IS_VALUE(val));
 
@@ -60,3 +60,9 @@ GHashTable *signon_copy_variant_map (const GHashTable *old_map)
    return new_map;
 }
 
+void signon_stringarray_to_value (gpointer key, gpointer value, gpointer user_data)
+{
+    GValue *gvalue = g_value_init(g_slice_new0 (GValue), G_TYPE_STRV);
+    g_value_set_boxed (gvalue, (gchar **)value);
+    g_hash_table_insert ((GHashTable *)user_data, g_strdup((gchar *)key), gvalue);
+}
