@@ -830,7 +830,7 @@ identity_verify_ready_cb (gpointer object, const GError *error, gpointer user_da
     if (priv->state == REMOVED)
     {
         GError *new_error = g_error_new (signon_error_quark(),
-                                         SIGNON_ERROR_NOT_FOUND,
+                                         SIGNON_ERROR_IDENTITY_NOT_FOUND,
                                          "Already removed from database.");
 
         if (cb_data->cb)
@@ -1197,7 +1197,7 @@ identity_info_ready_cb(gpointer object, const GError *error, gpointer user_data)
     if (priv->state == REMOVED)
     {
         GError *new_error = g_error_new (signon_error_quark(),
-                                         SIGNON_ERROR_NOT_FOUND,
+                                         SIGNON_ERROR_IDENTITY_NOT_FOUND,
                                          "Already removed from database.");
         if (cb_data->cb)
         {
@@ -1257,7 +1257,7 @@ identity_signout_ready_cb(gpointer object, const GError *error, gpointer user_da
     if (priv->state == REMOVED)
     {
         GError *new_error = g_error_new (signon_error_quark(),
-                                         SIGNON_ERROR_NOT_FOUND,
+                                         SIGNON_ERROR_IDENTITY_NOT_FOUND,
                                          "Already removed from database.");
         if (cb_data->cb)
         {
@@ -1303,7 +1303,7 @@ identity_remove_ready_cb(gpointer object, const GError *error, gpointer user_dat
     if (priv->state == REMOVED)
     {
         GError *new_error = g_error_new (signon_error_quark(),
-                                         SIGNON_ERROR_NOT_FOUND,
+                                          SIGNON_ERROR_IDENTITY_NOT_FOUND,
                                          "Already removed from database.");
         if (cb_data->cb)
         {
