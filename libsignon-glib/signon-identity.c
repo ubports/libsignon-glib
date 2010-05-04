@@ -1026,7 +1026,7 @@ identity_ptrarray_to_identity_info (const GPtrArray *identity_array)
     /* get the type (gint) */
     value = g_ptr_array_index (identity_array, 7);
     g_assert (G_VALUE_HOLDS_INT(value));
-    signon_identity_info_set_type (info, g_value_get_int (value));
+    signon_identity_info_set_identity_type (info, g_value_get_int (value));
     g_value_unset (value);
 
     return info;
@@ -1482,7 +1482,7 @@ SignonIdentityInfo *signon_identity_info_copy (const SignonIdentityInfo *other)
     signon_identity_info_set_access_control_list (info,
                             signon_identity_info_get_access_control_list (other));
 
-    signon_identity_info_set_type (info, signon_identity_info_get_type (other));
+    signon_identity_info_set_identity_type (info, signon_identity_info_get_identity_type (other));
 
     return info;
 }
@@ -1529,7 +1529,7 @@ const gchar* const *signon_identity_info_get_access_control_list (const SignonId
     return (const gchar* const *)info->access_control_list;
 }
 
-SignonIdentityType signon_identity_info_get_type (const SignonIdentityInfo *info)
+SignonIdentityType signon_identity_info_get_identity_type (const SignonIdentityInfo *info)
 {
     g_return_val_if_fail (info != NULL, -1);
     return (SignonIdentityType)info->type;
@@ -1602,7 +1602,7 @@ void signon_identity_info_set_access_control_list (SignonIdentityInfo *info,
     info->access_control_list = g_strdupv ((gchar **)access_control_list);
 }
 
-void signon_identity_info_set_type (SignonIdentityInfo *info, SignonIdentityType type)
+void signon_identity_info_set_identity_type (SignonIdentityInfo *info, SignonIdentityType type)
 {
     g_return_if_fail (info != NULL);
     info->type = (gint)type;
