@@ -34,25 +34,48 @@
 #define SIGNON_ERROR (signon_error_quark())
 
 typedef enum {
-    SIGNON_ERROR_INTERNAL_SERVER, /*< nick=InternalServer >*/
-    SIGNON_ERROR_METHOD_NOT_KNOWN, /*< nick=MethodNotKnown >*/
-    SIGNON_ERROR_INVALID_QUERY, /*< nick=InvalidQuery >*/
-    SIGNON_ERROR_PERMISSION_DENIED, /*< nick=PermissionDenied >*/
-    SIGNON_ERROR_UNKNOWN, /*< nick=Unknown >*/
-    SIGNON_ERROR_NOT_FOUND, /*< nick=NotFound >*/
-    SIGNON_ERROR_METHOD_NOT_AVAILABLE, /*< nick=MethodNotAvaliable >*/
-    SIGNON_ERROR_STORE_FAILED, /*< nick=StoreFailed >*/
-    SIGNON_ERROR_REMOVE_FAILED, /*< nick=RemoveFailed >*/
-    SIGNON_ERROR_SIGNOUT_FAILED, /*< nick=SignOutFailed >*/
-    SIGNON_ERROR_CANCELED, /*< nick=Canceled >*/
-    SIGNON_ERROR_CREDENTIALS_NOT_AVAILABLE, /*< nick=CredentialsNotAvailable >*/
-    SIGNON_ERROR_MECHANISM_NOT_AVAILABLE, /*< nick=MechanismNotAvailable >*/
-    SIGNON_ERROR_WRONG_STATE, /*< nick=WrongState >*/
-    SIGNON_ERROR_OPERATION_NOT_SUPPORTED, /*< nick=OperationNotSupported >*/
-    SIGNON_ERROR_NO_CONNECTION, /*< nick=NoConnection >*/
-    SIGNON_ERROR_SSL, /*< nick=SslError >*/
-    SIGNON_ERROR_TIMEDOUT, /*< nick=TimedOut >*/
-    SIGNON_ERROR_RUNTIME /*< nick=Runtime >*/
+    SIGNON_ERROR_UNKNOWN = 1,                /**< Catch-all for errors not distinguished
+                                                    by another code. */
+    SIGNON_ERROR_INTERNAL_SERVER        = 2, /**< Signon Daemon internal error. */
+    SIGNON_ERROR_INTERNAL_COMMUNICATION = 3, /**< Communication with Signon Daemon error. */
+    SIGNON_ERROR_PERMISSION_DENIED = 4,      /**< The operation cannot be performed due to
+                                                    insufficient client permissions. */
+    SIGNON_ERROR_AUTHSERVICE_ERROR = 100,    /* Placeholder to rearrange enumeration
+                                                  - AuthService specific */
+    SIGNON_ERROR_METHOD_NOT_KNOWN,            /**< The method with this name is not found. */
+    SIGNON_ERROR_SERVICE_NOT_AVAILABLE,       /**< The service is temporarily unavailable. */
+    SIGNON_ERROR_INVALID_QUERY,               /**< Parameters for the query are invalid. */
+    SIGNON_ERROR_IDENTITY_ERROR = 200,        /* Placeholder to rearrange enumeration
+                                             -       Identity specific */
+    SIGNON_ERROR_METHOD_NOT_AVAILABLE,        /**< The requested method is not available. */
+    SIGNON_ERROR_IDENTITY_NOT_FOUND,          /**< The identity matching this Identity object
+                                                was not found on the service. */
+    SIGNON_ERROR_STORE_FAILED,                /**< Storing credentials failed. */
+    SIGNON_ERROR_REMOVE_FAILED,               /**< Removing credentials failed. */
+    SIGNON_ERROR_SIGNOUT_FAILED,              /**< SignOut failed. */
+    SIGNON_ERROR_IDENTITY_OPERATION_CANCELED, /**< Identity operation was canceled by user. */
+    SIGNON_ERROR_CREDENTIALS_NOT_AVAILABLE,   /**< Query fails. */
+    SIGNON_ERROR_AUTHSESSION_ERROR = 300,     /* Placeholder to rearrange enumeration
+                                                    - AuthSession/AuthPluginInterface specific */
+    SIGNON_ERROR_MECHANISM_NOT_AVAILABLE,     /**< The requested mechanism is not available. */
+    SIGNON_ERROR_MISSING_DATA,                /**< The SessionData object does not contain
+                                                      necessary information. */
+    SIGNON_ERROR_INVALID_CREDENTIALS,         /**< The supplied credentials are invalid for
+                                                      the mechanism implementation. */
+    SIGNON_ERROR_WRONG_STATE,                 /**< An operation method has been called in
+                                                      a wrong state. */
+    SIGNON_ERROR_OPERATION_NOT_SUPPORTED,     /**< The operation is not supported by the
+                                                      mechanism implementation. */
+    SIGNON_ERROR_NO_CONNECTION,              /**< No Network connetion. */
+    SIGNON_ERROR_NETWORK,                    /**< Network connetion failed. */
+    SIGNON_ERROR_SSL,                        /**< Ssl connetion failed. */
+    SIGNON_ERROR_RUNTIME,                    /**< Casting SessionData into subclass failed */
+    SIGNON_ERROR_SESSION_CANCELED,           /**< Challenge was canceled. */
+    SIGNON_ERROR_TIMED_OUT,                  /**< Challenge was timed out. */
+    SIGNON_ERROR_USER_INTERACTION,           /**< User interaction dialog failed */
+    SIGNON_ERROR_OPERATION_FAILED,           /**< Temporary failure in authentication. */
+    SIGNON_ERROR_USER_ERROR = 400            /* Placeholder to rearrange enumeration
+                                                      - User space specific */
 } SignonError;
 
 #define SignonError SignonError
