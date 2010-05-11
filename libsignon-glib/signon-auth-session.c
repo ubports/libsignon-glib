@@ -523,7 +523,7 @@ auth_session_query_available_mechanisms_ready_cb (gpointer object, const GError 
         g_signal_emit (self,
                        auth_session_signals[STATE_CHANGED],
                        0,
-                       (gint)AS_STATE_PROCESS_PENDING,
+                       SIGNON_AUTH_SESSION_STATE_PROCESS_PENDING,
                        auth_session_process_pending_message);
     }
 
@@ -581,7 +581,7 @@ auth_session_process_ready_cb (gpointer object, const GError *error, gpointer us
        g_signal_emit (self,
                        auth_session_signals[STATE_CHANGED],
                        0,
-                       (gint)AS_STATE_PROCESS_PENDING,
+                       SIGNON_AUTH_SESSION_STATE_PROCESS_PENDING,
                        auth_session_process_pending_message);
     }
 

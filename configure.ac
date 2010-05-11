@@ -10,7 +10,8 @@ PKG_CHECK_MODULES(
 	glib-2.0
 	gobject-2.0
         dbus-1
-        dbus-glib-1);
+        dbus-glib-1
+        signond);
 AC_SUBST(DEPS_CFLAGS)
 AC_SUBST(DEPS_LIBS)
 
