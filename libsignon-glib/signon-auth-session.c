@@ -54,6 +54,7 @@ struct _SignonAuthSessionPrivate
 
     gboolean busy;
     gboolean canceled;
+    gboolean dispose_has_run;
 };
 
 typedef struct _AuthSessionQueryAvailableMechanismsData
@@ -145,7 +146,7 @@ signon_auth_session_dispose (GObject *object)
     SignonAuthSessionPrivate *priv = self->priv;
     g_return_if_fail (priv != NULL);
 
-    if (self->dispose_has_run)
+    if (priv->dispose_has_run)
         return;
 
     GError *err = NULL;
@@ -166,7 +167,7 @@ signon_auth_session_dispose (GObject *object)
 
     G_OBJECT_CLASS (signon_auth_session_parent_class)->dispose (object);
 
-    self->dispose_has_run = TRUE;
+    priv->dispose_has_run = TRUE;
 }
 
 static void

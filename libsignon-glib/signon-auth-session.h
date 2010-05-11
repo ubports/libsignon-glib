@@ -83,7 +83,6 @@ struct _SignonAuthSession {
     GObject parent;
 
     SignonAuthSessionPrivate *priv;
-    gboolean dispose_has_run;
 };
 
 struct _SignonAuthSessionClass {
