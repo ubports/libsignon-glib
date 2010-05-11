@@ -214,8 +214,6 @@ START_TEST(test_auth_session_query_mechanisms)
 
     SignonAuthSession *auth_session = signon_identity_create_session(idty,
                                                                      "ssotest",
-                                                                     NULL,
-                                                                     NULL,
                                                                      &err);
     fail_unless (auth_session != NULL, "Cannot create AuthSession object");
 
@@ -290,8 +288,6 @@ START_TEST(test_auth_session_query_mechanisms_nonexisting)
 
     SignonAuthSession *auth_session = signon_identity_create_session(idty,
                                                                      "nonexisting",
-                                                                     NULL,
-                                                                     NULL,
                                                                      &err);
 
     fail_unless (auth_session != NULL, "Cannot create AuthSession object");
@@ -365,7 +361,6 @@ test_auth_session_process_cb (SignonAuthSession *self,
 START_TEST(test_auth_session_creation)
 {
     g_type_init();
-    gint state_counter = 0;
     GError *err = NULL;
 
     SignonIdentity *idty = signon_identity_new(NULL, NULL);
@@ -373,8 +368,6 @@ START_TEST(test_auth_session_creation)
 
     SignonAuthSession *auth_session = signon_identity_create_session(idty,
                                                                     "ssotest",
-                                                                    test_auth_session_states_cb,
-                                                                    &state_counter,
                                                                     &err);
 
     fail_unless (auth_session != NULL, "Cannot create AuthSession object");
@@ -401,13 +394,14 @@ START_TEST(test_auth_session_process)
 
     SignonAuthSession *auth_session = signon_identity_create_session(idty,
                                                                      "ssotest",
-                                                                     test_auth_session_states_cb,
-                                                                     &state_counter,
                                                                      &err);
 
     fail_unless (auth_session != NULL, "Cannot create AuthSession object");
 
     g_clear_error(&err);
+
+    g_signal_connect(auth_session, "state-changed",
+                     G_CALLBACK(test_auth_session_states_cb), &state_counter);
 
     GHashTable* sessionData = g_hash_table_new(g_str_hash,
                                                g_str_equal);
@@ -1048,28 +1042,20 @@ START_TEST(test_signout_identity)
 
     SignonAuthSession *as1 = signon_identity_create_session (idty,
                                                             "ssotest",
-                                                            NULL,
-                                                            NULL,
                                                             &err);
 
     fail_unless (as1 != NULL, "cannot create AuthSession");
 
     SignonAuthSession *as2 = signon_identity_create_session (idty,
                                                              "ssotest",
-                                                             NULL,
-                                                             NULL,
                                                              &err);
     fail_unless (as2 != NULL, "cannot create AuthSession");
     SignonAuthSession *as3 = signon_identity_create_session (idty2,
                                                              "ssotest",
-                                                             NULL,
-                                                             NULL,
                                                              &err);
     fail_unless (as3 != NULL, "cannot create AuthSession");
     SignonAuthSession *as4 = signon_identity_create_session (idty2,
                                                              "ssotest",
-                                                             NULL,
-                                                             NULL,
                                                              &err);
     fail_unless (as4 != NULL, "cannot create AuthSession");
 

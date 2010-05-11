@@ -91,19 +91,8 @@ struct _SignonAuthSessionClass {
 
 GType signon_auth_session_get_type (void) G_GNUC_CONST;
 
-typedef void (*SignonAuthSessionStateCahngedCb) (SignonAuthSession* self,
-                                                 gint state,
-                                                 gchar *message,
-                                                 gpointer user_data);
-
-/*
- * Despite my arguments it was decided to keep this
- * function as public
- * */
 SignonAuthSession *signon_auth_session_new(gint id,
                                            const gchar *method_name,
-                                           SignonAuthSessionStateCahngedCb cb,
-                                           gpointer user_data,
                                            GError **err);
 
 gchar *signon_auth_session_name(SignonAuthSession* self);

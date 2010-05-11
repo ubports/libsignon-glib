@@ -192,7 +192,7 @@ signon_auth_session_class_init (SignonAuthSessionClass *klass)
     g_type_class_add_private (object_class, sizeof (SignonAuthSessionPrivate));
 
     auth_session_signals[STATE_CHANGED] =
-            g_signal_new ("auth_sesson_state_changed",
+            g_signal_new ("state-changed",
                           G_TYPE_FROM_CLASS (klass),
                           G_SIGNAL_RUN_LAST | G_SIGNAL_ACTION,
                           0,
@@ -210,8 +210,6 @@ signon_auth_session_class_init (SignonAuthSessionClass *klass)
 SignonAuthSession *
 signon_auth_session_new (gint id,
                          const gchar *method_name,
-                         SignonAuthSessionStateCahngedCb cb,
-                         gpointer user_data,
                          GError **err)
 {
     SignonAuthSession *self = SIGNON_AUTH_SESSION(g_object_new (SIGNON_TYPE_AUTH_SESSION, NULL));
@@ -224,14 +222,6 @@ signon_auth_session_new (gint id,
 
         g_object_unref (self);
         return NULL;
-    }
-
-    if (cb)
-    {
-        g_signal_connect (self,
-                          "auth_sesson_state_changed",
-                          G_CALLBACK (cb),
-                          user_data);
     }
 
     return self;

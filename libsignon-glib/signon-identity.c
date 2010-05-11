@@ -528,12 +528,9 @@ identity_session_object_destroyed_cb(gpointer data,
 }
 
 /**
- * §:
+ * signon_identity_create_session:
  * @self: self.
  * @method: method.
- * @user_data: user_data.
- * @cb: cb.
- * @user_data: user_data.
  * @error: error.
  *
  * Construct an identity object associated with an existing identity record.
@@ -541,8 +538,6 @@ identity_session_object_destroyed_cb(gpointer data,
  */
 SignonAuthSession *signon_identity_create_session(SignonIdentity *self,
                                                   const gchar *method,
-                                                  SignonAuthSessionStateCahngedCb cb,
-                                                  gpointer user_data,
                                                   GError **error)
 {
     g_return_val_if_fail (SIGNON_IS_IDENTITY (self), NULL);
@@ -554,8 +549,6 @@ SignonAuthSession *signon_identity_create_session(SignonIdentity *self,
 
     SignonAuthSession *session = signon_auth_session_new (priv->id,
                                                           method,
-                                                          cb,
-                                                          user_data,
                                                           error);
     if (session)
     {

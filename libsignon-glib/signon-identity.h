@@ -82,8 +82,6 @@ GError *signon_identity_get_last_error (SignonIdentity *identity);
 
 SignonAuthSession *signon_identity_create_session(SignonIdentity *self,
                                                   const gchar *method,
-                                                  SignonAuthSessionStateCahngedCb cb,
-                                                  gpointer user_data,
                                                   GError **error);
 
 typedef void (*SignonIdentityStoreCredentialsCb) (SignonIdentity *self,
