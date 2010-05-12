@@ -34,17 +34,13 @@
 typedef enum {
     SIGNON_ERROR_UNKNOWN = 1,                /**< Catch-all for errors not distinguished
                                                     by another code. */
-    SIGNON_ERROR_INTERNAL_SERVER        = 2, /**< Signon Daemon internal error. */
-    SIGNON_ERROR_INTERNAL_COMMUNICATION = 3, /**< Communication with Signon Daemon error. */
-    SIGNON_ERROR_PERMISSION_DENIED = 4,      /**< The operation cannot be performed due to
+    SIGNON_ERROR_INTERNAL_SERVER,            /**< Signon Daemon internal error. */
+    SIGNON_ERROR_INTERNAL_COMMUNICATION,     /**< Communication with Signon Daemon error. */
+    SIGNON_ERROR_PERMISSION_DENIED,          /**< The operation cannot be performed due to
                                                     insufficient client permissions. */
-    SIGNON_ERROR_AUTHSERVICE_ERROR = 100,    /* Placeholder to rearrange enumeration
-                                                  - AuthService specific */
     SIGNON_ERROR_METHOD_NOT_KNOWN,            /**< The method with this name is not found. */
     SIGNON_ERROR_SERVICE_NOT_AVAILABLE,       /**< The service is temporarily unavailable. */
     SIGNON_ERROR_INVALID_QUERY,               /**< Parameters for the query are invalid. */
-    SIGNON_ERROR_IDENTITY_ERROR = 200,        /* Placeholder to rearrange enumeration
-                                             -       Identity specific */
     SIGNON_ERROR_METHOD_NOT_AVAILABLE,        /**< The requested method is not available. */
     SIGNON_ERROR_IDENTITY_NOT_FOUND,          /**< The identity matching this Identity object
                                                 was not found on the service. */
@@ -53,8 +49,6 @@ typedef enum {
     SIGNON_ERROR_SIGNOUT_FAILED,              /**< SignOut failed. */
     SIGNON_ERROR_IDENTITY_OPERATION_CANCELED, /**< Identity operation was canceled by user. */
     SIGNON_ERROR_CREDENTIALS_NOT_AVAILABLE,   /**< Query fails. */
-    SIGNON_ERROR_AUTHSESSION_ERROR = 300,     /* Placeholder to rearrange enumeration
-                                                    - AuthSession/AuthPluginInterface specific */
     SIGNON_ERROR_MECHANISM_NOT_AVAILABLE,     /**< The requested mechanism is not available. */
     SIGNON_ERROR_MISSING_DATA,                /**< The SessionData object does not contain
                                                       necessary information. */

@@ -76,13 +76,15 @@ stamp-signon-enum-types.h: Makefile signon-errors.h
 
 signon-enum-types.c: Makefile signon-errors.h
 	( cd $(srcdir) && glib-mkenums \
-	    --fhead "#include \"signon-enum-types.h\"\n#include \"signon-errors.h\"\n#define g_intern_static_string(s) (s)\n" \
+	    --fhead "#include \"signon-enum-types.h\"\n#include \"signon-errors.h\"\n#include \"signoncommon.h\"\n#define g_intern_static_string(s) (s)\n" \
 	    --fprod "\n/* enumerations from \"@filename@\" */" \
 	    --ftail "\n#define __SIGNON_ENUM_TYPES_C__\n" \
 	    --vhead "GType\n@enum_name@_get_type (void)\n{\n  static GType etype = 0;\n  if (etype == 0) {\n    static const G@Type@Value values[] = {" \
-	    --vprod "      { @VALUENAME@, \"@VALUENAME@\", \"@valuenick@\" }," \
+	    --vprod "      { @VALUENAME@, SED@VALUENAME@, \"@valuenick@\" }," \
 	    --vtail "      { 0, NULL, NULL }\n    };\n    etype = g_@type@_register_static (g_intern_static_string (\"@EnumName@\"), values);\n  }\n  return etype;\n}\n" \
-	    signon-errors.h ) > xgen-getc \
+	    signon-errors.h ) | \
+	    sed -e 's/SEDSIGNON_ERROR_\([^,]*\)/SIGNOND_\1_ERR_NAME/' \
+	    > xgen-getc \
 	    && cp xgen-getc signon-enum-types.c  \
 	    && rm -f xgen-getc
 
