@@ -27,6 +27,8 @@
 #include "signon-internals.h"
 #include <dbus/dbus-glib.h>
 
+#define SIGNON_ERROR_PREFIX SIGNOND_SERVICE_PREFIX ".Error"
+
 GQuark signon_error_quark (void)
 {
     static gsize quark = 0;

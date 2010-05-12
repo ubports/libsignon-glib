@@ -29,8 +29,6 @@
 #include <glib-object.h>
 #include "signon-enum-types.h"
 
-#define SIGNON_ERROR_PREFIX "com.nokia.singlesignon.Error"
-
 #define SIGNON_ERROR (signon_error_quark())
 
 typedef enum {

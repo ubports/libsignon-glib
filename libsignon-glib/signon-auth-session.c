@@ -381,7 +381,7 @@ auth_session_get_object_path_reply (DBusGProxy *proxy, char * object_path,
     else
     {
         priv->proxy = dbus_g_proxy_new_from_proxy (DBUS_G_PROXY (priv->signon_proxy),
-                                                   SIGNON_AUTH_SESSION_IFACE,
+                                                   SIGNOND_AUTH_SESSION_INTERFACE,
                                                    object_path);
 
         dbus_g_object_register_marshaller (signon_marshal_VOID__INT_STRING,

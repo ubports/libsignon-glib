@@ -35,11 +35,7 @@
     #define DEBUG(...) do {} while (0)
 #endif
 
-#define SIGNON_SERVICE  "com.nokia.singlesignon"
-#define SIGNON_PATH  "/SignonDaemon"
-#define SIGNON_IFACE  "com.nokia.singlesignon.SignonDaemon"
-#define SIGNON_AUTH_SESSION_IFACE  "com.nokia.singlesignon.SignonAuthSession"
-#define SIGNON_IDENTITY_IFACE  "com.nokia.singlesignon.SignonIdentity"
+#include <signoncommon.h>
 
 #include "signon-identity.h"
 #include "signon-auth-session.h"

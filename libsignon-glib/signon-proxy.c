@@ -94,9 +94,9 @@ signon_proxy_new ()
     }
 
     proxy = g_object_new (SIGNON_TYPE_PROXY,
-                          "name", SIGNON_SERVICE,
-                          "path", SIGNON_PATH,
-                          "interface", SIGNON_IFACE,
+                          "name", SIGNOND_SERVICE,
+                          "path", SIGNOND_DAEMON_OBJECTPATH,
+                          "interface", SIGNOND_DAEMON_INTERFACE,
                           "connection", connection,
                           NULL);
 

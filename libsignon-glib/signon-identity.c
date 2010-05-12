@@ -40,8 +40,6 @@
 #include "signon-utils.h"
 #include "signon-errors.h"
 
-#define SIGNON_IDENTITY_IFACE  "com.nokia.singlesignon.SignonIdentity"
-
 G_DEFINE_TYPE (SignonIdentity, signon_identity, G_TYPE_OBJECT);
 
 enum
@@ -393,7 +391,7 @@ identity_registered (SignonIdentity *identity, DBusGProxy *proxy,
         g_return_if_fail (priv->proxy == NULL);
 
         priv->proxy = dbus_g_proxy_new_from_proxy (DBUS_G_PROXY (priv->signon_proxy),
-                                                   SIGNON_IDENTITY_IFACE,
+                                                   SIGNOND_IDENTITY_INTERFACE,
                                                    object_path);
 
         dbus_g_object_register_marshaller (g_cclosure_marshal_VOID__INT,
