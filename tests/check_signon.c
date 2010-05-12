@@ -1061,8 +1061,10 @@ START_TEST(test_signout_identity)
 
     gint counter = 0;
 
-    g_signal_connect (idty, "signout", identity_signout_signal_cb, &counter);
-    g_signal_connect (idty2, "signout", identity_signout_signal_cb, &counter);
+    g_signal_connect (idty, "signout",
+                      G_CALLBACK(identity_signout_signal_cb), &counter);
+    g_signal_connect (idty2, "signout",
+                      G_CALLBACK(identity_signout_signal_cb), &counter);
 
     signon_identity_signout (idty, identity_signout_cb, NULL);
     g_main_loop_run (main_loop);
