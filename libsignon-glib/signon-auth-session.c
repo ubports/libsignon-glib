@@ -275,8 +275,8 @@ signon_auth_session_set_id(SignonAuthSession* self,
                                     GINT_TO_POINTER(id));
 }
 
-gchar *
-signon_auth_session_name (SignonAuthSession *self)
+const gchar *
+signon_auth_session_get_method (SignonAuthSession *self)
 {
     g_return_val_if_fail (SIGNON_IS_AUTH_SESSION (self), NULL);
     SignonAuthSessionPrivate *priv = self->priv;

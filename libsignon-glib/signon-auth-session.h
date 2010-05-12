@@ -64,7 +64,7 @@ SignonAuthSession *signon_auth_session_new(gint id,
                                            const gchar *method_name,
                                            GError **err);
 
-gchar *signon_auth_session_name(SignonAuthSession* self);
+const gchar *signon_auth_session_get_method (SignonAuthSession *self);
 
 typedef void (*SignonAuthSessionQueryAvailableMethodsCb) (SignonAuthSession* self,
                                                           gchar **mechanisms,
