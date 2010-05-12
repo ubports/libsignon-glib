@@ -76,8 +76,6 @@ typedef enum {
                                                       - User space specific */
 } SignonError;
 
-#define SignonError SignonError
-
 GQuark signon_error_quark (void);
 
 
