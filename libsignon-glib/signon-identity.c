@@ -320,7 +320,7 @@ signon_identity_class_init (SignonIdentityClass *klass)
 
     g_type_class_add_private (object_class, sizeof (SignonIdentityPrivate));
 
-    signals[SIGNEDOUT_SIGNAL] = g_signal_new("signon-identity-signout",
+    signals[SIGNEDOUT_SIGNAL] = g_signal_new("signout",
                                     G_TYPE_FROM_CLASS (klass),
                                     G_SIGNAL_RUN_LAST | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS,
                                     0 /* class closure */,
