@@ -6,7 +6,8 @@ config.*
 configure
 debian
 depcomp
-.*
+.deps/
+.libs/
 *.o
 *.lo
 *.la
