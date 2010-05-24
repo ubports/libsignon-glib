@@ -66,14 +66,20 @@ SignonAuthSession *signon_auth_session_new(gint id,
 
 const gchar *signon_auth_session_get_method (SignonAuthSession *self);
 
-typedef void (*SignonAuthSessionQueryAvailableMethodsCb) (SignonAuthSession* self,
-                                                          gchar **mechanisms,
-                                                          const GError *error,
-                                                          gpointer user_data);
+typedef void (*SignonAuthSessionQueryAvailableMechanismsCb) (
+                    SignonAuthSession* self,
+                    gchar **mechanisms,
+                    const GError *error,
+                    gpointer user_data);
+
+G_GNUC_DEPRECATED
+typedef SignonAuthSessionQueryAvailableMechanismsCb
+    SignonAuthSessionQueryAvailableMethodsCb;
+
 void signon_auth_session_query_available_mechanisms(SignonAuthSession* self,
-                                                   const gchar **wanted_mechanisms,
-                                                   SignonAuthSessionQueryAvailableMethodsCb cb,
-                                                   gpointer user_data);
+                                                    const gchar **wanted_mechanisms,
+                                                    SignonAuthSessionQueryAvailableMechanismsCb cb,
+                                                    gpointer user_data);
 
 typedef void (*SignonAuthSessionProcessCb) (SignonAuthSession *self,
                                             GHashTable *session_data,

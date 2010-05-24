@@ -73,7 +73,7 @@ typedef struct _AuthSessionProcessData
 typedef struct _AuthSessionQueryAvailableMechanismsCbData
 {
     SignonAuthSession *self;
-    SignonAuthSessionQueryAvailableMethodsCb cb;
+    SignonAuthSessionQueryAvailableMechanismsCb cb;
     gpointer user_data;
 } AuthSessionQueryAvailableMechanismsCbData;
 
@@ -289,7 +289,7 @@ signon_auth_session_get_method (SignonAuthSession *self)
 void
 signon_auth_session_query_available_mechanisms (SignonAuthSession *self,
                                                 const gchar **wanted_mechanisms,
-                                                SignonAuthSessionQueryAvailableMethodsCb cb,
+                                                SignonAuthSessionQueryAvailableMechanismsCb cb,
                                                 gpointer user_data)
 {
     g_return_if_fail (SIGNON_IS_AUTH_SESSION (self));
