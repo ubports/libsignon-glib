@@ -5,7 +5,7 @@ lib_LTLIBRARIES = \
 
 libsignon_glib_la_CFLAGS = $(DEPS_CFLAGS) -Wall -Werror
 libsignon_glib_la_LIBADD = $(DEPS_LIBS)
-libsignon_glib_la_LDFLAGS = -version-info 0:1:0
+libsignon_glib_la_LDFLAGS = -version-info 1:0:0
 
 BUILT_SOURCES = \
 	signon-marshal.c \
