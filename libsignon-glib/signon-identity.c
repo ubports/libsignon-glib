@@ -544,6 +544,33 @@ SignonAuthSession *signon_identity_create_session(SignonIdentity *self,
     g_return_val_if_fail (priv != NULL, NULL);
 
     DEBUG ("%s %d", G_STRFUNC, __LINE__);
+    
+    if (method == NULL)
+    {
+        DEBUG ("NULL method as input. Aborting.");
+        *error = g_error_new (signon_error_quark(),
+                              SIGNON_ERROR_UNKNOWN,
+                              "NULL input method.");
+        return NULL;
+    }
+    
+    GSList *list = priv->sessions;
+    while (list)
+    {
+        SignonAuthSession *session = SIGNON_AUTH_SESSION (priv->sessions->data);
+        const gchar *sessionMethod = signon_auth_session_get_method (session);
+        if (g_strcmp0(sessionMethod, method) == 0) 
+        {
+            DEBUG ("Auth Session with method `%s`already created.", method);
+            *error = g_error_new (signon_error_quark(),
+                                  SIGNON_ERROR_METHOD_NOT_AVAILABLE,
+                                  "Authentication session for this method already requested.");
+            return NULL;
+        }
+
+        list = list->next;
+    }
+    *error = NULL;
 
     SignonAuthSession *session = signon_auth_session_new (priv->id,
                                                           method,
