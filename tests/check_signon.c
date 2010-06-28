@@ -1043,21 +1043,12 @@ START_TEST(test_signout_identity)
     SignonAuthSession *as1 = signon_identity_create_session (idty,
                                                             "ssotest",
                                                             &err);
-
     fail_unless (as1 != NULL, "cannot create AuthSession");
 
-    SignonAuthSession *as2 = signon_identity_create_session (idty,
+    SignonAuthSession *as2 = signon_identity_create_session (idty2,
                                                              "ssotest",
                                                              &err);
     fail_unless (as2 != NULL, "cannot create AuthSession");
-    SignonAuthSession *as3 = signon_identity_create_session (idty2,
-                                                             "ssotest",
-                                                             &err);
-    fail_unless (as3 != NULL, "cannot create AuthSession");
-    SignonAuthSession *as4 = signon_identity_create_session (idty2,
-                                                             "ssotest",
-                                                             &err);
-    fail_unless (as4 != NULL, "cannot create AuthSession");
 
     gint counter = 0;
 
@@ -1071,10 +1062,35 @@ START_TEST(test_signout_identity)
 
     fail_unless (counter == 2, "Lost some of SIGNOUT signals");
     fail_if (SIGNON_IS_AUTH_SESSION (as1), "Authsession1 was not destroyed after signout");
-    fail_if (SIGNON_IS_AUTH_SESSION (as3), "Authsession3 was not destroyed after signout");
-
     fail_if (SIGNON_IS_AUTH_SESSION (as2), "Authsession2 was not destroyed after signout");
-    fail_if (SIGNON_IS_AUTH_SESSION (as4), "Authsession4 was not destroyed after signout");
+
+    g_object_unref (idty);
+    g_object_unref (idty2);
+}
+END_TEST
+
+START_TEST(test_destroyed_identity)
+{
+    g_type_init ();
+    SignonIdentity *idty = signon_identity_new();
+    fail_unless (idty != NULL);
+    fail_unless (SIGNON_IS_IDENTITY (idty),
+                 "Failed to initialize the Identity.");
+
+    SignonIdentityInfo *info = create_standard_info();
+    main_loop = g_main_loop_new (NULL, FALSE);
+
+    signon_identity_store_credentials_with_info (idty,
+                                                 info,
+                                                 store_credentials_identity_cb,
+                                                 NULL);
+    g_main_loop_run (main_loop);
+    sleep(5 * 60 + 10);
+
+    SignonIdentity *idty2 = signon_identity_new();
+
+    signon_identity_query_info (idty, identity_info_cb, &info);
+    g_main_loop_run (main_loop);
 
     g_object_unref (idty);
     g_object_unref (idty2);
@@ -1088,7 +1104,11 @@ signon_suite(void)
 
     /* Core test case */
     TCase * tc_core = tcase_create("Core");
-    tcase_set_timeout(tc_core, 10);
+
+    /*
+     * 12 minutes timeout
+     * */
+    tcase_set_timeout(tc_core, 720);
     tcase_add_test (tc_core, test_init);
     tcase_add_test (tc_core, test_query_methods);
     tcase_add_test (tc_core, test_query_mechanisms);
@@ -1105,6 +1125,7 @@ signon_suite(void)
     tcase_add_test (tc_core, test_info_identity);
 
     tcase_add_test (tc_core, test_signout_identity);
+    tcase_add_test (tc_core, test_destroyed_identity);
     suite_add_tcase (s, tc_core);
 
     return s;
