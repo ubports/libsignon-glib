@@ -78,7 +78,7 @@ GType signon_identity_get_type (void) G_GNUC_CONST;
 SignonIdentity *signon_identity_new_from_db (guint32 id);
 SignonIdentity *signon_identity_new ();
 
-GError *signon_identity_get_last_error (SignonIdentity *identity);
+const GError *signon_identity_get_last_error (SignonIdentity *identity);
 
 SignonAuthSession *signon_identity_create_session(SignonIdentity *self,
                                                   const gchar *method,

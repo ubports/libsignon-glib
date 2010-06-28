@@ -49,10 +49,10 @@ enum
 };
 
 typedef enum {
-    NOT_READY,
-    READY,
-    REMOVED,
-} IdentityState;
+    NOT_REGISTERED,
+    PENDING_REGISTRATION,
+    REGISTERED,
+} IdentityRegistrationState;
 
 typedef enum  {
     DATA_UPDATED = 0,
@@ -69,9 +69,9 @@ struct _SignonIdentityPrivate
     GError *last_error;
 
     GSList *sessions;
+    IdentityRegistrationState registration_state;
 
-    IdentityState state;
-
+    gboolean removed;
     gboolean signed_out;
     gboolean updated;
 
@@ -97,8 +97,6 @@ struct _SignonIdentityInfo
     gchar **access_control_list;
     gint type;
 };
-
-
 
 #define SIGNON_IDENTITY_PRIV(obj) (SIGNON_IDENTITY(obj)->priv)
 
@@ -166,6 +164,7 @@ typedef struct _IdentityVoidData
 
 static void identity_registered (SignonIdentity *identity, DBusGProxy *proxy, char *object_path,
                                  GPtrArray *identity_array, GError *error);
+static void identity_check_remote_registration (SignonIdentity *self);
 static void identity_new_cb (DBusGProxy *proxy, char *objectPath, GError *error, gpointer userdata);
 static void identity_new_from_db_cb (DBusGProxy *proxy, char *objectPath, GPtrArray *identityData,
                                       GError *error, gpointer userdata);
@@ -185,6 +184,7 @@ static void identity_remove_ready_cb (gpointer object, const GError *error, gpoi
 static void identity_signout_ready_cb (gpointer object, const GError *error, gpointer user_data);
 static void identity_info_ready_cb (gpointer object, const GError *error, gpointer user_data);
 static void identity_state_changed_cb (DBusGProxy *proxy, gint state, gpointer user_data);
+static void identity_remote_object_destroyed_cb(DBusGProxy *proxy, gpointer user_data);
 
 static SignonIdentityInfo *identity_ptrarray_to_identity_info (const GPtrArray *identity_array);
 
@@ -256,6 +256,11 @@ signon_identity_init (SignonIdentity *identity)
                                                   SignonIdentityPrivate);
 
     identity->priv->signon_proxy = signon_proxy_new();
+    identity->priv->registration_state = NOT_REGISTERED;
+
+    identity->priv->removed = FALSE;
+    identity->priv->signed_out = FALSE;
+    identity->priv->updated = FALSE;
 }
 
 static void
@@ -269,9 +274,6 @@ signon_identity_dispose (GObject *object)
         signon_identity_info_free (priv->identity_info);
         priv->identity_info = NULL;
     }
-
-    if (priv->last_error)
-        g_error_free (priv->last_error);
 
     if (priv->signon_proxy)
     {
@@ -361,10 +363,40 @@ identity_state_changed_cb (DBusGProxy *proxy,
 }
 
 static void
+identity_remote_object_destroyed_cb(DBusGProxy *proxy,
+                                    gpointer user_data)
+{
+    g_return_if_fail (SIGNON_IS_IDENTITY (user_data));
+    SignonIdentity *self = SIGNON_IDENTITY (user_data);
+
+    SignonIdentityPrivate *priv = self->priv;
+    g_return_if_fail (priv != NULL);
+
+    if (priv->proxy)
+    {
+        g_object_unref (priv->proxy);
+        priv->proxy = NULL;
+    }
+
+    DEBUG ("%s %d", G_STRFUNC, __LINE__);
+
+    _signon_object_not_ready(self);
+
+    priv->registration_state = NOT_REGISTERED;
+
+    signon_identity_info_free (priv->identity_info);
+    priv->identity_info = NULL;
+
+    priv->removed = FALSE;
+    priv->signed_out = FALSE;
+    priv->updated = FALSE;
+}
+
+static void
 identity_registered (SignonIdentity *identity, DBusGProxy *proxy,
                      char *object_path, GPtrArray *identity_array,
                      GError *error)
-    {
+{
     g_return_if_fail (SIGNON_IS_IDENTITY (identity));
 
     SignonIdentityPrivate *priv;
@@ -372,16 +404,7 @@ identity_registered (SignonIdentity *identity, DBusGProxy *proxy,
 
     g_return_if_fail (priv != NULL);
 
-    if (error)
-    {
-        g_warning ("%s: %s", G_STRFUNC, error->message);
-
-        if (priv->last_error)
-            g_error_free (priv->last_error);
-
-        priv->last_error = error;
-    }
-    else
+    if (!error)
     {
         DEBUG("%s: %s", G_STRFUNC, object_path);
         /*
@@ -410,6 +433,20 @@ identity_registered (SignonIdentity *identity, DBusGProxy *proxy,
                                      identity,
                                      NULL);
 
+        dbus_g_object_register_marshaller (g_cclosure_marshal_VOID__VOID,
+                                           G_TYPE_NONE,
+                                           G_TYPE_INVALID);
+
+        dbus_g_proxy_add_signal (priv->proxy,
+                                 "destroyed",
+                                 G_TYPE_INVALID);
+
+        dbus_g_proxy_connect_signal (priv->proxy,
+                                     "destroyed",
+                                     G_CALLBACK (identity_remote_object_destroyed_cb),
+                                     identity,
+                                     NULL);
+
         if (identity_array)
         {
             DEBUG("%s: ", G_STRFUNC);
@@ -419,20 +456,32 @@ identity_registered (SignonIdentity *identity, DBusGProxy *proxy,
 
         priv->updated = TRUE;
     }
+    else
+        g_warning ("%s: %s", G_STRFUNC, error->message);
 
+    /*
+     * execute queued operations or emit errors on each of them
+     * */
+    priv->registration_state = REGISTERED;
     _signon_object_ready (identity, identity_object_quark (), error);
-    identity->priv->state = READY;
+
+    /*
+     * as the registration failed we do not
+     * request for new registration, but emit
+     * same error again and again
+     * */
+
+    /*
+     * TODO: as the concept will be changed
+     * consider emission of another error, like "invalid"
+     * */
 }
 
-GError*
+const GError *
 signon_identity_get_last_error (SignonIdentity *identity)
 {
     g_return_val_if_fail (SIGNON_IS_IDENTITY (identity), NULL);
-
-    SignonIdentityPrivate *priv;
-    priv = identity->priv;
-
-    return priv->last_error;
+    return _signon_object_last_error(identity);
 }
 
 static void
@@ -462,6 +511,27 @@ identity_new_from_db_cb (DBusGProxy *proxy,
     identity_registered (identity, proxy, objectPath, identityData, new_error);
 }
 
+static void
+identity_check_remote_registration (SignonIdentity *self)
+{
+    g_return_if_fail (self != NULL);
+    SignonIdentityPrivate *priv = self->priv;
+
+    g_return_if_fail (priv != NULL);
+
+    if (priv->registration_state != NOT_REGISTERED)
+        return;
+
+    if (priv->id != 0)
+        com_nokia_singlesignon_SignonDaemon_register_stored_identity_async
+            (DBUS_G_PROXY (priv->signon_proxy), priv->id, identity_new_from_db_cb, self);
+    else
+        com_nokia_singlesignon_SignonDaemon_register_new_identity_async
+            (DBUS_G_PROXY (priv->signon_proxy), identity_new_cb, self);
+
+    priv->registration_state = PENDING_REGISTRATION;
+}
+
 /**
  * signon_identity_new_from_db:
  * @id: identity ID.
@@ -482,9 +552,7 @@ signon_identity_new_from_db (guint32 id)
     g_return_val_if_fail (identity->priv != NULL, NULL);
 
     identity->priv->id = id;
-
-    com_nokia_singlesignon_SignonDaemon_register_stored_identity_async
-        (DBUS_G_PROXY (identity->priv->signon_proxy), id, identity_new_from_db_cb, identity);
+    identity_check_remote_registration (identity);
 
     return identity;
 }
@@ -503,9 +571,7 @@ signon_identity_new ()
     SignonIdentity *identity = g_object_new (SIGNON_TYPE_IDENTITY, NULL);
     g_return_val_if_fail (SIGNON_IS_IDENTITY (identity), NULL);
     g_return_val_if_fail (identity->priv != NULL, NULL);
-
-    com_nokia_singlesignon_SignonDaemon_register_new_identity_async
-        (DBUS_G_PROXY (identity->priv->signon_proxy), identity_new_cb, identity);
+    identity_check_remote_registration (identity);
 
     return identity;
 }
@@ -544,7 +610,7 @@ SignonAuthSession *signon_identity_create_session(SignonIdentity *self,
     g_return_val_if_fail (priv != NULL, NULL);
 
     DEBUG ("%s %d", G_STRFUNC, __LINE__);
-    
+
     if (method == NULL)
     {
         DEBUG ("NULL method as input. Aborting.");
@@ -554,13 +620,13 @@ SignonAuthSession *signon_identity_create_session(SignonIdentity *self,
                     "NULL input method.");
         return NULL;
     }
-    
+
     GSList *list = priv->sessions;
     while (list)
     {
         SignonAuthSession *session = SIGNON_AUTH_SESSION (priv->sessions->data);
         const gchar *sessionMethod = signon_auth_session_get_method (session);
-        if (g_strcmp0(sessionMethod, method) == 0) 
+        if (g_strcmp0(sessionMethod, method) == 0)
         {
             DEBUG ("Auth Session with method `%s` already created.", method);
             g_set_error (error,
@@ -692,6 +758,7 @@ void signon_identity_store_credentials_with_args(SignonIdentity *self,
     operation_data->type = (gint)type;
     operation_data->cb_data = cb_data;
 
+    identity_check_remote_registration (self);
     _signon_object_call_when_ready (self,
                                     identity_object_quark(),
                                     identity_store_credentials_ready_cb,
@@ -798,7 +865,7 @@ identity_store_credentials_reply (DBusGProxy *proxy,
          * if the previous state was REMOVED
          * then we need to reset it
          * */
-        priv->state = READY;
+        priv->removed = FALSE;
     }
 
     g_clear_error(&new_error);
@@ -846,7 +913,7 @@ identity_verify_ready_cb (gpointer object, const GError *error, gpointer user_da
     IdentityVerifyCbData *cb_data = operation_data->cb_data;
     g_return_if_fail (cb_data != NULL);
 
-    if (priv->state == REMOVED)
+    if (priv->removed == TRUE)
     {
         GError *new_error = g_error_new (signon_error_quark(),
                                          SIGNON_ERROR_IDENTITY_NOT_FOUND,
@@ -924,6 +991,7 @@ identity_verify_data(SignonIdentity *self,
     operation_data->operation = operation;
     operation_data->cb_data = cb_data;
 
+    identity_check_remote_registration (self);
     _signon_object_call_when_ready (self,
                                     identity_object_quark(),
                                     identity_verify_ready_cb,
@@ -1060,7 +1128,6 @@ identity_process_updated (SignonIdentity *self)
     g_return_if_fail (self->priv != NULL);
 
     SignonIdentityPrivate *priv = self->priv;
-    g_return_if_fail (priv->state != NOT_READY);
     g_return_if_fail (priv->proxy != NULL);
 
     signon_identity_info_free (priv->identity_info);
@@ -1078,10 +1145,10 @@ identity_process_removed (SignonIdentity *self)
 
     SignonIdentityPrivate *priv = self->priv;
 
-    if (priv->state == REMOVED)
+    if (priv->removed == TRUE)
         return;
 
-    priv->state = REMOVED;
+    priv->removed = TRUE;
     signon_identity_info_free (priv->identity_info);
     priv->identity_info = NULL;
 
@@ -1213,7 +1280,7 @@ identity_info_ready_cb(gpointer object, const GError *error, gpointer user_data)
     IdentityInfoCbData *cb_data = operation_data->cb_data;
     g_return_if_fail (cb_data != NULL);
 
-    if (priv->state == REMOVED)
+    if (priv->removed == TRUE)
     {
         GError *new_error = g_error_new (signon_error_quark(),
                                          SIGNON_ERROR_IDENTITY_NOT_FOUND,
@@ -1273,7 +1340,7 @@ identity_signout_ready_cb(gpointer object, const GError *error, gpointer user_da
 
     g_return_if_fail (cb_data != NULL);
 
-    if (priv->state == REMOVED)
+    if (priv->removed == TRUE)
     {
         GError *new_error = g_error_new (signon_error_quark(),
                                          SIGNON_ERROR_IDENTITY_NOT_FOUND,
@@ -1319,7 +1386,7 @@ identity_remove_ready_cb(gpointer object, const GError *error, gpointer user_dat
     IdentityVoidCbData *cb_data = (IdentityVoidCbData *)user_data;
     g_return_if_fail (cb_data != NULL);
 
-    if (priv->state == REMOVED)
+    if (priv->removed == TRUE)
     {
         GError *new_error = g_error_new (signon_error_quark(),
                                           SIGNON_ERROR_IDENTITY_NOT_FOUND,
@@ -1395,6 +1462,7 @@ void signon_identity_remove(SignonIdentity *self,
 
     DEBUG ("%s %d", G_STRFUNC, __LINE__);
 
+    identity_check_remote_registration (self);
     _signon_object_call_when_ready (self,
                                     identity_object_quark(),
                                     identity_remove_ready_cb,
@@ -1422,6 +1490,7 @@ void signon_identity_signout(SignonIdentity *self,
     cb_data->cb = (SignonIdentityVoidCb)cb;
     cb_data->user_data = user_data;
 
+    identity_check_remote_registration (self);
     _signon_object_call_when_ready (self,
                                     identity_object_quark(),
                                     identity_signout_ready_cb,
@@ -1449,6 +1518,7 @@ void signon_identity_query_info(SignonIdentity *self,
     cb_data->cb = cb;
     cb_data->user_data = user_data;
 
+    identity_check_remote_registration (self);
     identity_void_operation(self,
                             SIGNON_INFO,
                             cb_data);
