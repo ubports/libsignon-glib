@@ -37,6 +37,9 @@ void _signon_object_call_when_ready (gpointer object, GQuark quark,
                                     SignonReadyCb callback, gpointer user_data);
 
 void _signon_object_ready (gpointer object, GQuark quark, const GError *error);
+void _signon_object_not_ready (gpointer object);
+
+const GError *_signon_object_last_error (gpointer object);
 
 G_END_DECLS
 #endif /* SIGNONDBUSQUEUEDDATA_H */

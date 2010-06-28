@@ -149,3 +149,21 @@ _signon_object_ready (gpointer object, GQuark quark, const GError *error)
     //TODO: set some sort of ready information
 }
 
+void
+_signon_object_not_ready (gpointer object)
+{
+    g_object_set_qdata ((GObject *)object,
+                        _signon_object_ready_quark(),
+                        GINT_TO_POINTER(FALSE));
+
+    g_object_set_qdata ((GObject *)object,
+                        _signon_object_error_quark(),
+                        NULL);
+}
+
+const GError *
+_signon_object_last_error (gpointer object)
+{
+    return (GError *)g_object_get_qdata((GObject *)object,
+                                        _signon_object_error_quark());
+}
