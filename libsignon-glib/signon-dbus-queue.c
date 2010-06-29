@@ -164,6 +164,6 @@ _signon_object_not_ready (gpointer object)
 const GError *
 _signon_object_last_error (gpointer object)
 {
-    return (GError *)g_object_get_qdata((GObject *)object,
-                                        _signon_object_error_quark());
+    return g_object_get_qdata((GObject *)object,
+                              _signon_object_error_quark());
 }
