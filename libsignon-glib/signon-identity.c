@@ -66,7 +66,6 @@ struct _SignonIdentityPrivate
     SignonProxy *signon_proxy;
 
     SignonIdentityInfo *identity_info;
-    GError *last_error;
 
     GSList *sessions;
     IdentityRegistrationState registration_state;
@@ -463,17 +462,17 @@ identity_registered (SignonIdentity *identity, DBusGProxy *proxy,
      * execute queued operations or emit errors on each of them
      * */
     priv->registration_state = REGISTERED;
+
+    /*
+     * TODO: if we will add a new state for identity: "INVALID"
+     * consider emission of another error, like "invalid"
+     * */
     _signon_object_ready (identity, identity_object_quark (), error);
 
     /*
      * as the registration failed we do not
      * request for new registration, but emit
      * same error again and again
-     * */
-
-    /*
-     * TODO: as the concept will be changed
-     * consider emission of another error, like "invalid"
      * */
 }
 
