@@ -97,6 +97,7 @@ typedef struct _AuthSessionProcessCbData
     "Challenge was canceled"
 
 static void auth_session_state_changed_cb (DBusGProxy *proxy, gint state, gchar *message, gpointer user_data);
+static void auth_session_remote_object_destroyed_cb (DBusGProxy *proxy, gpointer user_data);
 
 static gboolean auth_session_priv_init (SignonAuthSession *self, guint id, const gchar *method_name, GError **err);
 static void auth_session_get_object_path_reply (DBusGProxy *proxy, char * object_path, GError *error, gpointer userdata);
@@ -108,6 +109,8 @@ static void auth_session_cancel_ready_cb (gpointer object, const GError *error, 
 
 static void auth_session_query_mechanisms_reply (DBusGProxy *proxy, char **object_path, GError *error, gpointer userdata);
 static void auth_session_process_reply (DBusGProxy *proxy, GHashTable *object_path, GError *error, gpointer userdata);
+
+static void auth_session_check_remote_object(SignonAuthSession *self);
 
 static GQuark
 auth_session_errors_quark ()
@@ -153,7 +156,6 @@ signon_auth_session_dispose (GObject *object)
 
     if (priv->proxy)
     {
-        signon_auth_session_cancel (self);
         com_nokia_singlesignon_SignonAuthSession_object_unref (priv->proxy, &err);
         g_object_unref (priv->proxy);
         priv->proxy = NULL;
@@ -265,10 +267,9 @@ signon_auth_session_set_id(SignonAuthSession* self,
 
     SignonAuthSessionPrivate *priv = self->priv;
     g_return_if_fail (priv != NULL);
+    g_return_if_fail (id >= 0);
 
-    g_return_if_fail (id > 0);
-    g_return_if_fail (self->priv->id == 0);
-
+    auth_session_check_remote_object(self);
     _signon_object_call_when_ready (self,
                                     auth_session_object_quark(),
                                     auth_session_set_id_ready_cb,
@@ -306,6 +307,7 @@ signon_auth_session_query_available_mechanisms (SignonAuthSession *self,
     operation_data->wanted_mechanisms = g_strdupv ((gchar **)wanted_mechanisms);
     operation_data->cb_data = cb_data;
 
+    auth_session_check_remote_object(self);
     _signon_object_call_when_ready (self,
                                     auth_session_object_quark(),
                                     auth_session_query_available_mechanisms_ready_cb,
@@ -338,6 +340,7 @@ signon_auth_session_process (SignonAuthSession *self,
 
     priv->busy = TRUE;
 
+    auth_session_check_remote_object(self);
     _signon_object_call_when_ready (self,
                                     auth_session_object_quark(),
                                     auth_session_process_ready_cb,
@@ -351,6 +354,8 @@ signon_auth_session_cancel (SignonAuthSession *self)
     SignonAuthSessionPrivate *priv = self->priv;
 
     g_return_if_fail (priv != NULL);
+
+    auth_session_check_remote_object(self);
 
     if (!priv->busy)
         return;
@@ -401,6 +406,20 @@ auth_session_get_object_path_reply (DBusGProxy *proxy, char * object_path,
                                      G_CALLBACK (auth_session_state_changed_cb),
                                      self,
                                      NULL);
+
+        dbus_g_object_register_marshaller (g_cclosure_marshal_VOID__VOID,
+                                           G_TYPE_NONE,
+                                           G_TYPE_INVALID);
+
+        dbus_g_proxy_add_signal (priv->proxy,
+                                 "unregistered",
+                                 G_TYPE_INVALID);
+
+        dbus_g_proxy_connect_signal (priv->proxy,
+                                     "unregistered",
+                                     G_CALLBACK (auth_session_remote_object_destroyed_cb),
+                                     self,
+                                     NULL);
     }
 
     _signon_object_ready (self, auth_session_object_quark (), error);
@@ -421,6 +440,31 @@ auth_session_state_changed_cb (DBusGProxy *proxy,
                     0,
                     state,
                     message);
+}
+
+static void auth_session_remote_object_destroyed_cb (DBusGProxy *proxy,
+                                                     gpointer user_data)
+{
+    g_return_if_fail (SIGNON_IS_AUTH_SESSION (user_data));
+    SignonAuthSession *self = SIGNON_AUTH_SESSION (user_data);
+    GError *error = NULL;
+
+    if (priv->proxy)
+    {
+        com_nokia_singlesignon_SignonAuthSession_object_unref (priv->proxy, &error);
+        g_object_unref (priv->proxy);
+        priv->proxy = NULL;
+    }
+
+    /*
+     * as remote object is destroyed only
+     * when the session core is destroyed,
+     * so there should not be any processes
+     * running
+     * */
+    priv->busy = FALSE;
+    priv->canceled = FALSE;
+    _signon_object_not_ready(self);
 }
 
 static gboolean
@@ -612,3 +656,21 @@ auth_session_cancel_ready_cb (gpointer object, const GError *error, gpointer use
     priv->canceled = FALSE;
 }
 
+static void
+auth_session_check_remote_object(SignonAuthSession *self)
+{
+    g_return_if_fail (self != NULL);
+    SignonAuthSessionPrivate *priv = self->priv;
+    g_return_if_fail (priv != NULL);
+
+    if (priv->proxy != NULL)
+        return;
+
+    g_return_if_fail (priv->signon_proxy != NULL);
+
+    (void)com_nokia_singlesignon_SignonDaemon_get_auth_session_object_path_async (DBUS_G_PROXY (priv->signon_proxy),
+                                                                                  (const guint)priv->id,
+                                                                                  priv->method_name,
+                                                                                  auth_session_get_object_path_reply,
+                                                                                  self);
+}

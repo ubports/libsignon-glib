@@ -437,11 +437,11 @@ identity_registered (SignonIdentity *identity, DBusGProxy *proxy,
                                            G_TYPE_INVALID);
 
         dbus_g_proxy_add_signal (priv->proxy,
-                                 "destroyed",
+                                 "unregistered",
                                  G_TYPE_INVALID);
 
         dbus_g_proxy_connect_signal (priv->proxy,
-                                     "destroyed",
+                                     "unregistered",
                                      G_CALLBACK (identity_remote_object_destroyed_cb),
                                      identity,
                                      NULL);
