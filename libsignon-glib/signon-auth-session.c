@@ -422,6 +422,7 @@ auth_session_get_object_path_reply (DBusGProxy *proxy, char * object_path,
                                      NULL);
     }
 
+    DEBUG ("Object path received: %s", object_path);
     _signon_object_ready (self, auth_session_object_quark (), error);
     g_clear_error (&error);
 }
@@ -447,7 +448,11 @@ static void auth_session_remote_object_destroyed_cb (DBusGProxy *proxy,
 {
     g_return_if_fail (SIGNON_IS_AUTH_SESSION (user_data));
     SignonAuthSession *self = SIGNON_AUTH_SESSION (user_data);
+    SignonAuthSessionPrivate *priv = self->priv;
+    g_return_if_fail (priv != NULL);
     GError *error = NULL;
+
+    DEBUG ("remote object unregistered");
 
     if (priv->proxy)
     {
