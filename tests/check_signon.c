@@ -26,6 +26,8 @@ static GMainLoop *main_loop = NULL;
 static SignonIdentity *identity = NULL;
 static SignonAuthService *auth_service = NULL;
 
+#define SIGNOND_IDLE_TIMEOUT (5 * 60 + 10)
+
 static void
 end_test ()
 {
@@ -1069,7 +1071,7 @@ START_TEST(test_signout_identity)
 }
 END_TEST
 
-START_TEST(test_destroyed_identity)
+START_TEST(test_unregistered_identity)
 {
     g_type_init ();
     SignonIdentity *idty = signon_identity_new();
@@ -1085,9 +1087,17 @@ START_TEST(test_destroyed_identity)
                                                  store_credentials_identity_cb,
                                                  NULL);
     g_main_loop_run (main_loop);
-    sleep(5 * 60 + 10);
 
+    /*
+     * give the time for identity to became idle
+     * */
+    sleep(SIGNOND_IDLE_TIMEOUT);
     SignonIdentity *idty2 = signon_identity_new();
+
+    /*
+     * give time to handle unregistered signal
+     * */
+    g_timeout_add_seconds (5, (GSourceFunc)g_main_loop_quit, main_loop);
 
     signon_identity_query_info (idty, identity_info_cb, &info);
     g_main_loop_run (main_loop);
@@ -1096,6 +1106,54 @@ START_TEST(test_destroyed_identity)
     g_object_unref (idty2);
 }
 END_TEST
+
+START_TEST(test_unregistered_auth_session)
+{
+    g_type_init ();
+    SignonIdentity *idty = signon_identity_new();
+    fail_unless (idty != NULL);
+    fail_unless (SIGNON_IS_IDENTITY (idty),
+                 "Failed to initialize the Identity.");
+
+    main_loop = g_main_loop_new (NULL, FALSE);
+
+    GError *err = NULL;
+    SignonAuthSession *as = signon_identity_create_session(idty,
+                                                          "ssotest",
+                                                           &err);
+    /*
+     * give the time for identity to became idle
+     * */
+    sleep(SIGNOND_IDLE_TIMEOUT);
+    SignonIdentity *idty2 = signon_identity_new();
+
+    /*
+     * give time to handle unregistered signal
+     * */
+    g_timeout_add_seconds (5, (GSourceFunc)g_main_loop_quit, main_loop);
+
+    gchar* patterns[4];
+    patterns[0] = g_strdup("mech1");
+    patterns[1] = g_strdup("mech2");
+    patterns[2] = g_strdup("mech3");
+    patterns[3] = NULL;
+
+    signon_auth_session_query_available_mechanisms(as,
+                                                  (const gchar**)patterns,
+                                                  test_auth_session_query_mechanisms_cb,
+                                                  (gpointer)patterns);
+    g_main_loop_run (main_loop);
+
+    g_object_unref (idty);
+    g_object_unref (idty2);
+
+    g_free (patterns[0]);
+    g_free (patterns[1]);
+    g_free (patterns[2]);
+    g_free (patterns[3]);
+}
+END_TEST
+
 
 Suite *
 signon_suite(void)
@@ -1106,9 +1164,9 @@ signon_suite(void)
     TCase * tc_core = tcase_create("Core");
 
     /*
-     * 12 minutes timeout
+     * 18 minutes timeout
      * */
-    tcase_set_timeout(tc_core, 720);
+    tcase_set_timeout(tc_core, 1080);
     tcase_add_test (tc_core, test_init);
     tcase_add_test (tc_core, test_query_methods);
     tcase_add_test (tc_core, test_query_mechanisms);
@@ -1125,7 +1183,8 @@ signon_suite(void)
     tcase_add_test (tc_core, test_info_identity);
 
     tcase_add_test (tc_core, test_signout_identity);
-    tcase_add_test (tc_core, test_destroyed_identity);
+    tcase_add_test (tc_core, test_unregistered_identity);
+    tcase_add_test (tc_core, test_unregistered_auth_session);
     suite_add_tcase (s, tc_core);
 
     return s;
