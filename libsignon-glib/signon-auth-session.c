@@ -456,7 +456,6 @@ static void auth_session_remote_object_destroyed_cb (DBusGProxy *proxy,
 
     if (priv->proxy)
     {
-        com_nokia_singlesignon_SignonAuthSession_object_unref (priv->proxy, &error);
         g_object_unref (priv->proxy);
         priv->proxy = NULL;
     }
