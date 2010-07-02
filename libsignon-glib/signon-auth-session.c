@@ -450,8 +450,6 @@ static void auth_session_remote_object_destroyed_cb (DBusGProxy *proxy,
     SignonAuthSession *self = SIGNON_AUTH_SESSION (user_data);
     SignonAuthSessionPrivate *priv = self->priv;
     g_return_if_fail (priv != NULL);
-    GError *error = NULL;
-
     DEBUG ("remote object unregistered");
 
     if (priv->proxy)
