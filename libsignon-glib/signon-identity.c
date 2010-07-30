@@ -522,10 +522,10 @@ identity_check_remote_registration (SignonIdentity *self)
         return;
 
     if (priv->id != 0)
-        com_nokia_singlesignon_SignonDaemon_register_stored_identity_async
+        com_nokia_SingleSignOn_AuthService_register_stored_identity_async
             (DBUS_G_PROXY (priv->signon_proxy), priv->id, identity_new_from_db_cb, self);
     else
-        com_nokia_singlesignon_SignonDaemon_register_new_identity_async
+        com_nokia_SingleSignOn_AuthService_register_new_identity_async
             (DBUS_G_PROXY (priv->signon_proxy), identity_new_cb, self);
 
     priv->registration_state = PENDING_REGISTRATION;
@@ -797,7 +797,7 @@ identity_store_credentials_ready_cb (gpointer object, const GError *error, gpoin
     {
         g_return_if_fail (priv->proxy != NULL);
 
-        (void)com_nokia_singlesignon_SignonIdentity_store_credentials_async(
+        (void)com_nokia_SingleSignOn_Identity_store_credentials_async(
                     priv->proxy,
                     priv->id,
                     operation_data->username,
@@ -944,14 +944,14 @@ identity_verify_ready_cb (gpointer object, const GError *error, gpointer user_da
 
         switch (operation_data->operation) {
             case SIGNON_VERIFY_SECRET:
-                com_nokia_singlesignon_SignonIdentity_verify_secret_async(
+                com_nokia_SingleSignOn_Identity_verify_secret_async(
                         priv->proxy,
                         operation_data->data_to_send,
                         identity_verify_reply,
                         cb_data);
             break;
             case SIGNON_VERIFY_USER:
-            com_nokia_singlesignon_SignonIdentity_verify_user_async(
+            com_nokia_SingleSignOn_Identity_verify_user_async(
                     priv->proxy,
                     operation_data->data_to_send,
                     identity_verify_reply,
@@ -1306,7 +1306,7 @@ identity_info_ready_cb(gpointer object, const GError *error, gpointer user_data)
     else if (priv->updated == FALSE)
     {
         g_return_if_fail (priv->proxy != NULL);
-        com_nokia_singlesignon_SignonIdentity_query_info_async (
+        com_nokia_SingleSignOn_Identity_query_info_async (
                                                         priv->proxy,
                                                         identity_info_reply,
                                                         cb_data);
@@ -1365,7 +1365,7 @@ identity_signout_ready_cb(gpointer object, const GError *error, gpointer user_da
     else
     {
         g_return_if_fail (priv->proxy != NULL);
-        com_nokia_singlesignon_SignonIdentity_sign_out_async(
+        com_nokia_SingleSignOn_Identity_sign_out_async(
                 priv->proxy,
                 identity_signout_reply,
                 cb_data);
@@ -1411,7 +1411,7 @@ identity_remove_ready_cb(gpointer object, const GError *error, gpointer user_dat
     else
     {
         g_return_if_fail (priv->proxy != NULL);
-        com_nokia_singlesignon_SignonIdentity_remove_async(
+        com_nokia_SingleSignOn_Identity_remove_async(
                 priv->proxy,
                 identity_removed_reply,
                 cb_data);

@@ -156,7 +156,7 @@ signon_auth_session_dispose (GObject *object)
 
     if (priv->proxy)
     {
-        com_nokia_singlesignon_SignonAuthSession_object_unref (priv->proxy, &err);
+        com_nokia_SingleSignOn_AuthSession_object_unref (priv->proxy, &err);
         g_object_unref (priv->proxy);
         priv->proxy = NULL;
     }
@@ -248,7 +248,7 @@ auth_session_set_id_ready_cb (gpointer object,
     gint id = GPOINTER_TO_INT(user_data);
 
     GError *err = NULL;
-    com_nokia_singlesignon_SignonAuthSession_set_id (priv->proxy,
+    com_nokia_SingleSignOn_AuthSession_set_id (priv->proxy,
                                                      id,
                                                      &err);
     priv->id = id;
@@ -480,7 +480,7 @@ auth_session_priv_init (SignonAuthSession *self, guint id,
     priv->id = id;
     priv->method_name = g_strdup (method_name);
 
-    (void)com_nokia_singlesignon_SignonDaemon_get_auth_session_object_path_async (DBUS_G_PROXY (priv->signon_proxy),
+    (void)com_nokia_SingleSignOn_AuthService_get_auth_session_object_path_async (DBUS_G_PROXY (priv->signon_proxy),
                                                                                   (const guint)id,
                                                                                   method_name,
                                                                                   auth_session_get_object_path_reply,
@@ -560,7 +560,7 @@ auth_session_query_available_mechanisms_ready_cb (gpointer object, const GError 
     else
     {
         g_return_if_fail (priv->proxy != NULL);
-        (void) com_nokia_singlesignon_SignonAuthSession_query_available_mechanisms_async (
+        (void) com_nokia_SingleSignOn_AuthSession_query_available_mechanisms_async (
                     priv->proxy,
                     (const char **)operation_data->wanted_mechanisms,
                     auth_session_query_mechanisms_reply,
@@ -615,7 +615,7 @@ auth_session_process_ready_cb (gpointer object, const GError *error, gpointer us
     {
         g_return_if_fail (priv->proxy != NULL);
 
-        (void)com_nokia_singlesignon_SignonAuthSession_process_async(
+        (void)com_nokia_SingleSignOn_AuthSession_process_async(
                     priv->proxy,
                     operation_data->session_data,
                     operation_data->mechanism,
@@ -652,7 +652,7 @@ auth_session_cancel_ready_cb (gpointer object, const GError *error, gpointer use
         DEBUG("error during initialization");
     }
     else if (priv->proxy && priv->busy)
-        com_nokia_singlesignon_SignonAuthSession_cancel (priv->proxy, NULL);
+        com_nokia_SingleSignOn_AuthSession_cancel (priv->proxy, NULL);
 
     priv->busy = FALSE;
     priv->canceled = FALSE;
@@ -670,7 +670,7 @@ auth_session_check_remote_object(SignonAuthSession *self)
 
     g_return_if_fail (priv->signon_proxy != NULL);
 
-    (void)com_nokia_singlesignon_SignonDaemon_get_auth_session_object_path_async (DBUS_G_PROXY (priv->signon_proxy),
+    (void)com_nokia_SingleSignOn_AuthService_get_auth_session_object_path_async (DBUS_G_PROXY (priv->signon_proxy),
                                                                                   (const guint)priv->id,
                                                                                   priv->method_name,
                                                                                   auth_session_get_object_path_reply,

@@ -506,9 +506,9 @@ new_identity()
     if(connection)
     {
         proxy = dbus_g_proxy_new_for_name (connection,
-                                           "com.nokia.singlesignon",
-                                           "/SignonDaemon",
-                                           "com.nokia.singlesignon.SignonDaemon");
+                                           "com.nokia.SingleSignOn",
+                                           "/com/nokia/SingleSignOn",
+                                           "com.nokia.SingleSignOn.AuthService");
     }
     else if (error)
     {
@@ -518,7 +518,7 @@ new_identity()
     }
 
     gchar *objectPath;
-    com_nokia_singlesignon_SignonDaemon_register_new_identity (proxy, &objectPath, &error);
+    com_nokia_SingleSignOn_AuthService_register_new_identity (proxy, &objectPath, &error);
 
     if (error)
     {
@@ -530,11 +530,11 @@ new_identity()
     GHashTable *methods = g_hash_table_new (g_str_hash, g_str_equal);
 
     proxy = dbus_g_proxy_new_for_name (connection,
-                                       "com.nokia.singlesignon",
+                                       "com.nokia.SingleSignOn",
                                        objectPath,
-                                       "com.nokia.singlesignon.SignonIdentity");
+                                       "com.nokia.SingleSignOn.Identity");
 
-    com_nokia_singlesignon_SignonIdentity_store_credentials (proxy,
+    com_nokia_SingleSignOn_Identity_store_credentials (proxy,
                                                              0,
                                                              "James Bond",
                                                              "007",
