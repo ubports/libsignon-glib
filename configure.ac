@@ -54,7 +54,7 @@ PKG_CHECK_MODULES(DBUS, [dbus-1 >= 0.51, dbus-glib-1 >= 0.51], have_dbus=yes, ha
 AC_SUBST(DBUS_CFLAGS)
 AC_SUBST(DBUS_LIBS)
 
-testdatadir=${datadir}/libsignon-glib0-test
+testdatadir=${datadir}/libsignon-glib1-test
 AC_SUBST(testdatadir)
 
 AC_CONFIG_FILES([tests/signon-glib-test.sh], [chmod +x tests/signon-glib-test.sh])

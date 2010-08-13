@@ -1,7 +1,7 @@
  <testdefinition version="0.1">
-     <suite name="libsignon-glib0-tests" domain="Accounts and SSO">
-         <set description="libsignon-glib0-tests:signon-glib-tests" name="/usr/bin/signon-glib-test.sh">
-              <case description="libsignon-glib-tests:signon-glib-test.sh" name="signon-glib-test.sh" type="Functional" level="Feature"> 
+     <suite name="libsignon-glib1-tests" domain="Accounts and SSO">
+         <set description="libsignon-glib1-tests:signon-glib-tests" name="/usr/bin/signon-glib-test.sh">
+              <case description="libsignon-glib-tests:signon-glib-test.sh" name="signon-glib-test.sh" type="Functional" level="Feature">
                  <step>/usr/bin/signon-glib-test.sh</step>
               </case>
               <environments><scratchbox>true</scratchbox>
