@@ -118,7 +118,7 @@ auth_session_errors_quark ()
   static GQuark quark = 0;
 
   if (!quark)
-    quark = g_quark_from_static_string ("com.nokia.singlesignon.AuthSession.Errors");
+    quark = g_quark_from_static_string ("com.nokia.SingleSignOn.AuthSession.Errors");
 
   return quark;
 }
