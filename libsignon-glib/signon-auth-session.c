@@ -157,6 +157,16 @@ signon_auth_session_dispose (GObject *object)
     if (priv->proxy)
     {
         com_nokia_SingleSignOn_AuthSession_object_unref (priv->proxy, &err);
+
+        dbus_g_proxy_disconnect_signal (priv->proxy,
+                                        "stateChanged",
+                                        G_CALLBACK (auth_session_state_changed_cb),
+                                        self);
+        dbus_g_proxy_disconnect_signal (priv->proxy,
+                                        "unregistered",
+                                        G_CALLBACK (auth_session_remote_object_destroyed_cb),
+                                        self);
+
         g_object_unref (priv->proxy);
         priv->proxy = NULL;
     }

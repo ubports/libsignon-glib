@@ -282,6 +282,14 @@ signon_identity_dispose (GObject *object)
 
     if (priv->proxy)
     {
+        dbus_g_proxy_disconnect_signal (priv->proxy,
+                                        "infoUpdated",
+                                        G_CALLBACK (identity_state_changed_cb),
+                                        identity);
+        dbus_g_proxy_disconnect_signal (priv->proxy,
+                                        "unregistered",
+                                        G_CALLBACK (identity_remote_object_destroyed_cb),
+                                        identity);
         g_object_unref (priv->proxy);
         priv->proxy = NULL;
     }
@@ -689,9 +697,6 @@ void signon_identity_store_credentials_with_info(SignonIdentity *self,
                                                 cb,
                                                 user_data);
 }
-
-
-
 
 static GHashTable *
 identity_methods_to_valuearray (const GHashTable *methods)
