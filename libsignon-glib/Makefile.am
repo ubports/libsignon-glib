@@ -45,13 +45,15 @@ libsignon_glib_include_HEADERS = \
 	signon-errors.h \
 	$(signon_headers)
 
-signon-client-glib-gen.h: signondaemon.xml
+DBUS_INTERFACES_DIR = /usr/share/dbus-1/interfaces
+
+signon-client-glib-gen.h: $(DBUS_INTERFACES_DIR)/com.nokia.SingleSignOn.AuthService.xml
 	dbus-binding-tool --prefix=signon-client-glib --mode=glib-client $< > $@
 
-signon-auth-session-client-glib-gen.h: signonauthsession.xml
+signon-auth-session-client-glib-gen.h: $(DBUS_INTERFACES_DIR)/com.nokia.SingleSignOn.AuthSession.xml
 	dbus-binding-tool --prefix=signon-auth-session-client-glib --mode=glib-client $< > $@
 
-signon-identity-glib-gen.h: signonidentity.xml
+signon-identity-glib-gen.h: $(DBUS_INTERFACES_DIR)/com.nokia.SingleSignOn.Identity.xml
 	dbus-binding-tool --prefix=signon-identity-glib --mode=glib-client $< > $@
 
 %-marshal.h: %-marshal.list Makefile
