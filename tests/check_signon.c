@@ -544,6 +544,7 @@ new_identity()
                                                              NULL,
                                                              NULL,
                                                              0,
+                                                             1,
                                                              &id,
                                                              &error);
 
@@ -663,6 +664,7 @@ START_TEST(test_store_credentials_identity)
                                                  NULL,
                                                  NULL,
                                                  0,
+                                                 1,
                                                  store_credentials_identity_cb,
                                                  &last_id);
     g_hash_table_destroy (methods);
@@ -721,6 +723,7 @@ START_TEST(test_verify_secret_identity)
                                                  NULL,
                                                  NULL,
                                                  0,
+                                                 1,
                                                  store_credentials_identity_cb,
                                                  NULL);
     main_loop = g_main_loop_new (NULL, FALSE);
@@ -793,6 +796,7 @@ START_TEST(test_remove_identity)
                                                  NULL,
                                                  NULL,
                                                  0,
+                                                 1,
                                                  store_credentials_identity_cb,
                                                  NULL);
     g_hash_table_destroy (methods);
@@ -930,6 +934,7 @@ START_TEST(test_info_identity)
                                                  NULL,
                                                  NULL,
                                                  0,
+                                                 1,
                                                  store_credentials_identity_cb,
                                                  NULL);
     g_hash_table_destroy (methods);

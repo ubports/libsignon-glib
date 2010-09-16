@@ -95,6 +95,7 @@ struct _SignonIdentityInfo
     gchar **realms;
     gchar **access_control_list;
     gint type;
+    gint ref_count;
 };
 
 #define SIGNON_IDENTITY_PRIV(obj) (SIGNON_IDENTITY(obj)->priv)
@@ -116,6 +117,7 @@ typedef struct _IdentityStoreCredentialsData
     gchar **realms;
     gchar **access_control_list;
     gint type;
+    gint ref_count;
     gpointer cb_data;
 } IdentityStoreCredentialsData;
 
@@ -694,6 +696,7 @@ void signon_identity_store_credentials_with_info(SignonIdentity *self,
                                                 (const gchar* const *)info->realms,
                                                 (const gchar* const *)info->access_control_list,
                                                 info->type,
+                                                info->ref_count,
                                                 cb,
                                                 user_data);
 }
@@ -733,6 +736,7 @@ void signon_identity_store_credentials_with_args(SignonIdentity *self,
                                                  const gchar* const *realms,
                                                  const gchar* const *access_control_list,
                                                  SignonIdentityType type,
+                                                 gint ref_count,
                                                  SignonIdentityStoreCredentialsCb cb,
                                                  gpointer user_data)
 {
@@ -760,6 +764,7 @@ void signon_identity_store_credentials_with_args(SignonIdentity *self,
     operation_data->realms = g_strdupv((gchar **)realms);
     operation_data->access_control_list = g_strdupv((gchar **)access_control_list);
     operation_data->type = (gint)type;
+    operation_data->ref_count = ref_count;
     operation_data->cb_data = cb_data;
 
     identity_check_remote_registration (self);
@@ -813,6 +818,7 @@ identity_store_credentials_ready_cb (gpointer object, const GError *error, gpoin
                     (const char **)operation_data->realms,
                     (const char **)operation_data->access_control_list,
                     operation_data->type,
+                    operation_data->ref_count,
                     identity_store_credentials_reply,
                     cb_data);
     }
@@ -1118,6 +1124,12 @@ identity_ptrarray_to_identity_info (const GPtrArray *identity_array)
     value = g_ptr_array_index (identity_array, 7);
     g_assert (G_VALUE_HOLDS_INT(value));
     signon_identity_info_set_identity_type (info, g_value_get_int (value));
+    g_value_unset (value);
+
+    /* get the ref_count (gint) */
+    value = g_ptr_array_index (identity_array, 8);
+    g_assert (G_VALUE_HOLDS_INT(value));
+    signon_identity_info_set_identity_ref_count (info, g_value_get_int (value));
     g_value_unset (value);
 
     return info;
@@ -1577,6 +1589,8 @@ SignonIdentityInfo *signon_identity_info_copy (const SignonIdentityInfo *other)
 
     signon_identity_info_set_identity_type (info, signon_identity_info_get_identity_type (other));
 
+    signon_identity_info_set_identity_ref_count (info, signon_identity_info_get_identity_ref_count (other));
+
     return info;
 }
 
@@ -1626,6 +1640,12 @@ SignonIdentityType signon_identity_info_get_identity_type (const SignonIdentityI
 {
     g_return_val_if_fail (info != NULL, -1);
     return (SignonIdentityType)info->type;
+}
+
+gint signon_identity_info_get_identity_ref_count (const SignonIdentityInfo *info)
+{
+    g_return_val_if_fail (info != NULL, -1);
+    return (SignonIdentityType)info->ref_count;
 }
 
 void signon_identity_info_set_username (SignonIdentityInfo *info, const gchar *username)
@@ -1699,6 +1719,12 @@ void signon_identity_info_set_identity_type (SignonIdentityInfo *info, SignonIde
 {
     g_return_if_fail (info != NULL);
     info->type = (gint)type;
+}
+
+void signon_identity_info_set_identity_ref_count (SignonIdentityInfo *info, gint ref_count)
+{
+    g_return_if_fail (info != NULL);
+    info->ref_count = ref_count;
 }
 
 static const gchar *identity_info_get_secret (const SignonIdentityInfo *info)
