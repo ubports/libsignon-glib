@@ -60,6 +60,8 @@ typedef void (*SignonIdentityVoidCb) (SignonIdentity *self,
 
 typedef SignonIdentityVoidCb SignonIdentityRemovedCb;
 typedef SignonIdentityVoidCb SignonIdentitySignedOutCb;
+typedef SignonIdentityVoidCb SignonIdentityReferenceAddedCb;
+typedef SignonIdentityVoidCb SignonIdentityReferenceRemovedCb;
 
 /*
  * types used in SignonIdentityInfo
@@ -146,6 +148,16 @@ void signon_identity_remove(SignonIdentity *self,
 
 void signon_identity_signout(SignonIdentity *self,
                             SignonIdentitySignedOutCb cb,
+                            gpointer user_data);
+
+void signon_identity_add_reference(SignonIdentity *self,
+                            const gchar *reference,
+                            SignonIdentityReferenceAddedCb cb,
+                            gpointer user_data);
+
+void signon_identity_remove_reference(SignonIdentity *self,
+                            const gchar *reference,
+                            SignonIdentityReferenceRemovedCb cb,
                             gpointer user_data);
 
 SignonIdentityInfo *signon_identity_info_new ();

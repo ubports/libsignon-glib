@@ -1509,6 +1509,54 @@ void signon_identity_signout(SignonIdentity *self,
 }
 
 /**
+ * signon_identity_add_reference:
+ * @reference: reference to be added
+ * @cb: callback
+ * @user_data : user_data.
+ *
+ * Adds named reference to identity
+ */
+void signon_identity_add_reference(SignonIdentity *self,
+                             const gchar *reference,
+                             SignonIdentityReferenceAddedCb cb,
+                             gpointer user_data)
+{
+    g_return_if_fail (SIGNON_IS_IDENTITY (self));
+
+    SignonIdentityPrivate *priv = self->priv;
+    g_return_if_fail (priv != NULL);
+
+    //TODO implement
+
+    if (cb)
+        (cb) (self, NULL, user_data);
+}
+
+/**
+ * signon_identity_remove_reference:
+ * @reference: reference to be removed
+ * @cb: callback
+ * @user_data : user_data.
+ *
+ * Removes named reference from identity
+ */
+void signon_identity_remove_reference(SignonIdentity *self,
+                             const gchar *reference,
+                             SignonIdentityReferenceRemovedCb cb,
+                             gpointer user_data)
+{
+    g_return_if_fail (SIGNON_IS_IDENTITY (self));
+
+    SignonIdentityPrivate *priv = self->priv;
+    g_return_if_fail (priv != NULL);
+
+    //TODO implement
+
+    if (cb)
+        (cb) (self, NULL, user_data);
+}
+
+/**
  * signon_identity_info:
  * @cb: callback
  * @user_data : user_data.
