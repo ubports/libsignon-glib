@@ -170,6 +170,8 @@ const gchar* const *signon_identity_info_get_access_control_list (const SignonId
 
 SignonIdentityType signon_identity_info_get_identity_type (const SignonIdentityInfo *info);
 
+gint signon_identity_info_get_identity_ref_count (const SignonIdentityInfo *info);
+
 void signon_identity_info_set_username (SignonIdentityInfo *info, const gchar *username);
 
 void signon_identity_info_set_secret (SignonIdentityInfo *info, const gchar *secret, gboolean store_secret);
@@ -185,6 +187,8 @@ void signon_identity_info_set_realms (SignonIdentityInfo *info, const gchar* con
 void signon_identity_info_set_access_control_list (SignonIdentityInfo *info, const gchar* const *access_control_list);
 
 void signon_identity_info_set_identity_type (SignonIdentityInfo *info, SignonIdentityType type);
+
+void signon_identity_info_set_identity_ref_count (SignonIdentityInfo *info, gint ref_count);
 
 G_END_DECLS
 

@@ -95,6 +95,7 @@ struct _SignonIdentityInfo
     gchar **realms;
     gchar **access_control_list;
     gint type;
+    gint ref_count;
 };
 
 #define SIGNON_IDENTITY_PRIV(obj) (SIGNON_IDENTITY(obj)->priv)
@@ -1120,6 +1121,12 @@ identity_ptrarray_to_identity_info (const GPtrArray *identity_array)
     signon_identity_info_set_identity_type (info, g_value_get_int (value));
     g_value_unset (value);
 
+    /* get the ref_count (gint) */
+    value = g_ptr_array_index (identity_array, 8);
+    g_assert (G_VALUE_HOLDS_INT(value));
+    signon_identity_info_set_identity_ref_count (info, g_value_get_int (value));
+    g_value_unset (value);
+
     return info;
 }
 
@@ -1577,6 +1584,8 @@ SignonIdentityInfo *signon_identity_info_copy (const SignonIdentityInfo *other)
 
     signon_identity_info_set_identity_type (info, signon_identity_info_get_identity_type (other));
 
+    signon_identity_info_set_identity_ref_count (info, signon_identity_info_get_identity_ref_count (other));
+
     return info;
 }
 
@@ -1626,6 +1635,12 @@ SignonIdentityType signon_identity_info_get_identity_type (const SignonIdentityI
 {
     g_return_val_if_fail (info != NULL, -1);
     return (SignonIdentityType)info->type;
+}
+
+gint signon_identity_info_get_identity_ref_count (const SignonIdentityInfo *info)
+{
+    g_return_val_if_fail (info != NULL, -1);
+    return (SignonIdentityType)info->ref_count;
 }
 
 void signon_identity_info_set_username (SignonIdentityInfo *info, const gchar *username)
@@ -1699,6 +1714,12 @@ void signon_identity_info_set_identity_type (SignonIdentityInfo *info, SignonIde
 {
     g_return_if_fail (info != NULL);
     info->type = (gint)type;
+}
+
+void signon_identity_info_set_identity_ref_count (SignonIdentityInfo *info, gint ref_count)
+{
+    g_return_if_fail (info != NULL);
+    info->ref_count = ref_count;
 }
 
 static const gchar *identity_info_get_secret (const SignonIdentityInfo *info)
