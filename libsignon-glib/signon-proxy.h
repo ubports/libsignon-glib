@@ -50,8 +50,10 @@ struct _SignonProxy
     DBusGProxyClass parent_instance;
 };
 
+G_GNUC_INTERNAL
 GType signon_proxy_get_type (void) G_GNUC_CONST;
 
+G_GNUC_INTERNAL
 SignonProxy *signon_proxy_new ();
 
 G_END_DECLS
