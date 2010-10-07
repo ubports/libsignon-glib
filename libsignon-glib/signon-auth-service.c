@@ -198,9 +198,9 @@ signon_auth_service_query_methods (SignonAuthService *auth_service,
     cb_data->cb = cb;
     cb_data->userdata = user_data;
 
-    com_nokia_SingleSignOn_AuthService_query_methods_async (DBUS_G_PROXY(priv->signon_proxy),
-                                                             auth_query_methods_cb,
-                                                             cb_data);
+    SSO_AuthService_query_methods_async (DBUS_G_PROXY(priv->signon_proxy),
+                                         auth_query_methods_cb,
+                                         cb_data);
 }
 /**
  * signon_auth_service_query_mechanisms:
@@ -230,8 +230,8 @@ signon_auth_service_query_mechanisms (SignonAuthService *auth_service,
     SignonAuthServicePrivate *priv;
     priv = SIGNON_AUTH_SERVICE_PRIV (auth_service);
 
-    com_nokia_SingleSignOn_AuthService_query_mechanisms_async (DBUS_G_PROXY(priv->signon_proxy),
-                                                                method,
-                                                                auth_query_mechanisms_cb,
-                                                                cb_data);
+    SSO_AuthService_query_mechanisms_async (DBUS_G_PROXY(priv->signon_proxy),
+                                            method,
+                                            auth_query_mechanisms_cb,
+                                            cb_data);
 }
