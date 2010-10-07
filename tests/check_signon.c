@@ -518,7 +518,7 @@ new_identity()
     }
 
     gchar *objectPath;
-    com_nokia_SingleSignOn_AuthService_register_new_identity (proxy, &objectPath, &error);
+    SSO_AuthService_register_new_identity (proxy, &objectPath, &error);
 
     if (error)
     {
@@ -534,18 +534,18 @@ new_identity()
                                        objectPath,
                                        "com.nokia.SingleSignOn.Identity");
 
-    com_nokia_SingleSignOn_Identity_store_credentials (proxy,
-                                                             0,
-                                                             "James Bond",
-                                                             "007",
-                                                             1,
-                                                             methods,
-                                                             "caption",
-                                                             NULL,
-                                                             NULL,
-                                                             0,
-                                                             &id,
-                                                             &error);
+    SSO_Identity_store_credentials (proxy,
+                                    0,
+                                    "James Bond",
+                                    "007",
+                                    1,
+                                    methods,
+                                    "caption",
+                                    NULL,
+                                    NULL,
+                                    0,
+                                    &id,
+                                    &error);
 
     g_hash_table_destroy (methods);
 
