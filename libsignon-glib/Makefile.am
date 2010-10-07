@@ -59,10 +59,10 @@ signon-identity-glib-gen.h: $(DBUS_INTERFACES_DIR)/com.nokia.SingleSignOn.Identi
 	dbus-binding-tool --prefix=signon-identity-glib --mode=glib-client $< > $@
 
 %-marshal.h: %-marshal.list Makefile
-	glib-genmarshal --header --prefix=$(subst -,_,$*)_marshal $< > $*-marshal.h
+	glib-genmarshal --header --prefix=_$(subst -,_,$*)_marshal $< > $*-marshal.h
 
 %-marshal.c: %-marshal.list Makefile
-	glib-genmarshal --body --prefix=$(subst -,_,$*)_marshal $< > $*-marshal.c
+	glib-genmarshal --body --prefix=_$(subst -,_,$*)_marshal $< > $*-marshal.c
 
 signon-enum-types.h: stamp-signon-enum-types.h
 	@true

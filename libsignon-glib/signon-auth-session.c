@@ -210,7 +210,7 @@ signon_auth_session_class_init (SignonAuthSessionClass *klass)
                           0,
                           NULL,
                           NULL,
-                          signon_marshal_VOID__INT_STRING,
+                          _signon_marshal_VOID__INT_STRING,
                           G_TYPE_NONE, 2,
                           G_TYPE_INT,
                           G_TYPE_STRING);
@@ -399,7 +399,7 @@ auth_session_get_object_path_reply (DBusGProxy *proxy, char * object_path,
                                                    SIGNOND_AUTH_SESSION_INTERFACE,
                                                    object_path);
 
-        dbus_g_object_register_marshaller (signon_marshal_VOID__INT_STRING,
+        dbus_g_object_register_marshaller (_signon_marshal_VOID__INT_STRING,
                                            G_TYPE_NONE,
                                            G_TYPE_INT,
                                            G_TYPE_STRING,
