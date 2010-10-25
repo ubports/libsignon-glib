@@ -52,6 +52,8 @@ struct _SignonAuthSessionPrivate
     gint id;
     gchar *method_name;
 
+    DBusGProxyCall *pending_call_get_path;
+
     gboolean busy;
     gboolean canceled;
     gboolean dispose_has_run;
@@ -384,6 +386,7 @@ auth_session_get_object_path_reply (DBusGProxy *proxy, char * object_path,
     SignonAuthSessionPrivate *priv = self->priv;
     g_return_if_fail (priv != NULL);
 
+    priv->pending_call_get_path = NULL;
     if (!g_strcmp0(object_path, "") || error)
     {
         if (error)
@@ -488,12 +491,13 @@ auth_session_priv_init (SignonAuthSession *self, guint id,
     priv->id = id;
     priv->method_name = g_strdup (method_name);
 
-    SSO_AuthService_get_auth_session_object_path_async (
-        DBUS_G_PROXY (priv->signon_proxy),
-        (const guint)id,
-        method_name,
-        auth_session_get_object_path_reply,
-        self);
+    priv->pending_call_get_path =
+        SSO_AuthService_get_auth_session_object_path_async (
+            DBUS_G_PROXY (priv->signon_proxy),
+            (const guint)id,
+            method_name,
+            auth_session_get_object_path_reply,
+            self);
     priv->busy = FALSE;
     priv->canceled = FALSE;
     return TRUE;
@@ -678,11 +682,14 @@ auth_session_check_remote_object(SignonAuthSession *self)
 
     g_return_if_fail (priv->signon_proxy != NULL);
 
-    SSO_AuthService_get_auth_session_object_path_async (
-        DBUS_G_PROXY (priv->signon_proxy),
-        (const guint)priv->id,
-        priv->method_name,
-        auth_session_get_object_path_reply,
-        self);
+    if (priv->pending_call_get_path == NULL)
+    {
+        priv->pending_call_get_path =
+            SSO_AuthService_get_auth_session_object_path_async (DBUS_G_PROXY (priv->signon_proxy),
+               (const guint)priv->id,
+               priv->method_name,
+               auth_session_get_object_path_reply,
+               self);
+    }
 }
 
