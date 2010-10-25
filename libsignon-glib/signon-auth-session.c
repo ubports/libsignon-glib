@@ -102,7 +102,7 @@ static void auth_session_state_changed_cb (DBusGProxy *proxy, gint state, gchar 
 static void auth_session_remote_object_destroyed_cb (DBusGProxy *proxy, gpointer user_data);
 
 static gboolean auth_session_priv_init (SignonAuthSession *self, guint id, const gchar *method_name, GError **err);
-static void auth_session_get_object_path_reply (DBusGProxy *proxy, char * object_path, GError *error, gpointer userdata);
+static void auth_session_get_object_path_reply (DBusGProxy *proxy, char *object_path, GError *error, gpointer userdata);
 
 static void auth_session_set_id_ready_cb (gpointer object, const GError *error, gpointer user_data);
 static void auth_session_query_available_mechanisms_ready_cb (gpointer object, const GError *error, gpointer user_data);
@@ -110,7 +110,7 @@ static void auth_session_process_ready_cb (gpointer object, const GError *error,
 static void auth_session_cancel_ready_cb (gpointer object, const GError *error, gpointer user_data);
 
 static void auth_session_query_mechanisms_reply (DBusGProxy *proxy, char **object_path, GError *error, gpointer userdata);
-static void auth_session_process_reply (DBusGProxy *proxy, GHashTable *object_path, GError *error, gpointer userdata);
+static void auth_session_process_reply (DBusGProxy *proxy, GHashTable *session_data, GError *error, gpointer userdata);
 
 static void auth_session_check_remote_object(SignonAuthSession *self);
 
@@ -378,7 +378,7 @@ signon_auth_session_cancel (SignonAuthSession *self)
 }
 
 static void
-auth_session_get_object_path_reply (DBusGProxy *proxy, char * object_path,
+auth_session_get_object_path_reply (DBusGProxy *proxy, char *object_path,
                                     GError *error, gpointer userdata)
 {
     g_return_if_fail (SIGNON_IS_AUTH_SESSION (userdata));
@@ -525,7 +525,7 @@ auth_session_query_mechanisms_reply (DBusGProxy *proxy, char **object_path,
 }
 
 static void
-auth_session_process_reply (DBusGProxy *proxy, GHashTable *object_path,
+auth_session_process_reply (DBusGProxy *proxy, GHashTable *session_data,
                             GError *error, gpointer userdata)
 {
     GError *new_error = NULL;
@@ -538,7 +538,7 @@ auth_session_process_reply (DBusGProxy *proxy, GHashTable *object_path,
         new_error = _signon_errors_get_error_from_dbus (error);
 
     (cb_data->cb)
-        (cb_data->self, object_path, new_error, cb_data->user_data);
+        (cb_data->self, session_data, new_error, cb_data->user_data);
 
     cb_data->self->priv->busy = FALSE;
     if (new_error)
