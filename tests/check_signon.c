@@ -838,6 +838,18 @@ START_TEST(test_remove_identity)
 }
 END_TEST
 
+static gboolean _contains(gchar **mechs, gchar *mech)
+{
+    gboolean present = FALSE;
+    gint i = 0;
+    while (mechs[i] != NULL)
+    {
+        if (g_strcmp0 (mech, mechs[i]) == 0) present = TRUE;
+        i++;
+    }
+    return present;
+}
+
 static void identity_info_cb(SignonIdentity *self, const SignonIdentityInfo *info, const GError *error, gpointer user_data)
 {
      if (error)
@@ -875,17 +887,17 @@ static void identity_info_cb(SignonIdentity *self, const SignonIdentityInfo *inf
          fail_unless (g_strv_length (mechs2) == 3);
          fail_unless (g_strv_length (mechs3) == 3);
 
-         fail_unless (g_strcmp0 ("mechanism1", mechs1[0]) == 0 &&
-                      g_strcmp0 ("mechanism2", mechs1[1]) == 0 &&
-                      g_strcmp0 ("mechanism3", mechs1[2]) == 0);
+         fail_unless (_contains(mechs1, "mechanism1"));
+         fail_unless (_contains(mechs1, "mechanism2"));
+         fail_unless (_contains(mechs1, "mechanism3"));
 
-         fail_unless (g_strcmp0 ("mechanism1", mechs2[0]) == 0 &&
-                      g_strcmp0 ("mechanism2", mechs2[1]) == 0 &&
-                      g_strcmp0 ("mechanism3", mechs2[2]) == 0);
+         fail_unless (_contains(mechs2, "mechanism1"));
+         fail_unless (_contains(mechs2, "mechanism2"));
+         fail_unless (_contains(mechs2, "mechanism3"));
 
-         fail_unless (g_strcmp0 ("mechanism1", mechs3[0]) == 0 &&
-                      g_strcmp0 ("mechanism2", mechs3[1]) == 0 &&
-                      g_strcmp0 ("mechanism3", mechs3[2]) == 0);
+         fail_unless (_contains(mechs3, "mechanism1"));
+         fail_unless (_contains(mechs3, "mechanism2"));
+         fail_unless (_contains(mechs3, "mechanism3"));
      }
 
      if (info)
