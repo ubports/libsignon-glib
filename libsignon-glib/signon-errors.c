@@ -74,7 +74,7 @@ _signon_errors_get_error_from_dbus (GError *error)
     if (enum_value)
         code = enum_value->value;
 
-    new_error = g_error_new (SIGNON_ERROR, code, error->message);
+    new_error = g_error_new_literal (SIGNON_ERROR, code, error->message);
 
     g_error_free (error);
     g_type_class_unref (enum_class);
