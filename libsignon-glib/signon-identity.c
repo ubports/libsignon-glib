@@ -138,6 +138,7 @@ typedef struct _IdentityVerifyCbData
 typedef struct _IdentityVerifyData
 {
     gchar *data_to_send;
+    GHashTable *params;
     IdentityOperation operation;
     gpointer cb_data;
 } IdentityVerifyData;
@@ -957,14 +958,14 @@ identity_verify_ready_cb (gpointer object, const GError *error, gpointer user_da
             break;
         case SIGNON_VERIFY_USER:
             SSO_Identity_verify_user_async (priv->proxy,
-                                            operation_data->data_to_send,
+                                            operation_data->params,
                                             identity_verify_reply,
                                             cb_data);
             break;
         default: g_critical ("Wrong operation code");
         };
     }
-
+    g_free (operation_data->params);
     g_free (operation_data->data_to_send);
     g_slice_free (IdentityVerifyData, operation_data);
 }
@@ -990,6 +991,7 @@ identity_verify_data(SignonIdentity *self,
 
     IdentityVerifyData *operation_data = g_slice_new0 (IdentityVerifyData);
 
+    operation_data->params = NULL;
     operation_data->data_to_send = g_strdup (data_to_send);
     operation_data->operation = operation;
     operation_data->cb_data = cb_data;
