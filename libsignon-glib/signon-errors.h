@@ -66,6 +66,8 @@ typedef enum {
     SIGNON_ERROR_TIMED_OUT,                  /**< Challenge was timed out. */
     SIGNON_ERROR_USER_INTERACTION,           /**< User interaction dialog failed */
     SIGNON_ERROR_OPERATION_FAILED,           /**< Temporary failure in authentication. */
+    SIGNON_ERROR_TOS_NOT_ACCEPTED,           /**< User declined Terms of Service. */
+    SIGNON_ERROR_FORGOT_PASSWORD,            /**< User requested reset password sequence. */
     SIGNON_ERROR_USER_ERROR = 400            /* Placeholder to rearrange enumeration
                                                       - User space specific */
 } SignonError;
