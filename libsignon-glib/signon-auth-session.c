@@ -114,6 +114,26 @@ static void auth_session_process_reply (DBusGProxy *proxy, GHashTable *session_d
 
 static void auth_session_check_remote_object(SignonAuthSession *self);
 
+DBusGProxyCall*
+_SSO_AuthSession_process_async_timeout (DBusGProxy *proxy, 
+					const GHashTable* IN_sessionDataVa, 
+					const char * IN_mechanism, 
+					SSO_AuthSession_process_reply callback, 
+					gpointer userdata, 
+					int timeout)
+
+{
+  DBusGAsyncData *stuff;
+  stuff = g_slice_new (DBusGAsyncData);
+  stuff->cb = G_CALLBACK (callback);
+  stuff->userdata = userdata;
+  return dbus_g_proxy_begin_call_with_timeout (proxy, "process", 
+          SSO_AuthSession_process_async_callback, stuff, 
+          _dbus_glib_async_data_free, timeout, 
+          dbus_g_type_get_map ("GHashTable", G_TYPE_STRING, G_TYPE_VALUE), 
+          IN_sessionDataVa, G_TYPE_STRING, IN_mechanism, G_TYPE_INVALID);
+}
+
 static GQuark
 auth_session_errors_quark ()
 {
@@ -628,11 +648,12 @@ auth_session_process_ready_cb (gpointer object, const GError *error, gpointer us
     {
         g_return_if_fail (priv->proxy != NULL);
 
-        SSO_AuthSession_process_async (priv->proxy,
+        _SSO_AuthSession_process_async_timeout (priv->proxy,
                                        operation_data->session_data,
                                        operation_data->mechanism,
                                        auth_session_process_reply,
-                                       cb_data);
+				       cb_data,
+				       0x7FFFFFFF);
 
        g_hash_table_destroy (operation_data->session_data);
 
