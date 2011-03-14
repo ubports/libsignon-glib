@@ -66,6 +66,7 @@ static void
 signon_proxy_finalize (GObject *object)
 {
     G_OBJECT_CLASS (signon_proxy_parent_class)->finalize (object);
+    signon_proxy = NULL;
 }
 
 static void
