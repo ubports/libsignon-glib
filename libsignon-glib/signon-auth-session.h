@@ -34,8 +34,6 @@ G_BEGIN_DECLS
 #define SIGNON_SESSION_DATA_SECRET        "Secret"
 #define SIGNON_SESSION_DATA_REALM         "Realm"
 
-/* SignonAuthSessionState is defined in signoncommon.h */
-#include <signoncommon.h>
 
 #define SIGNON_TYPE_AUTH_SESSION                 (signon_auth_session_get_type ())
 #define SIGNON_AUTH_SESSION(obj)                 (G_TYPE_CHECK_INSTANCE_CAST ((obj), SIGNON_TYPE_AUTH_SESSION, SignonAuthSession))

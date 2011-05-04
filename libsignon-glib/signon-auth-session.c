@@ -31,6 +31,9 @@
 #include "signon-proxy.h"
 #include "signon-utils.h"
 
+/* SignonAuthSessionState is defined in signoncommon.h */
+#include <signoncommon.h>
+
 G_DEFINE_TYPE (SignonAuthSession, signon_auth_session, G_TYPE_OBJECT);
 
 /* Signals */
