@@ -30,9 +30,32 @@
 
 G_BEGIN_DECLS
 
+/*
+ * Useful session data keys
+ */
 #define SIGNON_SESSION_DATA_USERNAME      "UserName"
 #define SIGNON_SESSION_DATA_SECRET        "Secret"
 #define SIGNON_SESSION_DATA_REALM         "Realm"
+#define SIGNON_SESSION_DATA_PROXY         "NetworkProxy"
+typedef enum {
+    SignonPolicyDefault = 0,       /**< Plugin can decide when to show ui. */
+    SignonPolicyRequestPassword,   /**< Force user to enter password. */
+    SignonPolicyNoUserInteraction, /**< No ui elements are shown to user. */
+    /**
+     * UI elements can be shown to the user only when captcha-like security
+     * measures are required.
+    */
+    SignonPolicyValidation,
+} SignonSessionDataUiPolicy;
+#define SIGNON_SESSION_DATA_UI_POLICY     "UiPolicy"
+/* Caption for the UI dialog. */
+#define SIGNON_SESSION_DATA_CAPTION       "Caption"
+/* Network timeout, in milliseconds (uint32). */
+#define SIGNON_SESSION_DATA_TIMEOUT       "NetworkTimeout"
+/* Platform-specific window id (for dialog transiency) - uint32. */
+#define SIGNON_SESSION_DATA_WINDOW_ID     "WindowId"
+/* Requests the signon plugin to obtain a new token (boolean) */
+#define SIGNON_SESSION_DATA_RENEW_TOKEN   "RenewToken"
 
 
 #define SIGNON_TYPE_AUTH_SESSION                 (signon_auth_session_get_type ())
