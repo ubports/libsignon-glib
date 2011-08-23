@@ -38,18 +38,12 @@ typedef enum {
     SIGNON_ERROR_INTERNAL_COMMUNICATION = 3,   /**< Communication with Signon Daemon error. */
     SIGNON_ERROR_PERMISSION_DENIED = 4,        /**< The operation cannot be performed due to
                                                     insufficient client permissions. */
-    SIGNON_ERROR_ENCRYPTION_FAILURE,           /**< Failure during data encryption/decryption. */
 
-    SIGNON_ERROR_AUTH_SERVICE = 100,           /* Placeholder to rearrange enumeration
-                                     	 	    	- AuthService specific */
-    SIGNON_ERROR_METHOD_NOT_KNOWN,            /**< The method with this name is not found. */
+    SIGNON_ERROR_METHOD_NOT_KNOWN = 101,            /**< The method with this name is not found. */
     SIGNON_ERROR_SERVICE_NOT_AVAILABLE,       /**< The service is temporarily unavailable. */
     SIGNON_ERROR_INVALID_QUERY,               /**< Parameters for the query are invalid. */
 
-    SIGNON_ERROR_IDENTITY_ERROR = 200,        /* Placeholder to rearrange enumeration
-                                     	 	 	 - Identity specific */
-
-    SIGNON_ERROR_METHOD_NOT_AVAILABLE,        /**< The requested method is not available. */
+    SIGNON_ERROR_METHOD_NOT_AVAILABLE = 201,        /**< The requested method is not available. */
     SIGNON_ERROR_IDENTITY_NOT_FOUND,          /**< The identity matching this Identity object
                                                 was not found on the service. */
     SIGNON_ERROR_STORE_FAILED,                /**< Storing credentials failed. */
@@ -59,9 +53,7 @@ typedef enum {
     SIGNON_ERROR_CREDENTIALS_NOT_AVAILABLE,   /**< Query fails. */
     SIGNON_ERROR_REFERENCE_NOT_FOUND,         /**< Trying to remove nonexistent reference. */
 
-    SIGNON_ERROR_AUTH_SESSION_ERROR = 300,    /* Placeholder to rearrange enumeration
-                                     	 	 	 - AuthSession/AuthPluginInterface specific */
-    SIGNON_ERROR_MECHANISM_NOT_AVAILABLE,     /**< The requested mechanism is not available. */
+    SIGNON_ERROR_MECHANISM_NOT_AVAILABLE = 301,     /**< The requested mechanism is not available. */
     SIGNON_ERROR_MISSING_DATA,                /**< The SessionData object does not contain
                                                       necessary information. */
     SIGNON_ERROR_INVALID_CREDENTIALS,         /**< The supplied credentials are invalid for
