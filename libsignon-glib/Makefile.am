@@ -45,6 +45,7 @@ libsignon_glib_include_HEADERS = \
 	signon-auth-session.h \
 	signon-identity.h \
 	signon-errors.h \
+	signon-enum-types.h \
 	$(signon_headers)
 
 DBUS_INTERFACES_DIR = /usr/share/dbus-1/interfaces
