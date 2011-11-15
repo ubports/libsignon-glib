@@ -79,13 +79,10 @@ signon_auth_service_constructor (GType type, guint n_params,
 {
     GObjectClass *object_class =
         (GObjectClass *)signon_auth_service_parent_class;
-    SignonAuthServicePrivate *priv;
     GObject *object;
 
     object = object_class->constructor (type, n_params, params);
     g_return_val_if_fail (SIGNON_IS_AUTH_SERVICE (object), NULL);
-
-    priv = SIGNON_AUTH_SERVICE_PRIV (object);
 
     return object;
 }
