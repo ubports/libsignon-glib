@@ -35,6 +35,10 @@
 
 #include "signon-internals.h"
 
+G_DEFINE_BOXED_TYPE (SignonIdentityInfo, signon_identity_info,
+                     (GBoxedCopyFunc)signon_identity_info_copy,
+                     (GBoxedFreeFunc)signon_identity_info_free);
+
 
 static const gchar *identity_info_get_secret (const SignonIdentityInfo *info)
 {

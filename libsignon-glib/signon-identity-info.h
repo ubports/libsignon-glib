@@ -44,6 +44,8 @@ enum _SignonIdentityType {
 
 typedef enum _SignonIdentityType SignonIdentityType;
 
+GType signon_identity_info_get_type (void) G_GNUC_CONST;
+
 SignonIdentityInfo *signon_identity_info_new ();
 void signon_identity_info_free (SignonIdentityInfo *info);
 
