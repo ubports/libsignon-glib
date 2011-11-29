@@ -23,11 +23,13 @@ CLEANFILES = $(BUILT_SOURCES)
 
 libsignon_glib_la_SOURCES = \
 	signon-auth-service.h \
+	signon-identity-info.h \
 	signon-identity.h \
 	signon-dbus-queue.h \
 	signon-auth-session.h \
 	signon-internals.h \
 	signon-auth-service.c \
+	signon-identity-info.c \
 	signon-identity.c \
 	signon-dbus-queue.c \
 	signon-auth-session.c \
@@ -43,6 +45,7 @@ libsignon_glib_includedir = $(includedir)/libsignon-glib
 libsignon_glib_include_HEADERS = \
 	signon-auth-service.h \
 	signon-auth-session.h \
+	signon-identity-info.h \
 	signon-identity.h \
 	signon-errors.h \
 	signon-enum-types.h \
@@ -114,6 +117,8 @@ introspection_sources = \
 	signon-enum-types.c \
 	signon-errors.c \
 	signon-errors.h \
+	signon-identity-info.c \
+	signon-identity-info.h \
 	signon-identity.c \
 	signon-identity.h
 

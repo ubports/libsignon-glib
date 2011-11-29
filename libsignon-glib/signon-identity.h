@@ -26,6 +26,7 @@
 #define _SIGNON_IDENTITY_H_
 
 #include "signon-auth-session.h"
+#include "signon-identity-info.h"
 #include <glib-object.h>
 #include <dbus/dbus-glib.h>
 
@@ -41,7 +42,6 @@ G_BEGIN_DECLS
 typedef struct _SignonIdentityClass SignonIdentityClass;
 typedef struct _SignonIdentityPrivate SignonIdentityPrivate;
 typedef struct _SignonIdentity SignonIdentity;
-typedef struct _SignonIdentityInfo SignonIdentityInfo;
 
 struct _SignonIdentityClass
 {
@@ -62,18 +62,6 @@ typedef SignonIdentityVoidCb SignonIdentityRemovedCb;
 typedef SignonIdentityVoidCb SignonIdentitySignedOutCb;
 typedef SignonIdentityVoidCb SignonIdentityReferenceAddedCb;
 typedef SignonIdentityVoidCb SignonIdentityReferenceRemovedCb;
-
-/*
- * types used in SignonIdentityInfo
- * */
-enum _SignonIdentityType {
-    SIGNON_TYPE_OTHER = 0,
-    SIGNON_TYPE_APP = 1 << 0,
-    SIGNON_TYPE_WEB = 1 << 1,
-    SIGNON_TYPE_NETWORK = 1 << 2
-};
-
-typedef enum _SignonIdentityType SignonIdentityType;
 
 GType signon_identity_get_type (void) G_GNUC_CONST;
 
@@ -159,48 +147,6 @@ void signon_identity_remove_reference(SignonIdentity *self,
                             const gchar *reference,
                             SignonIdentityReferenceRemovedCb cb,
                             gpointer user_data);
-
-SignonIdentityInfo *signon_identity_info_new ();
-
-void signon_identity_info_free (SignonIdentityInfo *info);
-
-SignonIdentityInfo *signon_identity_info_copy (const SignonIdentityInfo *other);
-
-gint signon_identity_info_get_id (const SignonIdentityInfo *info);
-
-const gchar *signon_identity_info_get_username (const SignonIdentityInfo *info);
-
-gboolean signon_identity_info_get_storing_secret (const SignonIdentityInfo *info);
-
-const gchar *signon_identity_info_get_caption (const SignonIdentityInfo *info);
-
-const GHashTable *signon_identity_info_get_methods (const SignonIdentityInfo *info);
-
-const gchar* const *signon_identity_info_get_realms (const SignonIdentityInfo *info);
-
-const gchar* const *signon_identity_info_get_access_control_list (const SignonIdentityInfo *info);
-
-SignonIdentityType signon_identity_info_get_identity_type (const SignonIdentityInfo *info);
-
-gint signon_identity_info_get_identity_ref_count (const SignonIdentityInfo *info);
-
-void signon_identity_info_set_username (SignonIdentityInfo *info, const gchar *username);
-
-void signon_identity_info_set_secret (SignonIdentityInfo *info, const gchar *secret, gboolean store_secret);
-
-void signon_identity_info_set_caption (SignonIdentityInfo *info, const gchar *caption);
-
-void signon_identity_info_set_method (SignonIdentityInfo *info, const gchar *method, const gchar* const *mechanisms);
-
-void signon_identity_info_remove_method (SignonIdentityInfo *info, const gchar *method);
-
-void signon_identity_info_set_realms (SignonIdentityInfo *info, const gchar* const *realms);
-
-void signon_identity_info_set_access_control_list (SignonIdentityInfo *info, const gchar* const *access_control_list);
-
-void signon_identity_info_set_identity_type (SignonIdentityInfo *info, SignonIdentityType type);
-
-void signon_identity_info_set_identity_ref_count (SignonIdentityInfo *info, gint ref_count);
 
 G_END_DECLS
 

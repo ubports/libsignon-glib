@@ -42,6 +42,23 @@
 
 G_BEGIN_DECLS
 
+struct _SignonIdentityInfo
+{
+    gint id;
+    gchar *username;
+    gchar *secret;
+    gchar *caption;
+    gboolean store_secret;
+    GHashTable *methods;
+    gchar **realms;
+    gchar **access_control_list;
+    gint type;
+    gint ref_count;
+};
+
+G_GNUC_INTERNAL
+SignonIdentityInfo *identity_ptrarray_to_identity_info (const GPtrArray *identity_array);
+
 G_GNUC_INTERNAL
 void _signon_identity_registered (SignonIdentity *identity, DBusGProxy *proxy,
                                   char *objectPath, GPtrArray *identityArray,
