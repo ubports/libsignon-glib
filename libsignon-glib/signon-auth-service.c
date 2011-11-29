@@ -122,7 +122,6 @@ signon_auth_service_class_init (SignonAuthServiceClass *klass)
 
 /**
  * signon_auth_service_new:
- * @type: the name of the service type.
  *
  * Returns: an instance of an #SignonAuthService.
  */

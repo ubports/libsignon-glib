@@ -98,3 +98,38 @@ signon-enum-types.c: Makefile signon-errors.h
 
 EXTRA_DIST = signon-marshal.list \
 	     stamp-signon-enum-types.h
+
+-include $(INTROSPECTION_MAKEFILE)
+INTROSPECTION_GIRS =
+INTROSPECTION_SCANNER_ARGS = --add-include-path=$(srcdir)
+INTROSPECTION_COMPILER_ARGS = --includedir=$(srcdir)
+
+if HAVE_INTROSPECTION
+introspection_sources = \
+	signon-auth-service.c \
+	signon-auth-service.h \
+	signon-auth-session.c \
+	signon-auth-session.h \
+	signon-enum-types.h \
+	signon-enum-types.c \
+	signon-errors.c \
+	signon-errors.h \
+	signon-identity.c \
+	signon-identity.h
+
+Signon-1.0.gir: libsignon-glib.la
+Signon_1_0_gir_INCLUDES = GObject-2.0
+Signon_1_0_gir_SCANNERFLAGS = --identifier-prefix=Signon --symbol-prefix=signon
+Signon_1_0_gir_CFLAGS = $(DEPS_CFLAGS)
+Signon_1_0_gir_LIBS = libsignon-glib.la
+Signon_1_0_gir_FILES = $(introspection_sources)
+INTROSPECTION_GIRS += Signon-1.0.gir
+
+girdir = $(datadir)/gir-1.0
+gir_DATA = $(INTROSPECTION_GIRS)
+
+typelibdir = $(libdir)/girepository-1.0
+typelib_DATA = $(INTROSPECTION_GIRS:.gir=.typelib)
+
+CLEANFILES += $(gir_DATA) $(typelib_DATA)
+endif

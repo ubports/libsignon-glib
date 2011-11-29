@@ -568,7 +568,6 @@ signon_identity_new_from_db (guint32 id)
 
 /**
  * signon_identity_new
- * @id: identity ID.
  *
  * Construct an identity object associated with an existing identity record.
  * Returns: an instance of an #SignonIdentity.
@@ -1452,7 +1451,7 @@ identity_void_operation(SignonIdentity *self,
 /**
  * signon_identity_remove:
  * @cb: callback
- * @user_data : user_data.
+ * @user_data: user_data.
  *
  * Removes correspondent credentials record
  */
@@ -1482,7 +1481,7 @@ void signon_identity_remove(SignonIdentity *self,
 /**
  * signon_identity_signout:
  * @cb: callback
- * @user_data : user_data.
+ * @user_data: user_data.
  *
  * Makes SignOut
  */
@@ -1511,7 +1510,7 @@ void signon_identity_signout(SignonIdentity *self,
  * signon_identity_add_reference:
  * @reference: reference to be added
  * @cb: callback
- * @user_data : user_data.
+ * @user_data: user_data.
  *
  * Adds named reference to identity
  */
@@ -1535,7 +1534,7 @@ void signon_identity_add_reference(SignonIdentity *self,
  * signon_identity_remove_reference:
  * @reference: reference to be removed
  * @cb: callback
- * @user_data : user_data.
+ * @user_data: user_data.
  *
  * Removes named reference from identity
  */
@@ -1558,7 +1557,7 @@ void signon_identity_remove_reference(SignonIdentity *self,
 /**
  * signon_identity_info:
  * @cb: callback
- * @user_data : user_data.
+ * @user_data: user_data.
  *
  * Returns info of the associated record in credentials DB (NULL for new identity)
  */
