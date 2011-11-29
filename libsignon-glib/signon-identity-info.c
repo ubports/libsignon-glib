@@ -143,7 +143,7 @@ identity_ptrarray_to_identity_info (const GPtrArray *identity_array)
     /* get the accessControlList (gchar**) */
     value = g_ptr_array_index (identity_array, 6);
     g_assert (G_VALUE_TYPE (value) == G_TYPE_STRV);
-    signon_identity_info_set_realms (info,
+    signon_identity_info_set_access_control_list (info,
                                      (const gchar* const *)g_value_get_boxed (value));
     g_value_unset (value);
 
