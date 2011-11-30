@@ -173,14 +173,15 @@ auth_query_mechanisms_cb (DBusGProxy *proxy, char **value,
 /**
  * signon_auth_service_query_methods:
  * @auth_service: the #SignonAuthService.
- * @cb: callback to be invoke.
+ * @cb: (scope async): callback to be invoked.
  * @user_data: user data.
  *
  * Lists all the available methods.
  */
 void
 signon_auth_service_query_methods (SignonAuthService *auth_service,
-                                   SignonQueryMethodsCb cb, gpointer user_data)
+                                   SignonQueryMethodsCb cb,
+                                   gpointer user_data)
 {
     g_return_if_fail (SIGNON_IS_AUTH_SERVICE (auth_service));
     g_return_if_fail (cb != NULL);
@@ -198,11 +199,13 @@ signon_auth_service_query_methods (SignonAuthService *auth_service,
                                          auth_query_methods_cb,
                                          cb_data);
 }
+
 /**
  * signon_auth_service_query_mechanisms:
  * @auth_service: the #SignonAuthService.
- * @method: the name of the method to get mechanisms.
- * @cb: callback to be invoke.
+ * @method: the name of the method whose mechanisms must be
+ * retrieved.
+ * @cb: (scope async): callback to be invoked.
  * @user_data: user data.
  *
  * Lists all the available mechanisms.

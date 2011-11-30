@@ -44,7 +44,10 @@ CFILE_GLOB=$(top_srcdir)/libsignon-glib/*.c
 # Header files to ignore when scanning.
 # e.g. IGNORE_HFILES=gtkdebug.h gtkintl.h
 IGNORE_HFILES= \
+	signon-dbus-queue.h \
+	signon-internals.h \
 	signon-proxy.h \
+	signon-utils.h \
 	so-marshal.h
 
 # Images to copy into HTML directory.

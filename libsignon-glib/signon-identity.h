@@ -79,21 +79,11 @@ typedef void (*SignonIdentityStoreCredentialsCb) (SignonIdentity *self,
                                                   const GError *error,
                                                   gpointer user_data);
 
-/*
- * Later, as the structure SignonIdentityInfo will be brought
- * into use, we will announce signon_identity_store_credentials_with_args
- * or just simple signon_identity_store_credentials
- * */
 void signon_identity_store_credentials_with_info(SignonIdentity *self,
                                                  const SignonIdentityInfo *info,
                                                  SignonIdentityStoreCredentialsCb cb,
                                                  gpointer user_data);
 
-/*
- * Later, as the structure SignonIdentityInfo will be brought
- * into use, we will announce signon_identity_store_credentials_with_args
- * or just simple signon_identity_store_credentials
- * */
 void signon_identity_store_credentials_with_args(SignonIdentity *self,
                                                  const gchar *username,
                                                  const gchar *secret,
@@ -112,7 +102,7 @@ typedef void (*SignonIdentityVerifyCb) (SignonIdentity *self,
                                         gpointer user_data);
 
 void signon_identity_verify_user(SignonIdentity *self,
-                                const gchar *message,
+                                const gchar *username,
                                 SignonIdentityVerifyCb cb,
                                 gpointer user_data);
 

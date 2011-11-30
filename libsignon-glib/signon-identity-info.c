@@ -170,6 +170,13 @@ identity_ptrarray_to_identity_info (const GPtrArray *identity_array)
  * Public methods:
  */
 
+/**
+ * signon_identity_info_new:
+ *
+ * Creates a new SignonIdentityInfo item.
+ *
+ * Returns: a new #SignonIdentityInfo item.
+ */
 SignonIdentityInfo *signon_identity_info_new ()
 {
     SignonIdentityInfo *info = g_slice_new0 (SignonIdentityInfo);
@@ -180,6 +187,12 @@ SignonIdentityInfo *signon_identity_info_new ()
     return info;
 }
 
+/**
+ * signon_identity_info_free:
+ * @info: the #SignonIdentityInfo.
+ *
+ * Destroys the given #SignonIdentityInfo item.
+ */
 void signon_identity_info_free (SignonIdentityInfo *info)
 {
     if (info == NULL) return;
@@ -196,6 +209,12 @@ void signon_identity_info_free (SignonIdentityInfo *info)
     g_slice_free (SignonIdentityInfo, info);
 }
 
+/**
+ * signon_identity_info_copy:
+ * @other: the #SignonIdentityInfo.
+ *
+ * Returns: a copy of the given #SignonIdentityInfo.
+ */
 SignonIdentityInfo *signon_identity_info_copy (const SignonIdentityInfo *other)
 {
     g_return_val_if_fail (other != NULL, NULL);
@@ -226,48 +245,97 @@ SignonIdentityInfo *signon_identity_info_copy (const SignonIdentityInfo *other)
     return info;
 }
 
+/**
+ * signon_identity_info_get_id:
+ * @info: the #SignonIdentityInfo.
+ *
+ * Returns: the numeric ID of the identity.
+ */
 gint signon_identity_info_get_id (const SignonIdentityInfo *info)
 {
     g_return_val_if_fail (info != NULL, -1);
     return info->id;
 }
 
+/**
+ * signon_identity_info_get_username:
+ * @info: the #SignonIdentityInfo.
+ *
+ * Returns: the username.
+ */
 const gchar *signon_identity_info_get_username (const SignonIdentityInfo *info)
 {
     g_return_val_if_fail (info != NULL, NULL);
     return info->username;
 }
 
+/**
+ * signon_identity_info_get_storing_secret:
+ * @info: the #SignonIdentityInfo.
+ *
+ * Returns: %TRUE if Signon must store the secret.
+ */
 gboolean signon_identity_info_get_storing_secret (const SignonIdentityInfo *info)
 {
     g_return_val_if_fail (info != NULL, FALSE);
     return info->store_secret;
 }
 
+/**
+ * signon_identity_info_get_caption:
+ * @info: the #SignonIdentityInfo.
+ *
+ * Returns: the display name for the identity.
+ */
 const gchar *signon_identity_info_get_caption (const SignonIdentityInfo *info)
 {
     g_return_val_if_fail (info != NULL, NULL);
     return info->caption;
 }
 
+/**
+ * signon_identity_info_get_methods:
+ * @info: the #SignonIdentityInfo.
+ *
+ * Returns: (transfer none) (element-type utf8 GStrv): the table of allowed
+ * methods and mechanisms.
+ */
 const GHashTable *signon_identity_info_get_methods (const SignonIdentityInfo *info)
 {
     g_return_val_if_fail (info != NULL, NULL);
     return info->methods;
 }
 
+/**
+ * signon_identity_info_get_realms:
+ * @info: the #SignonIdentityInfo.
+ *
+ * Returns: (transfer none): a %NULL terminated array of realms.
+ */
 const gchar* const *signon_identity_info_get_realms (const SignonIdentityInfo *info)
 {
     g_return_val_if_fail (info != NULL, NULL);
     return (const gchar* const *)info->realms;
 }
 
+/**
+ * signon_identity_info_get_access_control_list:
+ * @info: the #SignonIdentityInfo.
+ *
+ * Returns: (transfer none): a %NULL terminated array of ACL statements.
+ */
 const gchar* const *signon_identity_info_get_access_control_list (const SignonIdentityInfo *info)
 {
     g_return_val_if_fail (info != NULL, NULL);
     return (const gchar* const *)info->access_control_list;
 }
 
+/**
+ * signon_identity_info_get_identity_type:
+ * @info: the #SignonIdentityInfo.
+ *
+ * Returns: the type of the identity.
+ */
 SignonIdentityType signon_identity_info_get_identity_type (const SignonIdentityInfo *info)
 {
     g_return_val_if_fail (info != NULL, -1);
@@ -280,6 +348,13 @@ gint signon_identity_info_get_identity_ref_count (const SignonIdentityInfo *info
     return (SignonIdentityType)info->ref_count;
 }
 
+/**
+ * signon_identity_info_set_username:
+ * @info: the #SignonIdentityInfo.
+ * @username: the username.
+ *
+ * Sets the username for the identity.
+ */
 void signon_identity_info_set_username (SignonIdentityInfo *info, const gchar *username)
 {
     g_return_if_fail (info != NULL);
@@ -289,6 +364,15 @@ void signon_identity_info_set_username (SignonIdentityInfo *info, const gchar *u
     info->username = g_strdup (username);
 }
 
+/**
+ * signon_identity_info_set_secret:
+ * @info: the #SignonIdentityInfo.
+ * @secret: the secret.
+ * @store_secret: whether signond should store the secret in its DB.
+ *
+ * Sets the secret (password) for the identity, and whether the signon daemon
+ * should remember it.
+ */
 void signon_identity_info_set_secret (SignonIdentityInfo *info, const gchar *secret,
                                       gboolean store_secret)
 {
@@ -300,6 +384,13 @@ void signon_identity_info_set_secret (SignonIdentityInfo *info, const gchar *sec
     info->store_secret = store_secret;
 }
 
+/**
+ * signon_identity_info_set_caption:
+ * @info: the #SignonIdentityInfo.
+ * @caption: the caption.
+ *
+ * Sets the caption (display name) for the identity.
+ */
 void signon_identity_info_set_caption (SignonIdentityInfo *info, const gchar *caption)
 {
     g_return_if_fail (info != NULL);
@@ -309,6 +400,16 @@ void signon_identity_info_set_caption (SignonIdentityInfo *info, const gchar *ca
     info->caption = g_strdup (caption);
 }
 
+/**
+ * signon_identity_info_set_method:
+ * @info: the #SignonIdentityInfo.
+ * @method: an authentication method.
+ * @mechanisms: a %NULL-termianted list of mechanisms.
+ *
+ * Adds a method to the list of allowed methods. If this method is not called
+ * even once, then all methods are allowed.
+ * Mechanisms are method-specific variants of authentication.
+ */
 void signon_identity_info_set_method (SignonIdentityInfo *info, const gchar *method,
                                       const gchar* const *mechanisms)
 {
@@ -322,6 +423,14 @@ void signon_identity_info_set_method (SignonIdentityInfo *info, const gchar *met
                           g_strdup(method), g_strdupv((gchar **)mechanisms));
 }
 
+/**
+ * signon_identity_info_remove_method:
+ * @info: the #SignonIdentityInfo.
+ * @method: an authentication method.
+ *
+ * Remove @method from the list of allowed authentication methods. If all
+ * methods are removed, then all methods are allowed.
+ */
 void signon_identity_info_remove_method (SignonIdentityInfo *info, const gchar *method)
 {
     g_return_if_fail (info != NULL);
@@ -330,6 +439,13 @@ void signon_identity_info_remove_method (SignonIdentityInfo *info, const gchar *
     g_hash_table_remove (info->methods, method);
 }
 
+/**
+ * signon_identity_info_set_realms:
+ * @info: the #SignonIdentityInfo.
+ * @realms: a %NULL-terminated list of realms.
+ *
+ * Specify what realms this identity can be used in.
+ */
 void signon_identity_info_set_realms (SignonIdentityInfo *info,
                                       const gchar* const *realms)
 {
@@ -340,6 +456,14 @@ void signon_identity_info_set_realms (SignonIdentityInfo *info,
     info->realms = g_strdupv ((gchar **)realms);
 }
 
+/**
+ * signon_identity_info_set_access_control_list:
+ * @info: the #SignonIdentityInfo.
+ * @access_control_list: a %NULL-terminated list of ACL security domains.
+ *
+ * Specifies the ACL for this identity. The actual meaning of the ACL depends
+ * on the security framework used by signond.
+ */
 void signon_identity_info_set_access_control_list (SignonIdentityInfo *info,
                                                    const gchar* const *access_control_list)
 {
@@ -350,6 +474,13 @@ void signon_identity_info_set_access_control_list (SignonIdentityInfo *info,
     info->access_control_list = g_strdupv ((gchar **)access_control_list);
 }
 
+/**
+ * signon_identity_info_set_identity_type:
+ * @info: the #SignonIdentityInfo.
+ * @type: the type of the identity.
+ *
+ * Specifies the type of this identity.
+ */
 void signon_identity_info_set_identity_type (SignonIdentityInfo *info,
                                              SignonIdentityType type)
 {

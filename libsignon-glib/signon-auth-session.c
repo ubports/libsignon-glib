@@ -22,6 +22,21 @@
  * 02110-1301 USA
  */
 
+/**
+ * SECTION:signon-auth-session
+ * @title: SignonAuthSession
+ * @short_description: Authentication session handler.
+ *
+ * The #SignonAuthSession object is responsible for handling the client
+ * authentication. #SignonAuthSession objects can be created from existing
+ * identities (via signon_identity_create_session() or by passing a non-zero ID
+ * to signon_auth_session_new()), in which case the authentication data such as
+ * username and password will be implicitly taken from the identity, or they
+ * can be created with no existing identity bound to them, in which case all
+ * the authentication data must be filled in by the client when
+ * signon_auth_session_process() is called.
+ */
+
 #include "signon-internals.h"
 #include "signon-auth-session.h"
 #include "signon-dbus-queue.h"
@@ -244,6 +259,19 @@ signon_auth_session_class_init (SignonAuthSessionClass *klass)
     object_class->finalize = signon_auth_session_finalize;
 }
 
+/**
+ * signon_auth_session_new:
+ * @id: the id of the #SignonIdentity to be used. Can be 0, if this session is
+ * not bound to any stored identity.
+ * @method_name: the name of the authentication method to be used.
+ * @err: a pointer to a location which will contain the error, in case this
+ * function fails.
+ *
+ * Creates a new #SignonAuthSession, which can be used to authenticate using
+ * the specified method.
+ *
+ * Returns: a new #SignonAuthSession.
+ */
 SignonAuthSession *
 signon_auth_session_new (gint id,
                          const gchar *method_name,
@@ -309,6 +337,12 @@ signon_auth_session_set_id(SignonAuthSession* self,
                                     GINT_TO_POINTER(id));
 }
 
+/**
+ * signon_auth_session_get_method:
+ * @self: the #SignonAuthSession.
+ *
+ * Returns: the authentication method being used.
+ */
 const gchar *
 signon_auth_session_get_method (SignonAuthSession *self)
 {
@@ -320,6 +354,17 @@ signon_auth_session_get_method (SignonAuthSession *self)
     return priv->method_name;
 }
 
+/**
+ * signon_auth_session_query_available_mechanisms:
+ * @self: the #SignonAuthSession.
+ * @wanted_mechanisms: a %NULL-terminated list of mechanisms supported by the client.
+ * @cb: (scope async): a callback which will be called with the result.
+ * @user_data: user data to be passed to the callback.
+ *
+ * Queries the mechanisms available for this authentication session. the result
+ * will be the intersection between @wanted_mechanisms and the mechanisms
+ * supported by the authentication plugin.
+ */
 void
 signon_auth_session_query_available_mechanisms (SignonAuthSession *self,
                                                 const gchar **wanted_mechanisms,
@@ -347,6 +392,21 @@ signon_auth_session_query_available_mechanisms (SignonAuthSession *self,
                                     operation_data);
 }
 
+/**
+ * signon_auth_session_process:
+ * @self: the #SignonAuthSession.
+ * @session_data: (transfer none) (element-type utf8 GValue): a dictionary of parameters.
+ * @mechanism: the authentication mechanism to be used.
+ * @cb: (scope async): a callback which will be called with the result.
+ * @user_data: user data to be passed to the callback.
+ *
+ * Performs one step of the authentication process. If the #SignonAuthSession
+ * object is bound to an existing identity, the identity properties such as
+ * username and password will be also passed to the authentication plugin, so
+ * there's no need to fill them into @session_data.
+ * @session_data can be used to add additional authentication parameters to the
+ * session, or to override the parameters otherwise taken from the identity.
+ */
 void
 signon_auth_session_process (SignonAuthSession *self,
                              const GHashTable *session_data,

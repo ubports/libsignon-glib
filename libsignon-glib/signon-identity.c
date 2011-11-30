@@ -524,7 +524,9 @@ identity_check_remote_registration (SignonIdentity *self)
  * signon_identity_new_from_db:
  * @id: identity ID.
  *
- * Construct an identity object associated with an existing identity record.
+ * Construct an identity object associated with an existing identity
+ * record.
+ *
  * Returns: an instance of an #SignonIdentity.
  */
 SignonIdentity*
@@ -546,9 +548,10 @@ signon_identity_new_from_db (guint32 id)
 }
 
 /**
- * signon_identity_new
+ * signon_identity_new:
  *
- * Construct an identity object associated with an existing identity record.
+ * Construct new, empty, identity object.
+ *
  * Returns: an instance of an #SignonIdentity.
  */
 SignonIdentity*
@@ -580,16 +583,18 @@ identity_session_object_destroyed_cb(gpointer data,
 
 /**
  * signon_identity_create_session:
- * @self: self.
+ * @self: the #SignonIdentity.
  * @method: method.
- * @error: error.
+ * @error: pointer to a location which will receive the error, if any.
  *
- * Construct an identity object associated with an existing identity record.
- * Returns: an instance of an #SignonIdentity.
+ * Creates an authentication session for this identity.
+ *
+ * Returns: (transfer full): a new #SignonAuthSession.
  */
-SignonAuthSession *signon_identity_create_session(SignonIdentity *self,
-                                                  const gchar *method,
-                                                  GError **error)
+SignonAuthSession *
+signon_identity_create_session(SignonIdentity *self,
+                               const gchar *method,
+                               GError **error)
 {
     g_return_val_if_fail (SIGNON_IS_IDENTITY (self), NULL);
 
@@ -649,19 +654,19 @@ SignonAuthSession *signon_identity_create_session(SignonIdentity *self,
 }
 
 /**
- * signon_identity_store_credentials:
- * @id: identity ID.
- * @info: info.
- * @cb: callback
- * @user_data : user_data.
+ * signon_identity_store_credentials_with_info:
+ * @self: the #SignonIdentity.
+ * @info: the #SignonIdentityInfo data to store.
+ * @cb: (scope async): callback.
+ * @user_data: user_data.
  *
- * Stores info for correspondent identity
- * Returns: result
+ * Stores the data from @info into the identity.
  */
-void signon_identity_store_credentials_with_info(SignonIdentity *self,
-                                                 const SignonIdentityInfo *info,
-                                                 SignonIdentityStoreCredentialsCb cb,
-                                                 gpointer user_data)
+void
+signon_identity_store_credentials_with_info(SignonIdentity *self,
+                                            const SignonIdentityInfo *info,
+                                            SignonIdentityStoreCredentialsCb cb,
+                                            gpointer user_data)
 {
     g_return_if_fail(info != NULL);
 
@@ -690,20 +695,21 @@ identity_methods_to_valuearray (const GHashTable *methods)
 }
 
 /**
- * signon_identity_store_credentials:
- * @id: identity ID.
+ * signon_identity_store_credentials_with_args:
+ * @self: the #SignonIdentity.
  * @username: username.
  * @secret: secret.
- * @store_secret: store secret flag.
- * @methods: methods.
+ * @store_secret: whether signond should store the password.
+ * @methods: (transfer none) (element-type utf8 GStrv): methods.
  * @caption: caption.
- * @realms: relams.
+ * @realms: realms.
  * @access_control_list: access control list.
- * @cb: callback
- * @user_data : user_data.
+ * @type: the type of the identity.
+ * @cb: (scope async): callback.
+ * @user_data: user_data.
  *
- * Stores the given identity into credentials DB
-  */
+ * Stores the given data into the identity.
+ */
 void signon_identity_store_credentials_with_args(SignonIdentity *self,
                                                  const gchar *username,
                                                  const gchar *secret,
@@ -982,34 +988,34 @@ identity_verify_data(SignonIdentity *self,
 }
 
 /**
- * sigon_identity_verify_user:
- * @message: message.
- * @cb: callback
- * @user_data : user_data.
+ * signon_identity_verify_user:
+ * @self: the #SignonIdentity.
+ * @username: the username to be verified.
+ * @cb: (scope async): callback.
+ * @user_data: user_data.
  *
- * Verifies the given username
- * gboolean result: is verified or not
+ * Verifies the given username.
  */
 void signon_identity_verify_user(SignonIdentity *self,
-                                const gchar *message,
+                                const gchar *username,
                                 SignonIdentityVerifyCb cb,
                                 gpointer user_data)
 {
     identity_verify_data (self,
-                          message,
+                          username,
                           SIGNON_VERIFY_USER,
                           cb,
                           user_data);
 }
 
 /**
- * sigon_identity_verify_secret:
- * @message: secret.
- * @cb: callback
- * @user_data : user_data.
+ * signon_identity_verify_secret:
+ * @self: the #SignonIdentity.
+ * @secret: the secret (password) to be verified.
+ * @cb: (scope async): callback.
+ * @user_data: user_data.
  *
- * Verifies the given secret
- * gboolean result: is verified or not
+ * Verifies the given secret.
  */
 void signon_identity_verify_secret(SignonIdentity *self,
                                   const gchar *secret,
@@ -1344,10 +1350,11 @@ identity_void_operation(SignonIdentity *self,
 
 /**
  * signon_identity_remove:
- * @cb: callback
+ * @self: the #SignonIdentity.
+ * @cb: (scope async): callback.
  * @user_data: user_data.
  *
- * Removes correspondent credentials record
+ * Removes correspondent credentials record from teh DB.
  */
 void signon_identity_remove(SignonIdentity *self,
                            SignonIdentityRemovedCb cb,
@@ -1374,10 +1381,12 @@ void signon_identity_remove(SignonIdentity *self,
 
 /**
  * signon_identity_signout:
- * @cb: callback
+ * @self: the #SignonIdentity.
+ * @cb: (scope async): callback.
  * @user_data: user_data.
  *
- * Makes SignOut
+ * Asks signond to close all authentication sessions for this
+ * identity.
  */
 void signon_identity_signout(SignonIdentity *self,
                              SignonIdentitySignedOutCb cb,
@@ -1449,11 +1458,13 @@ void signon_identity_remove_reference(SignonIdentity *self,
 }
 
 /**
- * signon_identity_info:
- * @cb: callback
+ * signon_identity_query_info:
+ * @self: the #SignonIdentity.
+ * @cb: (scope async): callback.
  * @user_data: user_data.
  *
- * Returns info of the associated record in credentials DB (NULL for new identity)
+ * Fetches the #SignonIdentityInfo data associated with this
+ * identity.
  */
 void signon_identity_query_info(SignonIdentity *self,
                                 SignonIdentityInfoCb cb,

@@ -97,7 +97,7 @@ G_GNUC_DEPRECATED
 typedef SignonAuthSessionQueryAvailableMechanismsCb
     SignonAuthSessionQueryAvailableMethodsCb;
 
-void signon_auth_session_query_available_mechanisms(SignonAuthSession* self,
+void signon_auth_session_query_available_mechanisms(SignonAuthSession *self,
                                                     const gchar **wanted_mechanisms,
                                                     SignonAuthSessionQueryAvailableMechanismsCb cb,
                                                     gpointer user_data);
