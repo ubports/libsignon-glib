@@ -101,11 +101,6 @@ typedef void (*SignonIdentityVerifyCb) (SignonIdentity *self,
                                         const GError *error,
                                         gpointer user_data);
 
-void signon_identity_verify_user(SignonIdentity *self,
-                                const gchar *username,
-                                SignonIdentityVerifyCb cb,
-                                gpointer user_data);
-
 void signon_identity_verify_secret(SignonIdentity *self,
                                   const gchar *secret,
                                   SignonIdentityVerifyCb cb,

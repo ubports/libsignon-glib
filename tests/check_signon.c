@@ -746,13 +746,6 @@ START_TEST(test_verify_secret_identity)
 
     g_main_loop_run (main_loop);
 
-    signon_identity_verify_user(idty,
-                               username,
-                               identity_verify_username_cb,
-                               main_loop);
-
-    g_main_loop_run (main_loop);
-
     g_hash_table_destroy (methods);
     g_object_unref (idty);
     end_test ();

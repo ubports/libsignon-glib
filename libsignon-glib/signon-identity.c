@@ -940,12 +940,6 @@ identity_verify_ready_cb (gpointer object, const GError *error, gpointer user_da
                                               identity_verify_reply,
                                               cb_data);
             break;
-        case SIGNON_VERIFY_USER:
-            SSO_Identity_verify_user_async (priv->proxy,
-                                            operation_data->params,
-                                            identity_verify_reply,
-                                            cb_data);
-            break;
         default: g_critical ("Wrong operation code");
         };
     }
@@ -985,27 +979,6 @@ identity_verify_data(SignonIdentity *self,
                                     identity_object_quark(),
                                     identity_verify_ready_cb,
                                     operation_data);
-}
-
-/**
- * signon_identity_verify_user:
- * @self: the #SignonIdentity.
- * @username: the username to be verified.
- * @cb: (scope async): callback.
- * @user_data: user_data.
- *
- * Verifies the given username.
- */
-void signon_identity_verify_user(SignonIdentity *self,
-                                const gchar *username,
-                                SignonIdentityVerifyCb cb,
-                                gpointer user_data)
-{
-    identity_verify_data (self,
-                          username,
-                          SIGNON_VERIFY_USER,
-                          cb,
-                          user_data);
 }
 
 /**
