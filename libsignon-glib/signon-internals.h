@@ -53,7 +53,6 @@ struct _SignonIdentityInfo
     gchar **realms;
     gchar **access_control_list;
     gint type;
-    gint ref_count;
 };
 
 G_GNUC_INTERNAL
