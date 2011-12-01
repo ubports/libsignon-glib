@@ -16,3 +16,6 @@ signon_glib_testsuite_LDADD = \
 TESTS = signon-glib-testsuite
 
 testdata_DATA = tests.xml
+
+EXTRA_DIST = \
+	$(testdata_DATA)

@@ -1,7 +1,7 @@
 ACLOCAL_AMFLAGS = -I m4
 DISTCHECK_CONFIGURE_FLAGS = \
 	--enable-gtk-doc \
-	--enable-introspection
+	--enable-introspection=yes
 SUBDIRS = libsignon-glib docs tests
 
 pkgconfigdir = $(libdir)/pkgconfig

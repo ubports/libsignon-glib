@@ -3,7 +3,10 @@ INCLUDES = $(DBUS_CFLAGS) -I$(top_srcdir) \
 lib_LTLIBRARIES = \
 	libsignon-glib.la
 
-libsignon_glib_la_CFLAGS = $(DEPS_CFLAGS) -Wall -Werror
+libsignon_glib_la_CFLAGS = \
+	-I$(top_srcdir) \
+	$(DEPS_CFLAGS) \
+	-Wall -Werror
 libsignon_glib_la_LIBADD = $(DEPS_LIBS)
 libsignon_glib_la_LDFLAGS = \
 	-version-info 1:0:0 \
@@ -38,7 +41,9 @@ libsignon_glib_la_SOURCES = \
 	signon-proxy.h \
 	signon-proxy.c \
 	signon-utils.h \
-	signon-utils.c \
+	signon-utils.c
+
+nodist_libsignon_glib_la_SOURCES = \
 	$(BUILT_SOURCES)
 
 libsignon_glib_includedir = $(includedir)/libsignon-glib
