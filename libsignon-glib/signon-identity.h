@@ -28,7 +28,6 @@
 #include "signon-auth-session.h"
 #include "signon-identity-info.h"
 #include <glib-object.h>
-#include <dbus/dbus-glib.h>
 
 G_BEGIN_DECLS
 

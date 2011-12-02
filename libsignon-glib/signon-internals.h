@@ -36,6 +36,7 @@
 #endif
 
 #include <signoncommon.h>
+#include <dbus/dbus-glib.h>
 
 #include "signon-identity.h"
 #include "signon-auth-session.h"
