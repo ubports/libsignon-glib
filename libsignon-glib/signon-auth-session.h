@@ -25,7 +25,6 @@
 #ifndef SIGNONAUTHSESSION_H_
 #define SIGNONAUTHSESSION_H_
 
-#include "signon-identity.h"
 #include <glib-object.h>
 
 G_BEGIN_DECLS

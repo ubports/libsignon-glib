@@ -25,8 +25,8 @@
 #ifndef _SIGNON_IDENTITY_H_
 #define _SIGNON_IDENTITY_H_
 
-#include "signon-auth-session.h"
-#include "signon-identity-info.h"
+#include <libsignon-glib/signon-auth-session.h>
+#include <libsignon-glib/signon-identity-info.h>
 #include <glib-object.h>
 
 G_BEGIN_DECLS
