@@ -171,6 +171,14 @@ auth_query_mechanisms_cb (DBusGProxy *proxy, char **value,
 }
 
 /**
+ * SignonQueryMethodsCb:
+ * @auth_service: the #SignonAuthService.
+ * @methods: (transfer full) (type GStrv): list of available methods.
+ * @error: a #GError if an error occurred, %NULL otherwise.
+ * @user_data: the user data that was passed when installing this callback.
+ */
+
+/**
  * signon_auth_service_query_methods:
  * @auth_service: the #SignonAuthService.
  * @cb: (scope async): callback to be invoked.
@@ -199,6 +207,15 @@ signon_auth_service_query_methods (SignonAuthService *auth_service,
                                          auth_query_methods_cb,
                                          cb_data);
 }
+
+/**
+ * SignonQueryMechanismCb:
+ * @auth_service: the #SignonAuthService.
+ * @method: the authentication method being inspected.
+ * @mechanisms: (transfer full) (type GStrv): list of available mechanisms.
+ * @error: a #GError if an error occurred, %NULL otherwise.
+ * @user_data: the user data that was passed when installing this callback.
+ */
 
 /**
  * signon_auth_service_query_mechanisms:

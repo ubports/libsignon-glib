@@ -355,6 +355,14 @@ signon_auth_session_get_method (SignonAuthSession *self)
 }
 
 /**
+ * SignonAuthSessionQueryAvailableMechanismsCb:
+ * @self: the #SignonAuthSession.
+ * @mechanisms: (transfer full) (type GStrv): list of available mechanisms.
+ * @error: a #GError if an error occurred, %NULL otherwise.
+ * @user_data: the user data that was passed when installing this callback.
+ */
+
+/**
  * signon_auth_session_query_available_mechanisms:
  * @self: the #SignonAuthSession.
  * @wanted_mechanisms: a %NULL-terminated list of mechanisms supported by the client.
@@ -391,6 +399,18 @@ signon_auth_session_query_available_mechanisms (SignonAuthSession *self,
                                     auth_session_query_available_mechanisms_ready_cb,
                                     operation_data);
 }
+
+/**
+ * SignonAuthSessionProcessCb:
+ * @self: the #SignonAuthSession.
+ * @session_data: (transfer full) (element-type utf8 GValue): a dictionary with
+ * the response.
+ * @error: a #GError if an error occurred, %NULL otherwise.
+ * @user_data: the user data that was passed when installing this callback.
+ *
+ * This callback is invoked when the authentication plugin delivers the result
+ * of the signon_auth_session_process() operation.
+ */
 
 /**
  * signon_auth_session_process:
