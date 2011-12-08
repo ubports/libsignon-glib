@@ -37,14 +37,14 @@ G_BEGIN_DECLS
 #define SIGNON_SESSION_DATA_REALM         "Realm"
 #define SIGNON_SESSION_DATA_PROXY         "NetworkProxy"
 typedef enum {
-    SignonPolicyDefault = 0,       /**< Plugin can decide when to show ui. */
-    SignonPolicyRequestPassword,   /**< Force user to enter password. */
-    SignonPolicyNoUserInteraction, /**< No ui elements are shown to user. */
+    SIGNON_POLICY_DEFAULT = 0,         /**< Plugin can decide when to show ui. */
+    SIGNON_POLICY_REQUEST_PASSWORD,    /**< Force user to enter password. */
+    SIGNON_POLICY_NO_USER_INTERACTION, /**< No ui elements are shown to user. */
     /**
      * UI elements can be shown to the user only when captcha-like security
      * measures are required.
     */
-    SignonPolicyValidation,
+    SIGNON_POLICY_VALIDATION,
 } SignonSessionDataUiPolicy;
 #define SIGNON_SESSION_DATA_UI_POLICY     "UiPolicy"
 /* Caption for the UI dialog. */

@@ -35,14 +35,12 @@ typedef struct _SignonIdentityInfo SignonIdentityInfo;
 /*
  * types used in SignonIdentityInfo
  * */
-enum _SignonIdentityType {
-    SIGNON_TYPE_OTHER = 0,
-    SIGNON_TYPE_APP = 1 << 0,
-    SIGNON_TYPE_WEB = 1 << 1,
-    SIGNON_TYPE_NETWORK = 1 << 2
-};
-
-typedef enum _SignonIdentityType SignonIdentityType;
+typedef enum {
+    SIGNON_IDENTITY_TYPE_OTHER = 0,
+    SIGNON_IDENTITY_TYPE_APP = 1 << 0,
+    SIGNON_IDENTITY_TYPE_WEB = 1 << 1,
+    SIGNON_IDENTITY_TYPE_NETWORK = 1 << 2
+} SignonIdentityType;
 
 GType signon_identity_info_get_type (void) G_GNUC_CONST;
 

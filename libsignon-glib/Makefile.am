@@ -20,6 +20,7 @@ BUILT_SOURCES = \
 	signon-auth-session-client-glib-gen.h \
 	signon-enum-types.h \
 	signon-enum-types.c \
+	signon-errors-enum.c \
 	stamp-signon-enum-types.h
 
 CLEANFILES = $(BUILT_SOURCES)
@@ -56,6 +57,12 @@ libsignon_glib_include_HEADERS = \
 	signon-enum-types.h \
 	$(signon_headers)
 
+# Headers with enums to be parsed with glib-mkenums;
+# signon-errors.h is handled separately
+libsignon_glib_headers_with_enums = \
+	signon-auth-session.h \
+	signon-identity-info.h
+
 DBUS_INTERFACES_DIR = /usr/share/dbus-1/interfaces
 
 signon-client-glib-gen.h: $(DBUS_INTERFACES_DIR)/com.nokia.SingleSignOn.AuthService.xml
@@ -79,18 +86,34 @@ signon-identity-glib-gen.h: $(DBUS_INTERFACES_DIR)/com.nokia.SingleSignOn.Identi
 signon-enum-types.h: stamp-signon-enum-types.h
 	@true
 
-stamp-signon-enum-types.h: Makefile signon-errors.h
+stamp-signon-enum-types.h: Makefile \
+	$(libsignon_glib_headers_with_enums) signon-errors.h
 	( cd $(srcdir) &&  glib-mkenums \
 	    --fhead "#ifndef __SIGNON_ENUM_TYPES_H__\n#define __SIGNON_ENUM_TYPES_H__\n#include <glib-object.h>\n\nG_BEGIN_DECLS\n" \
 	    --fprod "/* enumerations from \"@filename@\" */\n" \
 	    --vhead "GType @enum_name@_get_type (void) G_GNUC_CONST;\n#define SIGNON_TYPE_@ENUMSHORT@ (@enum_name@_get_type())\n" \
 	    --ftail "G_END_DECLS\n\n#endif /* __SIGNON_ENUM_TYPES_H__ */" \
-	    signon-errors.h ) >> xgen-geth \
+	    $(libsignon_glib_headers_with_enums) signon-errors.h ) >> xgen-geth \
 	    && (cmp -s xgen-geth signon-enum-types.h || cp xgen-geth signon-enum-types.h ) \
 	    && rm -f xgen-geth \
 	    && echo timestamp > $(@F)
 
-signon-enum-types.c: Makefile signon-errors.h
+signon-enum-types.c: Makefile $(libsignon_glib_headers_with_enums)
+	( cd $(srcdir) && glib-mkenums \
+	    --fhead "#include \"signon-enum-types.h\"\n" \
+	    --fhead "#include \"signon-identity-info.h\"\n" \
+			--fhead "#include \"signon-auth-session.h\"\n" \
+			--fhead "#define g_intern_static_string(s) (s)\n" \
+	    --fprod "\n/* enumerations from \"@filename@\" */" \
+	    --ftail "\n#define __SIGNON_ENUM_TYPES_C__\n" \
+	    --vhead "GType\n@enum_name@_get_type (void)\n{\n  static GType etype = 0;\n  if (etype == 0) {\n    static const G@Type@Value values[] = {" \
+	    --vprod "      { @VALUENAME@, \"@VALUENAME@\", \"@valuenick@\" }," \
+	    --vtail "      { 0, NULL, NULL }\n    };\n    etype = g_@type@_register_static (g_intern_static_string (\"@EnumName@\"), values);\n  }\n  return etype;\n}\n" \
+	    $(libsignon_glib_headers_with_enums) ) > xgen-getc \
+	    && cp xgen-getc signon-enum-types.c  \
+	    && rm -f xgen-getc
+
+signon-errors-enum.c: Makefile signon-errors.h
 	( cd $(srcdir) && glib-mkenums \
 	    --fhead "#include \"signon-enum-types.h\"\n#include \"signon-errors.h\"\n#include \"signoncommon.h\"\n#define g_intern_static_string(s) (s)\n" \
 	    --fprod "\n/* enumerations from \"@filename@\" */" \
@@ -101,7 +124,7 @@ signon-enum-types.c: Makefile signon-errors.h
 	    signon-errors.h ) | \
 	    sed -e 's/SEDSIGNON_ERROR_\([^,]*\)/SIGNOND_\1_ERR_NAME/' \
 	    > xgen-getc \
-	    && cp xgen-getc signon-enum-types.c  \
+	    && cp xgen-getc signon-errors-enum.c  \
 	    && rm -f xgen-getc
 
 EXTRA_DIST = signon-marshal.list \
