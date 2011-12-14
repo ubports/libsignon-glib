@@ -367,7 +367,7 @@ void signon_identity_info_set_secret (SignonIdentityInfo *info, const gchar *sec
 
     if (info->secret) g_free (info->secret);
 
-    info->secret = g_strdup (info->secret);
+    info->secret = g_strdup (secret);
     info->store_secret = store_secret;
 }
 
