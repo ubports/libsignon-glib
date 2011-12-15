@@ -607,7 +607,7 @@ auth_session_priv_init (SignonAuthSession *self, guint id,
 }
 
 static void
-auth_session_query_mechanisms_reply (DBusGProxy *proxy, char **object_path,
+auth_session_query_mechanisms_reply (DBusGProxy *proxy, gchar **mechanisms,
                                      GError *error, gpointer userdata)
 {
     GError *new_error = NULL;
@@ -616,10 +616,13 @@ auth_session_query_mechanisms_reply (DBusGProxy *proxy, char **object_path,
     g_return_if_fail (cb_data != NULL);
 
     if (error)
+    {
         new_error = _signon_errors_get_error_from_dbus (error);
+        mechanisms = NULL;
+    }
 
     (cb_data->cb)
-        (cb_data->self, object_path, new_error, cb_data->user_data);
+        (cb_data->self, mechanisms, new_error, cb_data->user_data);
 
     if (new_error)
         g_error_free (new_error);
@@ -638,7 +641,10 @@ auth_session_process_reply (DBusGProxy *proxy, GHashTable *session_data,
     g_return_if_fail (cb_data->self->priv != NULL);
 
     if (error)
+    {
         new_error = _signon_errors_get_error_from_dbus (error);
+        session_data = NULL;
+    }
 
     (cb_data->cb)
         (cb_data->self, session_data, new_error, cb_data->user_data);
@@ -717,7 +723,7 @@ auth_session_process_ready_cb (gpointer object, const GError *error, gpointer us
         DEBUG ("AuthSessionError: %s", err->message);
 
         (cb_data->cb)
-            (self, operation_data->session_data, err, cb_data->user_data);
+            (self, NULL, err, cb_data->user_data);
 
         if (!error)
             g_clear_error (&err);

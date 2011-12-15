@@ -140,7 +140,10 @@ auth_query_methods_cb (DBusGProxy *proxy, char **value,
     g_return_if_fail (data != NULL);
 
     if (error)
+    {
         new_error = _signon_errors_get_error_from_dbus (error);
+        value = NULL;
+    }
 
     (data->cb)
         (data->service, value, new_error, data->userdata);
@@ -159,7 +162,10 @@ auth_query_mechanisms_cb (DBusGProxy *proxy, char **value,
     g_return_if_fail (data != NULL);
 
     if (error)
+    {
         new_error = _signon_errors_get_error_from_dbus (error);
+        value = NULL;
+    }
 
     (data->cb)
         (data->service, data->method, value, new_error, data->userdata);
