@@ -158,7 +158,9 @@ Signon_1_0_gir_SCANNERFLAGS = \
 	--symbol-prefix=signon \
 	--c-include="libsignon-glib/signon-glib.h" \
 	--warn-all
-Signon_1_0_gir_CFLAGS = $(DEPS_CFLAGS)
+Signon_1_0_gir_CFLAGS = \
+	-I$(top_srcdir) \
+	$(DEPS_CFLAGS)
 Signon_1_0_gir_LIBS = libsignon-glib.la
 Signon_1_0_gir_FILES = $(introspection_sources)
 INTROSPECTION_GIRS += Signon-1.0.gir
