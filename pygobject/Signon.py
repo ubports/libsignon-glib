@@ -1,9 +1,13 @@
 from ..overrides import override
 from ..importer import modules
+from gi.repository import GObject
 
 Signon = modules['Signon']._introspection_module
 
 __all__ = []
+
+class GStrv(list):
+    __gtype__ = GObject.type_from_name('GStrv')
 
 class AuthSession(Signon.AuthSession):
 
@@ -12,10 +16,7 @@ class AuthSession(Signon.AuthSession):
         cleaned_data = {}
         for (key, value) in session_data.iteritems():
             if isinstance(value, list):
-                # use a tab as separator; we can improve this later
-                sep = '\t'
-                joined_values = 'pySignon%s%s' % (sep, sep.join(value))
-                cleaned_data[key] = joined_values
+                cleaned_data[key] = GStrv(value)
             else:
                 cleaned_data[key] = value
         Signon.AuthSession.process(self, cleaned_data, mechanism, callback, userdata)

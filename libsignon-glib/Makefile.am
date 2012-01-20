@@ -7,11 +7,6 @@ libsignon_glib_la_CFLAGS = \
 	-I$(top_srcdir) \
 	$(DEPS_CFLAGS) \
 	-Wall -Werror
-
-if ENABLE_PYTHON
-libsignon_glib_la_CFLAGS += -DENABLE_PYGOBJECT_HACK
-endif
-
 libsignon_glib_la_LIBADD = $(DEPS_LIBS)
 libsignon_glib_la_LDFLAGS = \
 	-version-info 1:0:0 \
