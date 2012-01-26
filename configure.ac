@@ -27,7 +27,7 @@ AM_PROG_CC_STDC
 AC_HEADER_STDC
 AC_PROG_LIBTOOL
 
-GTK_DOC_CHECK([1.3])
+GTK_DOC_CHECK([1.14], [--flavour no-tmpl])
 
 AC_ARG_ENABLE(cast-checks,  [  --disable-cast-checks   compile with GLIB cast checks disabled],[cchecks=${enableval}],cchecks=yes)
 if test "x$cchecks" = "xno"; then
