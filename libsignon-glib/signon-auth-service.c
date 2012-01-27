@@ -123,6 +123,8 @@ signon_auth_service_class_init (SignonAuthServiceClass *klass)
 /**
  * signon_auth_service_new:
  *
+ * Create a new #SignonAuthService.
+ *
  * Returns: an instance of an #SignonAuthService.
  */
 SignonAuthService *
@@ -182,6 +184,8 @@ auth_query_mechanisms_cb (DBusGProxy *proxy, char **value,
  * @methods: (transfer full) (type GStrv): list of available methods.
  * @error: a #GError if an error occurred, %NULL otherwise.
  * @user_data: the user data that was passed when installing this callback.
+ *
+ * Callback to be passed to signon_auth_service_query_methods().
  */
 
 /**
@@ -221,6 +225,8 @@ signon_auth_service_query_methods (SignonAuthService *auth_service,
  * @mechanisms: (transfer full) (type GStrv): list of available mechanisms.
  * @error: a #GError if an error occurred, %NULL otherwise.
  * @user_data: the user data that was passed when installing this callback.
+ *
+ * Callback to be passed to signon_auth_service_query_mechanisms().
  */
 
 /**

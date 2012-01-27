@@ -25,9 +25,9 @@
 /**
  * SECTION:signon-identity
  * @title: SignonIdentity
- * @short_description: client side presentation of a credential.
+ * @short_description: Client side presentation of a credential.
  *
- * The #SignonIdentity represents an database entry for a single identity.
+ * The #SignonIdentity represents a database entry for a single identity.
  */
 
 #include "signon-identity.h"
@@ -310,6 +310,11 @@ signon_identity_class_init (SignonIdentityClass *klass)
 
     g_type_class_add_private (object_class, sizeof (SignonIdentityPrivate));
 
+    /**
+     * SignonIdentity::signout:
+     *
+     * Emitted when the identity was signed out.
+     */
     signals[SIGNEDOUT_SIGNAL] = g_signal_new("signout",
                                     G_TYPE_FROM_CLASS (klass),
                                     G_SIGNAL_RUN_LAST | G_SIGNAL_NO_RECURSE | G_SIGNAL_NO_HOOKS,
@@ -465,6 +470,14 @@ identity_registered (SignonIdentity *identity, DBusGProxy *proxy,
      * */
 }
 
+/**
+ * signon_identity_get_last_error:
+ * @identity: the #SignonIdentity.
+ *
+ * Get the most recent error that occurred on @identity.
+ *
+ * Returns: a #GError containing the most recent error, or %NULL on failure.
+ */
 const GError *
 signon_identity_get_last_error (SignonIdentity *identity)
 {
@@ -1324,10 +1337,10 @@ identity_void_operation(SignonIdentity *self,
 /**
  * signon_identity_remove:
  * @self: the #SignonIdentity.
- * @cb: (scope async): callback.
- * @user_data: user_data.
+ * @cb: (scope async): callback to be called when the operation has completed.
+ * @user_data: user_data to pass to the callback.
  *
- * Removes correspondent credentials record from teh DB.
+ * Removes the corresponding credentials record from the database.
  */
 void signon_identity_remove(SignonIdentity *self,
                            SignonIdentityRemovedCb cb,
@@ -1384,6 +1397,7 @@ void signon_identity_signout(SignonIdentity *self,
 
 /**
  * signon_identity_add_reference:
+ * @self: the #SignonIdentity.
  * @reference: reference to be added
  * @cb: callback
  * @user_data: user_data.
@@ -1408,6 +1422,7 @@ void signon_identity_add_reference(SignonIdentity *self,
 
 /**
  * signon_identity_remove_reference:
+ * @self: the #SignonIdentity.
  * @reference: reference to be removed
  * @cb: callback
  * @user_data: user_data.

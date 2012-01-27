@@ -32,28 +32,77 @@ G_BEGIN_DECLS
 /*
  * Useful session data keys
  */
+/**
+ * SIGNON_SESSION_DATA_USERNAME:
+ *
+ * Username.
+ */
 #define SIGNON_SESSION_DATA_USERNAME      "UserName"
+/**
+ * SIGNON_SESSION_DATA_SECRET:
+ *
+ * Secret.
+ */
 #define SIGNON_SESSION_DATA_SECRET        "Secret"
+/**
+ * SIGNON_SESSION_DATA_REALM:
+ *
+ * Realm.
+ */
 #define SIGNON_SESSION_DATA_REALM         "Realm"
+/**
+ * SIGNON_SESSION_DATA_PROXY:
+ *
+ * Proxy.
+ */
 #define SIGNON_SESSION_DATA_PROXY         "NetworkProxy"
+
+/**
+ * SignonSessionDataUiPolicy:
+ * @SIGNON_POLICY_DEFAULT: The plugin can decide when to show UI.
+ * @SIGNON_POLICY_REQUEST_PASSWORD: Force the user to enter the password.
+ * @SIGNON_POLICY_NO_USER_INTERACTION: No UI elements will be shown to the user.
+ * @SIGNON_POLICY_VALIDATION: UI elements can be shown to the user only when
+ * CAPTCHA-like security measures are required.
+ *
+ * Policy for the signon process, passed to the UI plugin.
+ */
 typedef enum {
-    SIGNON_POLICY_DEFAULT = 0,         /**< Plugin can decide when to show ui. */
-    SIGNON_POLICY_REQUEST_PASSWORD,    /**< Force user to enter password. */
-    SIGNON_POLICY_NO_USER_INTERACTION, /**< No ui elements are shown to user. */
-    /**
-     * UI elements can be shown to the user only when captcha-like security
-     * measures are required.
-    */
+    SIGNON_POLICY_DEFAULT = 0,
+    SIGNON_POLICY_REQUEST_PASSWORD,
+    SIGNON_POLICY_NO_USER_INTERACTION,
     SIGNON_POLICY_VALIDATION,
 } SignonSessionDataUiPolicy;
+/**
+ * SIGNON_SESSION_DATA_UI_POLICY:
+ * @see_also: #SignonSessionDataUiPolicy
+ *
+ * Policy for the signon process.
+ */
 #define SIGNON_SESSION_DATA_UI_POLICY     "UiPolicy"
-/* Caption for the UI dialog. */
+/**
+ * SIGNON_SESSION_DATA_CAPTION:
+ *
+ * Caption for the UI dialog.
+ */
 #define SIGNON_SESSION_DATA_CAPTION       "Caption"
-/* Network timeout, in milliseconds (uint32). */
+/**
+ * SIGNON_SESSION_DATA_TIMEOUT:
+ *
+ * Network timeout, in milliseconds (uint32).
+ */
 #define SIGNON_SESSION_DATA_TIMEOUT       "NetworkTimeout"
-/* Platform-specific window id (for dialog transiency) - uint32. */
+/**
+ * SIGNON_SESSION_DATA_WINDOW_ID:
+ *
+ * Platform-specific window id (for dialog transiency) - uint32.
+ */
 #define SIGNON_SESSION_DATA_WINDOW_ID     "WindowId"
-/* Requests the signon plugin to obtain a new token (boolean) */
+/**
+ * SIGNON_SESSION_DATA_RENEW_TOKEN:
+ *
+ * Requests the signon plugin to obtain a new token (boolean).
+ */
 #define SIGNON_SESSION_DATA_RENEW_TOKEN   "RenewToken"
 
 
@@ -68,12 +117,22 @@ typedef struct _SignonAuthSession        SignonAuthSession;
 typedef struct _SignonAuthSessionPrivate SignonAuthSessionPrivate;
 typedef struct _SignonAuthSessionClass   SignonAuthSessionClass;
 
+/**
+ * SignonAuthSession:
+ *
+ * Opaque struct. Use the accessor functions below.
+ */
 struct _SignonAuthSession {
     GObject parent;
 
     SignonAuthSessionPrivate *priv;
 };
 
+/**
+ * SignonAuthSessionClass:
+ *
+ * Opaque struct. Use the accessor functions below.
+ */
 struct _SignonAuthSessionClass {
     GObjectClass parent;
 };

@@ -30,11 +30,22 @@
 
 G_BEGIN_DECLS
 
+/**
+ * SignonIdentityInfo:
+ *
+ * Opaque struct. Use the accessor functions below.
+ */
 typedef struct _SignonIdentityInfo SignonIdentityInfo;
 
-/*
- * types used in SignonIdentityInfo
- * */
+/**
+ * SignonIdentityType:
+ * @SIGNON_IDENTITY_TYPE_OTHER: an identity that is not an app, web or network
+ * @SIGNON_IDENTITY_TYPE_APP: an application identity
+ * @SIGNON_IDENTITY_TYPE_WEB: a web identity
+ * @SIGNON_IDENTITY_TYPE_NETWORK: a network server identity
+ *
+ * Types used in #SignonIdentityInfo.
+ */
 typedef enum {
     SIGNON_IDENTITY_TYPE_OTHER = 0,
     SIGNON_IDENTITY_TYPE_APP = 1 << 0,
