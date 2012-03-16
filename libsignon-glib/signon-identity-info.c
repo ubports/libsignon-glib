@@ -24,11 +24,11 @@
  */
 
 /**
- * SECTION:signon-identity
- * @title: SignonIdentity
- * @short_description: client side presentation of a credential.
+ * SECTION:signon-identity-info
+ * @title: SignonIdentityInfo
+ * @short_description: Extra data for a #SignonIdentity.
  *
- * The #SignonIdentity represents an database entry for a single identity.
+ * Extra data retreived from a #SignonIdentity.
  */
 
 #include "signon-identity-info.h"
@@ -169,7 +169,7 @@ identity_ptrarray_to_identity_info (const GPtrArray *identity_array)
 /**
  * signon_identity_info_new:
  *
- * Creates a new SignonIdentityInfo item.
+ * Creates a new #SignonIdentityInfo item.
  *
  * Returns: a new #SignonIdentityInfo item.
  */
@@ -209,7 +209,9 @@ void signon_identity_info_free (SignonIdentityInfo *info)
  * signon_identity_info_copy:
  * @other: the #SignonIdentityInfo.
  *
- * Returns: a copy of the given #SignonIdentityInfo.
+ * Get a newly-allocated copy of @info.
+ *
+ * Returns: a copy of the given #SignonIdentityInfo, or %NULL on failure.
  */
 SignonIdentityInfo *signon_identity_info_copy (const SignonIdentityInfo *other)
 {
@@ -242,6 +244,8 @@ SignonIdentityInfo *signon_identity_info_copy (const SignonIdentityInfo *other)
  * signon_identity_info_get_id:
  * @info: the #SignonIdentityInfo.
  *
+ * Get the numeric ID of @info.
+ *
  * Returns: the numeric ID of the identity.
  */
 gint signon_identity_info_get_id (const SignonIdentityInfo *info)
@@ -254,7 +258,9 @@ gint signon_identity_info_get_id (const SignonIdentityInfo *info)
  * signon_identity_info_get_username:
  * @info: the #SignonIdentityInfo.
  *
- * Returns: the username.
+ * Get the username of @info.
+ *
+ * Returns: the username, or %NULL.
  */
 const gchar *signon_identity_info_get_username (const SignonIdentityInfo *info)
 {
@@ -266,7 +272,9 @@ const gchar *signon_identity_info_get_username (const SignonIdentityInfo *info)
  * signon_identity_info_get_storing_secret:
  * @info: the #SignonIdentityInfo.
  *
- * Returns: %TRUE if Signon must store the secret.
+ * Get whether the secret of @info should be stored.
+ *
+ * Returns: %TRUE if Signon must store the secret, %FALSE otherwise.
  */
 gboolean signon_identity_info_get_storing_secret (const SignonIdentityInfo *info)
 {
@@ -277,6 +285,8 @@ gboolean signon_identity_info_get_storing_secret (const SignonIdentityInfo *info
 /**
  * signon_identity_info_get_caption:
  * @info: the #SignonIdentityInfo.
+ *
+ * Get the display name of @info.
  *
  * Returns: the display name for the identity.
  */
@@ -289,6 +299,8 @@ const gchar *signon_identity_info_get_caption (const SignonIdentityInfo *info)
 /**
  * signon_identity_info_get_methods:
  * @info: the #SignonIdentityInfo.
+ *
+ * Get a hash table of the methods and mechanisms of @info.
  *
  * Returns: (transfer none) (element-type utf8 GStrv): the table of allowed
  * methods and mechanisms.
@@ -303,6 +315,8 @@ const GHashTable *signon_identity_info_get_methods (const SignonIdentityInfo *in
  * signon_identity_info_get_realms:
  * @info: the #SignonIdentityInfo.
  *
+ * Get an array of the realms of @info.
+ *
  * Returns: (transfer none): a %NULL terminated array of realms.
  */
 const gchar* const *signon_identity_info_get_realms (const SignonIdentityInfo *info)
@@ -315,6 +329,8 @@ const gchar* const *signon_identity_info_get_realms (const SignonIdentityInfo *i
  * signon_identity_info_get_access_control_list:
  * @info: the #SignonIdentityInfo.
  *
+ * Get an array of ACL statements of the identity.
+ *
  * Returns: (transfer none): a %NULL terminated array of ACL statements.
  */
 const gchar* const *signon_identity_info_get_access_control_list (const SignonIdentityInfo *info)
@@ -326,6 +342,8 @@ const gchar* const *signon_identity_info_get_access_control_list (const SignonId
 /**
  * signon_identity_info_get_identity_type:
  * @info: the #SignonIdentityInfo.
+ *
+ * Get the type of the identity.
  *
  * Returns: the type of the identity.
  */

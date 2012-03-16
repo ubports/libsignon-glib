@@ -243,6 +243,11 @@ signon_auth_session_class_init (SignonAuthSessionClass *klass)
 
     g_type_class_add_private (object_class, sizeof (SignonAuthSessionPrivate));
 
+    /**
+     * SignonAuthSession::state-changed:
+     *
+     * Emitted when the state of the #SignonAuthSession changes.
+     */
     auth_session_signals[STATE_CHANGED] =
             g_signal_new ("state-changed",
                           G_TYPE_FROM_CLASS (klass),
@@ -341,7 +346,9 @@ signon_auth_session_set_id(SignonAuthSession* self,
  * signon_auth_session_get_method:
  * @self: the #SignonAuthSession.
  *
- * Returns: the authentication method being used.
+ * Get the current authentication method.
+ *
+ * Returns: the authentication method being used, or %NULL on failure.
  */
 const gchar *
 signon_auth_session_get_method (SignonAuthSession *self)
@@ -360,6 +367,8 @@ signon_auth_session_get_method (SignonAuthSession *self)
  * @mechanisms: (transfer full) (type GStrv): list of available mechanisms.
  * @error: a #GError if an error occurred, %NULL otherwise.
  * @user_data: the user data that was passed when installing this callback.
+ *
+ * Callback to be passed to signon_auth_session_query_available_mechanisms().
  */
 
 /**
@@ -460,6 +469,12 @@ signon_auth_session_process (SignonAuthSession *self,
                                     operation_data);
 }
 
+/**
+ * signon_auth_session_cancel:
+ * @self: the #SignonAuthSession.
+ *
+ * Cancel the authentication session.
+ */
 void
 signon_auth_session_cancel (SignonAuthSession *self)
 {

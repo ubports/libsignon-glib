@@ -27,7 +27,7 @@ AM_PROG_CC_STDC
 AC_HEADER_STDC
 AC_PROG_LIBTOOL
 
-GTK_DOC_CHECK([1.3])
+GTK_DOC_CHECK([1.14], [--flavour no-tmpl])
 
 AC_ARG_ENABLE(cast-checks,  [  --disable-cast-checks   compile with GLIB cast checks disabled],[cchecks=${enableval}],cchecks=yes)
 if test "x$cchecks" = "xno"; then
@@ -58,9 +58,6 @@ PKG_CHECK_MODULES(DBUS, [dbus-1 >= 0.51, dbus-glib-1 >= 0.51], have_dbus=yes, ha
 AC_SUBST(DBUS_CFLAGS)
 AC_SUBST(DBUS_LIBS)
 
-testdatadir=${datadir}/libsignon-glib1-test
-AC_SUBST(testdatadir)
-
 AM_PATH_PYTHON
 
 PYGOBJECT_REQUIRED=2.90
@@ -83,8 +80,6 @@ if test "x$enable_python" = "xyes"; then
 fi
 
 AM_CONDITIONAL(ENABLE_PYTHON, test x"$enable_python" = "xyes")
-
-AC_CONFIG_FILES([tests/signon-glib-test.sh], [chmod +x tests/signon-glib-test.sh])
 
 AC_OUTPUT([
 	Makefile

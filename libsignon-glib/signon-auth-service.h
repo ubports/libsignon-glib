@@ -40,11 +40,21 @@ typedef struct _SignonAuthServiceClass SignonAuthServiceClass;
 typedef struct _SignonAuthServicePrivate SignonAuthServicePrivate;
 typedef struct _SignonAuthService SignonAuthService;
 
+/**
+ * SignonAuthServiceClass:
+ *
+ * Opaque struct. Use the accessor functions below.
+ */
 struct _SignonAuthServiceClass
 {
     GObjectClass parent_class;
 };
 
+/**
+ * SignonAuthService:
+ *
+ * Opaque struct. Use the accessor functions below.
+ */
 struct _SignonAuthService
 {
     GObject parent_instance;

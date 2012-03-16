@@ -12,24 +12,24 @@ AUTOMAKE_OPTIONS = 1.6
 DOC_MODULE=libsignon-glib
 
 # The top-level SGML file. You can change this if you want to.
-DOC_MAIN_SGML_FILE=$(DOC_MODULE)-docs.sgml
+DOC_MAIN_SGML_FILE=$(DOC_MODULE)-docs.xml
 
 # The directory containing the source code. Relative to $(srcdir).
 # gtk-doc will search all .c & .h files beneath here for inline comments
 # documenting the functions and macros.
 # e.g. DOC_SOURCE_DIR=../../../gtk
-DOC_SOURCE_DIR=$(top_srcdir)
+DOC_SOURCE_DIR=$(top_srcdir)/libsignon-glib
 
 # Extra options to pass to gtkdoc-scangobj. Not normally needed.
 SCANGOBJ_OPTIONS=
 
 # Extra options to supply to gtkdoc-scan.
 # e.g. SCAN_OPTIONS=--deprecated-guards="GTK_DISABLE_DEPRECATED" 
-SCAN_OPTIONS=
+SCAN_OPTIONS=--rebuild-types
 
 # Extra options to supply to gtkdoc-mkdb.
 # e.g. MKDB_OPTIONS=--sgml-mode --output-format=xml
-MKDB_OPTIONS=--sgml-mode --output-format=xml
+MKDB_OPTIONS=--source-dir=$(top_srcdir)/libsignon-glib --sgml-mode --output-format=xml --name-space=signon
 
 # Extra options to supply to gtkdoc-fixref. Not normally needed.
 # e.g. FIXXREF_OPTIONS=--extra-dir=../gdk-pixbuf/html --extra-dir=../gdk/html
@@ -44,6 +44,9 @@ CFILE_GLOB=$(top_srcdir)/libsignon-glib/*.c
 # Header files to ignore when scanning.
 # e.g. IGNORE_HFILES=gtkdebug.h gtkintl.h
 IGNORE_HFILES= \
+	signon-auth-session-client-glib-gen.h \
+	signon-client-glib-gen.h \
+	signon-identity-glib-gen.h \
 	signon-dbus-queue.h \
 	signon-internals.h \
 	signon-proxy.h \
@@ -63,7 +66,7 @@ content_files=
 # signals and properties.
 # e.g. INCLUDES=-I$(top_srcdir) -I$(top_builddir) $(GTK_DEBUG_FLAGS)
 # e.g. GTKDOC_LIBS=$(top_builddir)/gtk/$(gtktargetlib)
-INCLUDES=-I$(top_srcdir) $(DEPS_CFLAGS)
+AM_CPPFLAGS=$(DEPS_CFLAGS)
 GTKDOC_LIBS=$(top_builddir)/libsignon-glib/libsignon-glib.la $(DEPS_LIBS)
 
 # This includes the standard gtk-doc make rules, copied by gtkdocize.
@@ -72,3 +75,7 @@ include $(top_srcdir)/gtk-doc.make
 # Other files to distribute
 # e.g. EXTRA_DIST += version.xml.in
 EXTRA_DIST += 
+
+if ENABLE_GTK_DOC
+TESTS = $(GTKDOC_CHECK)
+endif

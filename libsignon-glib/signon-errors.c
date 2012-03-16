@@ -27,6 +27,13 @@
 #include "signon-internals.h"
 #include <dbus/dbus-glib.h>
 
+/**
+ * SECTION:signon-errors
+ * @title: SignonError
+ * @short_description: Possible errors from Signon.
+ *
+ * An enumeration of errors that are possible from Signon.
+ */
 #define SIGNON_ERROR_PREFIX SIGNOND_SERVICE_PREFIX ".Error"
 
 GQuark signon_error_quark (void)

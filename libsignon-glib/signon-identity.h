@@ -42,24 +42,62 @@ typedef struct _SignonIdentityClass SignonIdentityClass;
 typedef struct _SignonIdentityPrivate SignonIdentityPrivate;
 typedef struct _SignonIdentity SignonIdentity;
 
+/**
+ * SignonIdentityClass:
+ *
+ * Opaque struct. Use the accessor functions below.
+ */
 struct _SignonIdentityClass
 {
     GObjectClass parent_class;
 };
 
+/**
+ * SignonIdentity:
+ *
+ * Opaque struct. Use the accessor functions below.
+ */
 struct _SignonIdentity
 {
     GObject parent_instance;
     SignonIdentityPrivate *priv;
 };
 
+/**
+ * SignonIdentityVoidCb:
+ * @self: the #SignonIdentity.
+ * @error: a #GError if an error occurred, or %NULL otherwise.
+ * @user_data: the user data that was passed when installing this callback.
+ *
+ * Generic callback to be passed to several #SignonIdentity methods.
+ */
 typedef void (*SignonIdentityVoidCb) (SignonIdentity *self,
                                       const GError *error,
                                       gpointer user_data);
 
+/**
+ * SignonIdentityRemovedCb:
+ *
+ * Callback to be passed to signon_identity_remove().
+ */
 typedef SignonIdentityVoidCb SignonIdentityRemovedCb;
+/**
+ * SignonIdentitySignedOutCb:
+ *
+ * Callback to be passed to signon_identity_signout().
+ */
 typedef SignonIdentityVoidCb SignonIdentitySignedOutCb;
+/**
+ * SignonIdentityReferenceAddedCb:
+ *
+ * Callback to be passed to signon_identity_add_reference().
+ */
 typedef SignonIdentityVoidCb SignonIdentityReferenceAddedCb;
+/**
+ * SignonIdentityReferenceRemovedCb:
+ *
+ * Callback to be passed to signon_identity_remove_reference().
+ */
 typedef SignonIdentityVoidCb SignonIdentityReferenceRemovedCb;
 
 GType signon_identity_get_type (void) G_GNUC_CONST;
@@ -73,6 +111,16 @@ SignonAuthSession *signon_identity_create_session(SignonIdentity *self,
                                                   const gchar *method,
                                                   GError **error);
 
+/**
+ * SignonIdentityStoreCredentialsCb:
+ * @self: the #SignonIdentity.
+ * @id: the numeric ID of the identity in the database.
+ * @error: a #GError if an error occurred, or %NULL otherwise.
+ * @user_data: the user data that was passed when installing this callback.
+ *
+ * Callback to be passed to signon_identity_store_credentials_with_args() or
+ * signon_identity_store_credentials_with_info().
+ */
 typedef void (*SignonIdentityStoreCredentialsCb) (SignonIdentity *self,
                                                   guint32 id,
                                                   const GError *error,
@@ -95,6 +143,15 @@ void signon_identity_store_credentials_with_args(SignonIdentity *self,
                                                  SignonIdentityStoreCredentialsCb cb,
                                                  gpointer user_data);
 
+/**
+ * SignonIdentityVerifyCb:
+ * @self: the #SignonIdentity.
+ * @valid: whether the secret is valid.
+ * @error: a #GError if an error occurred, or %NULL otherwise.
+ * @user_data: the user data that was passed when installing this callback.
+ *
+ * Callback to be passed to signon_identity_verify_secret().
+ */
 typedef void (*SignonIdentityVerifyCb) (SignonIdentity *self,
                                         gboolean valid,
                                         const GError *error,
@@ -105,6 +162,15 @@ void signon_identity_verify_secret(SignonIdentity *self,
                                   SignonIdentityVerifyCb cb,
                                   gpointer user_data);
 
+/**
+ * SignonIdentityInfoCb:
+ * @self: the #SignonIdentity.
+ * @info: the #SignonIdentityInfo for @self.
+ * @error: a #GError if an error occurred, or %NULL otherwise.
+ * @user_data: the user data that was passed when installing this callback.
+ *
+ * Callback to be passed to signon_identity_query_info().
+ */
 typedef void (*SignonIdentityInfoCb) (SignonIdentity *self,
                                       const SignonIdentityInfo *info,
                                       const GError *error,

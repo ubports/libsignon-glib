@@ -1,7 +1,0 @@
-#!/bin/sh
-
-prefix=@prefix@
-datarootdir=@datarootdir@
-datadir=@datadir@
-export G_LOG_DIRECT=1
-signon-glib-testsuite

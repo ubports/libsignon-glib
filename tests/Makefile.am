@@ -2,9 +2,8 @@
 
 INCLUDES=-I$(top_srcdir) $(DEPS_CFLAGS)
 
-bin_PROGRAMS = signon-glib-testsuite
-bin_SCRIPTS = signon-glib-test.sh
-CLEANFILES = $(bin_SCRIPTS)
+check_PROGRAMS = signon-glib-testsuite
+check_SCRIPTS = signon-glib-test.sh
 
 signon_glib_testsuite_SOURCES = check_signon.c
 signon_glib_testsuite_CFLAGS = $(CHECK_FLAGS) -I$(top_srcdir)
@@ -14,8 +13,3 @@ signon_glib_testsuite_LDADD = \
 	$(top_builddir)/libsignon-glib/libsignon-glib.la
 
 TESTS = signon-glib-testsuite
-
-testdata_DATA = tests.xml
-
-EXTRA_DIST = \
-	$(testdata_DATA)
