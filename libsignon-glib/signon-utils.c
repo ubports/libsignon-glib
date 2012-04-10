@@ -23,6 +23,14 @@
  */
 #include "signon-utils.h"
 
+GValue *
+signon_gvalue_new (GType type)
+{
+    GValue *value = g_slice_new0 (GValue);
+    g_value_init (value, type);
+    return value;
+}
+
 static void signon_gvalue_copy (gchar *key,
                                 GValue *value,
                                 GHashTable *dest)
@@ -58,11 +66,4 @@ GHashTable *signon_copy_variant_map (const GHashTable *old_map)
                           (gpointer)new_map);
 
    return new_map;
-}
-
-void signon_stringarray_to_value (gpointer key, gpointer value, gpointer user_data)
-{
-    GValue *gvalue = g_value_init(g_slice_new0 (GValue), G_TYPE_STRV);
-    g_value_set_boxed (gvalue, (gchar **)value);
-    g_hash_table_insert ((GHashTable *)user_data, g_strdup((gchar *)key), gvalue);
 }

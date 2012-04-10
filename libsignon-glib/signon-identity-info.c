@@ -34,6 +34,7 @@
 #include "signon-identity-info.h"
 
 #include "signon-internals.h"
+#include "signon-utils.h"
 
 G_DEFINE_BOXED_TYPE (SignonIdentityInfo, signon_identity_info,
                      (GBoxedCopyFunc)signon_identity_info_copy,
@@ -62,7 +63,7 @@ static void identity_methods_copy (gpointer key, gpointer value, gpointer user_d
                                      (const gchar* const *)value);
 }
 
-static void identity_info_set_methods (SignonIdentityInfo *info,
+void signon_identity_info_set_methods (SignonIdentityInfo *info,
                                        const GHashTable *methods)
 {
     g_return_if_fail (info != NULL);
@@ -162,6 +163,58 @@ identity_ptrarray_to_identity_info (const GPtrArray *identity_array)
     return info;
 }
 
+GHashTable *
+signon_identity_info_to_hash_table (const SignonIdentityInfo *self)
+{
+    GHashTable *map;
+    GValue *value;
+    GType type;
+
+    map = g_hash_table_new_full (g_str_hash, g_str_equal,
+                                 NULL,
+                                 signon_gvalue_free);
+
+    value = signon_gvalue_new (G_TYPE_UINT);
+    g_value_set_uint (value, self->id);
+    g_hash_table_insert (map, SIGNOND_IDENTITY_INFO_ID, value);
+
+    value = signon_gvalue_new (G_TYPE_STRING);
+    g_value_set_string (value, self->username);
+    g_hash_table_insert (map, SIGNOND_IDENTITY_INFO_USERNAME, value);
+
+    value = signon_gvalue_new (G_TYPE_STRING);
+    g_value_set_string (value, self->secret);
+    g_hash_table_insert (map, SIGNOND_IDENTITY_INFO_SECRET, value);
+
+    value = signon_gvalue_new (G_TYPE_STRING);
+    g_value_set_string (value, self->caption);
+    g_hash_table_insert (map, SIGNOND_IDENTITY_INFO_CAPTION, value);
+
+    value = signon_gvalue_new (G_TYPE_BOOLEAN);
+    g_value_set_boolean (value, self->store_secret);
+    g_hash_table_insert (map, SIGNOND_IDENTITY_INFO_STORESECRET, value);
+
+    type = dbus_g_type_get_map ("GHashTable",
+                                G_TYPE_STRING, G_TYPE_STRV);
+    value = signon_gvalue_new (type);
+    g_value_set_boxed (value, self->methods);
+    g_hash_table_insert (map, SIGNOND_IDENTITY_INFO_AUTHMETHODS, value);
+
+    value = signon_gvalue_new (G_TYPE_STRV);
+    g_value_set_boxed (value, self->realms);
+    g_hash_table_insert (map, SIGNOND_IDENTITY_INFO_REALMS, value);
+
+    value = signon_gvalue_new (G_TYPE_STRV);
+    g_value_set_boxed (value, self->access_control_list);
+    g_hash_table_insert (map, SIGNOND_IDENTITY_INFO_ACL, value);
+
+    value = signon_gvalue_new (G_TYPE_INT);
+    g_value_set_int (value, self->type);
+    g_hash_table_insert (map, SIGNOND_IDENTITY_INFO_TYPE, value);
+
+    return map;
+}
+
 /*
  * Public methods:
  */
@@ -227,7 +280,7 @@ SignonIdentityInfo *signon_identity_info_copy (const SignonIdentityInfo *other)
 
     signon_identity_info_set_caption (info, signon_identity_info_get_caption(other));
 
-    identity_info_set_methods (info, signon_identity_info_get_methods (other));
+    signon_identity_info_set_methods (info, signon_identity_info_get_methods (other));
 
     signon_identity_info_set_realms (info, signon_identity_info_get_realms (other));
 

@@ -95,14 +95,7 @@ typedef struct _IdentityStoreCredentialsCbData
 
 typedef struct _IdentityStoreCredentialsData
 {
-    gchar *username;
-    gchar *secret;
-    gboolean store_secret;
-    GHashTable *methods;
-    gchar *caption;
-    gchar **realms;
-    gchar **access_control_list;
-    gint type;
+    GHashTable *info_map;
     gpointer cb_data;
 } IdentityStoreCredentialsData;
 
@@ -176,8 +169,6 @@ static void identity_remote_object_destroyed_cb(DBusGProxy *proxy, gpointer user
 static void identity_process_signout (SignonIdentity *self);
 static void identity_process_updated (SignonIdentity *self);
 static void identity_process_removed (SignonIdentity *self);
-
-static GHashTable *identity_methods_to_valuearray (const GHashTable *methods);
 
 static GQuark
 identity_object_quark ()
@@ -681,30 +672,27 @@ signon_identity_store_credentials_with_info(SignonIdentity *self,
                                             SignonIdentityStoreCredentialsCb cb,
                                             gpointer user_data)
 {
-    g_return_if_fail(info != NULL);
+    IdentityStoreCredentialsCbData *cb_data;
+    IdentityStoreCredentialsData *operation_data;
 
-    signon_identity_store_credentials_with_args(self,
-                                                info->username,
-                                                info->secret,
-                                                info->store_secret,
-                                                info->methods,
-                                                info->caption,
-                                                (const gchar* const *)info->realms,
-                                                (const gchar* const *)info->access_control_list,
-                                                info->type,
-                                                cb,
-                                                user_data);
-}
+    DEBUG ();
+    g_return_if_fail (SIGNON_IS_IDENTITY (self));
+    g_return_if_fail (info != NULL);
 
-static GHashTable *
-identity_methods_to_valuearray (const GHashTable *methods)
-{
-    DEBUG ("%s", __func__);
-    GHashTable *valuearray = g_hash_table_new_full (g_str_hash, g_str_equal,
-                                                    g_free, signon_gvalue_free);
-    g_hash_table_foreach ((GHashTable *)methods,
-                            signon_stringarray_to_value, valuearray);
-    return valuearray;
+    cb_data = g_slice_new0 (IdentityStoreCredentialsCbData);
+    cb_data->self = self;
+    cb_data->cb = cb;
+    cb_data->user_data = user_data;
+
+    operation_data = g_slice_new0 (IdentityStoreCredentialsData);
+    operation_data->info_map = signon_identity_info_to_hash_table (info);
+    operation_data->cb_data = cb_data;
+
+    identity_check_remote_registration (self);
+    _signon_object_call_when_ready (self,
+                                    identity_object_quark(),
+                                    identity_store_credentials_ready_cb,
+                                    operation_data);
 }
 
 /**
@@ -735,37 +723,21 @@ void signon_identity_store_credentials_with_args(SignonIdentity *self,
                                                  SignonIdentityStoreCredentialsCb cb,
                                                  gpointer user_data)
 {
+    SignonIdentityInfo *info;
+
     g_return_if_fail (SIGNON_IS_IDENTITY (self));
 
-    SignonIdentityPrivate *priv = self->priv;
-    g_return_if_fail (priv != NULL);
+    info = signon_identity_info_new ();
+    signon_identity_info_set_username (info, username);
+    signon_identity_info_set_secret (info, secret, store_secret);
+    signon_identity_info_set_methods (info, methods);
+    signon_identity_info_set_caption (info, caption);
+    signon_identity_info_set_realms (info, realms);
+    signon_identity_info_set_access_control_list (info, access_control_list);
+    signon_identity_info_set_identity_type (info, type);
 
-    g_return_if_fail (methods != NULL);
-
-    DEBUG ("%s %d", G_STRFUNC, __LINE__);
-
-    IdentityStoreCredentialsCbData *cb_data = g_slice_new0 (IdentityStoreCredentialsCbData);
-    cb_data->self = self;
-    cb_data->cb = cb;
-    cb_data->user_data = user_data;
-
-    IdentityStoreCredentialsData *operation_data = g_slice_new0 (IdentityStoreCredentialsData);
-
-    operation_data->username = g_strdup (username);
-    operation_data->secret = g_strdup (secret);
-    operation_data->store_secret = store_secret;
-    operation_data->methods = identity_methods_to_valuearray (methods);
-    operation_data->caption = g_strdup (caption);
-    operation_data->realms = g_strdupv((gchar **)realms);
-    operation_data->access_control_list = g_strdupv((gchar **)access_control_list);
-    operation_data->type = (gint)type;
-    operation_data->cb_data = cb_data;
-
-    identity_check_remote_registration (self);
-    _signon_object_call_when_ready (self,
-                                    identity_object_quark(),
-                                    identity_store_credentials_ready_cb,
-                                    operation_data);
+    signon_identity_store_credentials_with_info (self, info, cb, user_data);
+    signon_identity_info_free (info);
 }
 
 static void
@@ -801,28 +773,14 @@ identity_store_credentials_ready_cb (gpointer object, const GError *error, gpoin
     {
         g_return_if_fail (priv->proxy != NULL);
 
-        SSO_Identity_store_credentials_async(
+        SSO_Identity_store_async(
             priv->proxy,
-            priv->id,
-            operation_data->username,
-            operation_data->secret,
-            operation_data->store_secret,
-            operation_data->methods,
-            operation_data->caption,
-            (const char **)operation_data->realms,
-            (const char **)operation_data->access_control_list,
-            operation_data->type,
+            operation_data->info_map,
             identity_store_credentials_reply,
             cb_data);
     }
 
-    g_free (operation_data->username);
-    g_free (operation_data->secret);
-    g_free (operation_data->caption);
-    g_hash_table_destroy (operation_data->methods);
-    g_strfreev (operation_data->realms);
-    g_strfreev (operation_data->access_control_list);
-
+    g_hash_table_unref (operation_data->info_map);
     g_slice_free (IdentityStoreCredentialsData, operation_data);
 }
 
