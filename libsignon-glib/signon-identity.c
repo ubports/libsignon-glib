@@ -701,7 +701,7 @@ identity_methods_to_valuearray (const GHashTable *methods)
 {
     DEBUG ("%s", __func__);
     GHashTable *valuearray = g_hash_table_new_full (g_str_hash, g_str_equal,
-                                                g_free, (GDestroyNotify)signon_free_gvalue);
+                                                    g_free, signon_gvalue_free);
     g_hash_table_foreach ((GHashTable *)methods,
                             signon_stringarray_to_value, valuearray);
     return valuearray;

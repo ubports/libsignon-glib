@@ -23,7 +23,7 @@
  */
 #include "signon-utils.h"
 
-static void signon_copy_gvalue (gchar *key,
+static void signon_gvalue_copy (gchar *key,
                                 GValue *value,
                                 GHashTable *dest)
 {
@@ -34,7 +34,7 @@ static void signon_copy_gvalue (gchar *key,
     g_hash_table_insert (dest, g_strdup(key), copy_value);
 }
 
-void signon_free_gvalue (gpointer val)
+void signon_gvalue_free (gpointer val)
 {
     g_return_if_fail (G_IS_VALUE(val));
 
@@ -51,10 +51,10 @@ GHashTable *signon_copy_variant_map (const GHashTable *old_map)
     GHashTable *new_map = g_hash_table_new_full (g_str_hash,
                                                  g_str_equal,
                                                  g_free,
-                                                 signon_free_gvalue);
+                                                 signon_gvalue_free);
 
     g_hash_table_foreach ((GHashTable*)old_map,
-                          (GHFunc)signon_copy_gvalue,
+                          (GHFunc)signon_gvalue_copy,
                           (gpointer)new_map);
 
    return new_map;

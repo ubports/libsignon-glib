@@ -31,6 +31,6 @@ GHashTable *signon_copy_variant_map (const GHashTable *old_map);
 G_GNUC_INTERNAL
 void signon_stringarray_to_value (gpointer key, gpointer value, gpointer user_data);
 G_GNUC_INTERNAL
-void signon_free_gvalue (gpointer val);
+void signon_gvalue_free (gpointer val);
 
 #endif //_SIGNON_UTILS_H_
