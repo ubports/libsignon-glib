@@ -88,6 +88,14 @@ identity_value_to_stringarray (gpointer key, gpointer value, gpointer user_data)
                          g_strdupv (stringarray));
 }
 
+static void
+add_method (gpointer key, gpointer value, gpointer user_data)
+{
+    gchar **stringarray = (gchar **)value;
+    g_hash_table_insert ((GHashTable *)user_data, g_strdup((gchar *)key),
+                         g_strdupv (stringarray));
+}
+
 SignonIdentityInfo *
 identity_ptrarray_to_identity_info (const GPtrArray *identity_array)
 {
@@ -141,9 +149,24 @@ identity_ptrarray_to_identity_info (const GPtrArray *identity_array)
 
     info->methods = g_hash_table_new_full (g_str_hash, g_str_equal,
                                            g_free, (GDestroyNotify)g_strfreev);
-    g_hash_table_foreach ((GHashTable *)g_value_get_boxed(value),
-                          identity_value_to_stringarray,
-                          info->methods);
+    /* TODO: this check is needed only for a (hopefully short) transitional period,
+     * until signond has been updated to remove the unnecessary wrapping of the
+     * mechanisms into a D-Bus variant.
+     * Once that is done, the else branch can be removed.
+     */
+    if (G_VALUE_TYPE (value) == dbus_g_type_get_map ("GHashTable",
+                                                     G_TYPE_STRING, G_TYPE_STRV))
+    {
+        g_hash_table_foreach ((GHashTable *)g_value_get_boxed(value),
+                              add_method,
+                              info->methods);
+    }
+    else
+    {
+        g_hash_table_foreach ((GHashTable *)g_value_get_boxed(value),
+                              identity_value_to_stringarray,
+                              info->methods);
+    }
     g_value_unset (value);
     /* get the accessControlList (gchar**) */
     value = g_ptr_array_index (identity_array, 6);
