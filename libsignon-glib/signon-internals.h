@@ -57,7 +57,8 @@ struct _SignonIdentityInfo
 };
 
 G_GNUC_INTERNAL
-SignonIdentityInfo *identity_ptrarray_to_identity_info (const GPtrArray *identity_array);
+SignonIdentityInfo *
+signon_identity_info_new_from_hash_table (GHashTable *map);
 
 G_GNUC_INTERNAL
 GHashTable *

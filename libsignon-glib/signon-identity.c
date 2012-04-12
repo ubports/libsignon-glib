@@ -143,10 +143,10 @@ typedef struct _IdentityVoidData
 } IdentityVoidData;
 
 static void identity_registered (SignonIdentity *identity, DBusGProxy *proxy, char *object_path,
-                                 GPtrArray *identity_array, GError *error);
+                                 GHashTable *identity_data, GError *error);
 static void identity_check_remote_registration (SignonIdentity *self);
 static void identity_new_cb (DBusGProxy *proxy, char *objectPath, GError *error, gpointer userdata);
-static void identity_new_from_db_cb (DBusGProxy *proxy, char *objectPath, GPtrArray *identityData,
+static void identity_new_from_db_cb (DBusGProxy *proxy, char *objectPath, GHashTable *identityData,
                                       GError *error, gpointer userdata);
 static void identity_store_credentials_ready_cb (gpointer object, const GError *error, gpointer user_data);
 static void identity_store_credentials_reply (DBusGProxy *proxy, guint id, GError *error, gpointer userdata);
@@ -158,8 +158,9 @@ static void identity_verify_reply (DBusGProxy *proxy, gboolean valid, GError *er
 
 static void identity_signout_reply (DBusGProxy *proxy, gboolean result, GError *error, gpointer userdata);
 static void identity_removed_reply (DBusGProxy *proxy, GError *error, gpointer userdata);
-static void identity_info_reply(DBusGProxy *proxy, GPtrArray *identity_array,
-                                    GError *error, gpointer userdata);
+static void identity_info_reply(DBusGProxy *proxy,
+                                GHashTable *identity_data,
+                                GError *error, gpointer userdata);
 static void identity_remove_ready_cb (gpointer object, const GError *error, gpointer user_data);
 static void identity_signout_ready_cb (gpointer object, const GError *error, gpointer user_data);
 static void identity_info_ready_cb (gpointer object, const GError *error, gpointer user_data);
@@ -378,7 +379,7 @@ identity_remote_object_destroyed_cb(DBusGProxy *proxy,
 
 static void
 identity_registered (SignonIdentity *identity, DBusGProxy *proxy,
-                     char *object_path, GPtrArray *identity_array,
+                     char *object_path, GHashTable *identity_data,
                      GError *error)
 {
     g_return_if_fail (SIGNON_IS_IDENTITY (identity));
@@ -431,11 +432,12 @@ identity_registered (SignonIdentity *identity, DBusGProxy *proxy,
                                      identity,
                                      NULL);
 
-        if (identity_array)
+        if (identity_data)
         {
             DEBUG("%s: ", G_STRFUNC);
-            priv->identity_info = identity_ptrarray_to_identity_info (identity_array);
-            g_ptr_array_free (identity_array, TRUE);
+            priv->identity_info =
+                signon_identity_info_new_from_hash_table (identity_data);
+            g_hash_table_unref (identity_data);
         }
 
         priv->updated = TRUE;
@@ -492,7 +494,7 @@ identity_new_cb (DBusGProxy *proxy,
 static void
 identity_new_from_db_cb (DBusGProxy *proxy,
                          char *objectPath,
-                         GPtrArray *identityData,
+                         GHashTable *identityData,
                          GError *error,
                          gpointer userdata)
 {
@@ -515,7 +517,7 @@ identity_check_remote_registration (SignonIdentity *self)
         return;
 
     if (priv->id != 0)
-        SSO_AuthService_register_stored_identity_async
+        SSO_AuthService_get_identity_async
             (DBUS_G_PROXY (priv->signon_proxy), priv->id, identity_new_from_db_cb, self);
     else
         SSO_AuthService_register_new_identity_async
@@ -1087,7 +1089,7 @@ identity_removed_reply (DBusGProxy *proxy,
 }
 
 static void
-identity_info_reply(DBusGProxy *proxy, GPtrArray *identity_array,
+identity_info_reply(DBusGProxy *proxy, GHashTable *identity_data,
                     GError *error, gpointer userdata)
 {
     DEBUG ("%d %s", __LINE__, __func__);
@@ -1102,8 +1104,9 @@ identity_info_reply(DBusGProxy *proxy, GPtrArray *identity_array,
     SignonIdentityPrivate *priv = cb_data->self->priv;
 
     new_error = _signon_errors_get_error_from_dbus (error);
-    priv->identity_info = identity_ptrarray_to_identity_info (identity_array);
-    g_ptr_array_free (identity_array, TRUE);
+    priv->identity_info =
+        signon_identity_info_new_from_hash_table (identity_data);
+    g_hash_table_unref (identity_data);
 
     if (cb_data->cb)
     {
@@ -1161,9 +1164,9 @@ identity_info_ready_cb(gpointer object, const GError *error, gpointer user_data)
     else if (priv->updated == FALSE)
     {
         g_return_if_fail (priv->proxy != NULL);
-        SSO_Identity_query_info_async (priv->proxy,
-                                       identity_info_reply,
-                                       cb_data);
+        SSO_Identity_get_info_async (priv->proxy,
+                                     identity_info_reply,
+                                     cb_data);
     }
     else
     {
