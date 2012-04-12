@@ -56,8 +56,6 @@ START_TEST(test_init)
     g_type_init ();
 
     g_debug("%s", G_STRFUNC);
-    system ("killall -9 signond");
-    system ("SSO_IDENTITY_TIMEOUT=5 SSO_AUTHSESSION_TIMEOUT=5 signond &");
     auth_service = signon_auth_service_new ();
     main_loop = g_main_loop_new (NULL, FALSE);
 
