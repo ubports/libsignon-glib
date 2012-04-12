@@ -17,7 +17,7 @@ TEST_APP=./signon-glib-testsuite
 if command -v dbus-test-runner > /dev/null ; then
     echo "Using dbus-test-runner"
     dbus-test-runner -m 180 -t signond \
-        -t "$TEST_APP" -f com.nokia.SingleSignOn
+        -t "$TEST_APP" -f com.google.code.AccountsSSO.SingleSignOn
 else
     echo "Using existing D-Bus session"
     pkill signond || true
