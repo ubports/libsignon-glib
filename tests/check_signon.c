@@ -56,8 +56,6 @@ START_TEST(test_init)
     g_type_init ();
 
     g_debug("%s", G_STRFUNC);
-    system ("killall -9 signond");
-    system ("SSO_IDENTITY_TIMEOUT=5 SSO_AUTHSESSION_TIMEOUT=5 signond &");
     auth_service = signon_auth_service_new ();
     main_loop = g_main_loop_new (NULL, FALSE);
 
@@ -502,68 +500,54 @@ static GHashTable *create_methods_hashtable()
     return methods;
 }
 
-static guint
-new_identity()
+static void new_identity_store_credentials_cb(SignonIdentity *self,
+                                              guint32 id,
+                                              const GError *error,
+                                              gpointer user_data)
 {
-    DBusGConnection *connection;
-    DBusGProxy *proxy = NULL;
-    guint id = 0;
-    GError *error = NULL;
-
-    g_debug("%s", G_STRFUNC);
-    connection = dbus_g_bus_get (DBUS_BUS_SESSION, &error);
-
-    if(connection)
-    {
-        proxy = dbus_g_proxy_new_for_name (connection,
-                                           "com.nokia.SingleSignOn",
-                                           "/com/nokia/SingleSignOn",
-                                           "com.nokia.SingleSignOn.AuthService");
-    }
-    else if (error)
-    {
-        g_warning ("%s %d returned error: %s", G_STRFUNC, __LINE__, error->message);
-        g_error_free (error);
-        return -1;
-    }
-
-    gchar *objectPath;
-    SSO_AuthService_register_new_identity (proxy, &objectPath, &error);
-
-    if (error)
-    {
-        g_warning ("%s %d returned error: %s", G_STRFUNC, __LINE__, error->message);
-        g_error_free (error);
-        fail();
-    }
-
-    GHashTable *methods = g_hash_table_new (g_str_hash, g_str_equal);
-
-    proxy = dbus_g_proxy_new_for_name (connection,
-                                       "com.nokia.SingleSignOn",
-                                       objectPath,
-                                       "com.nokia.SingleSignOn.Identity");
-
-    SSO_Identity_store_credentials (proxy,
-                                    0,
-                                    "James Bond",
-                                    "007",
-                                    1,
-                                    methods,
-                                    "caption",
-                                    NULL,
-                                    NULL,
-                                    0,
-                                    &id,
-                                    &error);
-
-    g_hash_table_destroy (methods);
+    gint *new_id = user_data;
 
     if(error)
     {
         g_warning ("%s %d: %s", G_STRFUNC, __LINE__, error->message);
         fail();
     }
+
+    fail_unless (id > 0);
+
+    *new_id = id;
+
+    g_main_loop_quit (main_loop);
+}
+
+static guint
+new_identity()
+{
+    SignonIdentity *identity;
+    GHashTable *methods;
+    guint id = 0;
+
+    if (main_loop == NULL)
+        main_loop = g_main_loop_new (NULL, FALSE);
+
+    identity = signon_identity_new(NULL, NULL);
+    fail_unless (SIGNON_IS_IDENTITY (identity));
+    methods = g_hash_table_new (g_str_hash, g_str_equal);
+    signon_identity_store_credentials_with_args (identity,
+                                                 "James Bond",
+                                                 "007",
+                                                 1,
+                                                 methods,
+                                                 "caption",
+                                                 NULL,
+                                                 NULL,
+                                                 0,
+                                                 new_identity_store_credentials_cb,
+                                                 &id);
+    g_hash_table_destroy (methods);
+
+    if (id == 0)
+        g_main_loop_run (main_loop);
 
     return id;
 

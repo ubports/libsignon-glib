@@ -12,4 +12,4 @@ signon_glib_testsuite_LDADD = \
 	$(DEPS_LIBS) \
 	$(top_builddir)/libsignon-glib/libsignon-glib.la
 
-TESTS = signon-glib-testsuite
+TESTS = signon-glib-test.sh

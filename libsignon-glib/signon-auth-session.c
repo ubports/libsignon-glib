@@ -5,7 +5,7 @@
  *
  * Copyright (C) 2009-2010 Nokia Corporation.
  *
- * Contact: Alberto Mardegan <alberto.mardegan@nokia.com>
+ * Contact: Alberto Mardegan <alberto.mardegan@canonical.com>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -42,6 +42,7 @@
 #include "signon-dbus-queue.h"
 #include "signon-client-glib-gen.h"
 #include "signon-auth-session-client-glib-gen.h"
+#include "signon-errors.h"
 #include "signon-marshal.h"
 #include "signon-proxy.h"
 #include "signon-utils.h"
@@ -108,14 +109,6 @@ typedef struct _AuthSessionProcessCbData
 #define SIGNON_AUTH_SESSION_GET_PRIV(obj) (G_TYPE_INSTANCE_GET_PRIVATE ((obj), SIGNON_TYPE_AUTH_SESSION, SignonAuthSessionPrivate))
 
 
-//TODO: remove with implementing normal error management
-#define SSO_AUTH_SESSION_CONNECTION_PROBLEM_G \
-    "Cannot create remote AuthSession object: check the signon daemon and authentication plugin."
-#define SSO_AUTH_SESSION_BUSY_PROBLEM_G \
-    "AuthSession: client is busy."
-#define SSO_AUTH_SESSION_CANCELED_PROBLEM_G \
-    "Challenge was canceled"
-
 static void auth_session_state_changed_cb (DBusGProxy *proxy, gint state, gchar *message, gpointer user_data);
 static void auth_session_remote_object_destroyed_cb (DBusGProxy *proxy, gpointer user_data);
 
@@ -150,17 +143,6 @@ _SSO_AuthSession_process_async_timeout (DBusGProxy *proxy,
           _dbus_glib_async_data_free, timeout, 
           dbus_g_type_get_map ("GHashTable", G_TYPE_STRING, G_TYPE_VALUE), 
           IN_sessionDataVa, G_TYPE_STRING, IN_mechanism, G_TYPE_INVALID);
-}
-
-static GQuark
-auth_session_errors_quark ()
-{
-  static GQuark quark = 0;
-
-  if (!quark)
-    quark = g_quark_from_static_string ("com.nokia.SingleSignOn.AuthSession.Errors");
-
-  return quark;
 }
 
 static GQuark
@@ -510,7 +492,9 @@ auth_session_get_object_path_reply (DBusGProxy *proxy, char *object_path,
         if (error)
             DEBUG ("Error message is %s", error->message);
         else
-            error = g_error_new (auth_session_errors_quark(), 1, SSO_AUTH_SESSION_CONNECTION_PROBLEM_G);
+            error = g_error_new (signon_error_quark(),
+                                 SIGNON_ERROR_RUNTIME,
+                                 "Cannot create remote AuthSession object");
     }
     else
     {
@@ -731,9 +715,10 @@ auth_session_process_ready_cb (gpointer object, const GError *error, gpointer us
 
     if (error || priv->canceled)
     {
-        GError *err = ( error ? (GError *)error : g_error_new(auth_session_errors_quark(),
-                                                              1,
-                                                              SSO_AUTH_SESSION_CANCELED_PROBLEM_G) );
+        GError *err = (error ? (GError *)error :
+                       g_error_new (signon_error_quark (),
+                                    SIGNON_ERROR_SESSION_CANCELED,
+                                    "Authentication session was canceled"));
 
         DEBUG ("AuthSessionError: %s", err->message);
 

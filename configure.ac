@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT(libsignon-glib, 1.1)
+AC_INIT(libsignon-glib, 1.2)
 
 AM_INIT_AUTOMAKE(AC_PACKAGE_NAME, AC_PACKAGE_VERSION)
 AM_CONFIG_HEADER(config.h)
@@ -15,7 +15,7 @@ PKG_CHECK_MODULES(
 	gobject-2.0
         dbus-1
         dbus-glib-1
-        signond);
+        signond >= 8.40);
 AC_SUBST(DEPS_CFLAGS)
 AC_SUBST(DEPS_LIBS)
 
@@ -24,6 +24,7 @@ PKG_CHECK_MODULES([CHECK], [check >= 0.9.4])
 AC_ISC_POSIX
 AC_PROG_CC
 AM_PROG_CC_STDC
+AM_PROG_CC_C_O
 AC_HEADER_STDC
 AC_PROG_LIBTOOL
 
