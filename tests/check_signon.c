@@ -603,7 +603,7 @@ START_TEST(test_get_nonexisting_identity)
     main_loop = g_main_loop_new (NULL, FALSE);
     g_main_loop_run (main_loop);
 
-    GError *error = NULL;
+    const GError *error = NULL;
     error = signon_identity_get_last_error(identity);
     fail_unless (error != NULL);
 
