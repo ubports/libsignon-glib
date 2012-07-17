@@ -6,6 +6,7 @@ export SSO_STORAGE_PATH="/tmp"
 export SSO_DAEMON_TIMEOUT=5
 export SSO_IDENTITY_TIMEOUT=5
 export SSO_AUTHSESSION_TIMEOUT=5
+export SSO_EXTENSIONS_DIR="/tmp" # this disables all extensions
 
 #Environment variables for the test application
 export G_MESSAGES_DEBUG=all
