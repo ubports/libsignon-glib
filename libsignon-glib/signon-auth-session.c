@@ -645,6 +645,9 @@ auth_session_process_reply (DBusGProxy *proxy, GHashTable *session_data,
         session_data = NULL;
     }
 
+    /* Keep a reference on the SignonAuthSession, because the callback
+     * code might unreference it, while we still need it. */
+    g_object_ref (cb_data->self);
     (cb_data->cb)
         (cb_data->self, session_data, new_error, cb_data->user_data);
 
@@ -652,6 +655,7 @@ auth_session_process_reply (DBusGProxy *proxy, GHashTable *session_data,
     if (new_error)
         g_error_free (new_error);
 
+    g_object_unref (cb_data->self);
     g_slice_free (AuthSessionProcessCbData, cb_data);
 }
 
