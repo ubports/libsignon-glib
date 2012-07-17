@@ -173,3 +173,9 @@ typelib_DATA = $(INTROSPECTION_GIRS:.gir=.typelib)
 
 CLEANFILES += $(gir_DATA) $(typelib_DATA)
 endif
+
+
+# Vala bindings
+vapidir = $(datadir)/vala/vapi
+dist_vapi_DATA = \
+	signon.vapi

@@ -76,21 +76,21 @@ signon_query_methods_cb (SignonAuthService *auth_service, gchar **methods,
         fail();
     }
 
-    gboolean has_sasl = FALSE;
+    gboolean has_ssotest = FALSE;
 
     fail_unless (g_strcmp0 (user_data, "Hello") == 0, "Got wrong string");
     fail_unless (methods != NULL, "The methods does not exist");
 
     while (*methods)
     {
-        if (g_strcmp0 (*methods, "sasl") == 0)
+        if (g_strcmp0 (*methods, "ssotest") == 0)
         {
-            has_sasl = TRUE;
+            has_ssotest = TRUE;
             break;
         }
         methods++;
     }
-    fail_unless (has_sasl, "sasl method does not exist");
+    fail_unless (has_ssotest, "ssotest method does not exist");
 
     g_main_loop_quit (main_loop);
 }
@@ -125,25 +125,30 @@ signon_query_mechanisms_cb (SignonAuthService *auth_service, gchar *method,
         fail();
     }
 
-    gboolean has_plain = FALSE;
-    gboolean has_digest = FALSE;
+    gboolean has_mech1 = FALSE;
+    gboolean has_mech2 = FALSE;
+    gboolean has_mech3 = FALSE;
 
     fail_unless (strcmp (user_data, "Hello") == 0, "Got wrong string");
     fail_unless (mechanisms != NULL, "The mechanisms does not exist");
 
     while (*mechanisms)
     {
-        if (g_strcmp0 (*mechanisms, "PLAIN") == 0)
-            has_plain = TRUE;
+        if (g_strcmp0 (*mechanisms, "mech1") == 0)
+            has_mech1 = TRUE;
 
-        if (g_strcmp0 (*mechanisms, "DIGEST-MD5") == 0)
-            has_digest = TRUE;
+        if (g_strcmp0 (*mechanisms, "mech2") == 0)
+            has_mech2 = TRUE;
+
+        if (g_strcmp0 (*mechanisms, "mech3") == 0)
+            has_mech3 = TRUE;
 
         mechanisms++;
     }
 
-    fail_unless (has_plain, "PLAIN mechanism does not exist");
-    fail_unless (has_digest, "DIGEST-MD5 mechanism does not exist");
+    fail_unless (has_mech1, "mech1 mechanism does not exist");
+    fail_unless (has_mech2, "mech2 mechanism does not exist");
+    fail_unless (has_mech3, "mech3 mechanism does not exist");
 
     g_main_loop_quit (main_loop);
 }
@@ -159,7 +164,7 @@ START_TEST(test_query_mechanisms)
                  "Failed to initialize the AuthService.");
 
     signon_auth_service_query_mechanisms (auth_service,
-                                          "sasl",
+                                          "ssotest",
                                           (SignonQueryMechanismCb)signon_query_mechanisms_cb,
                                           "Hello");
     if(!main_loop)
@@ -598,7 +603,7 @@ START_TEST(test_get_nonexisting_identity)
     main_loop = g_main_loop_new (NULL, FALSE);
     g_main_loop_run (main_loop);
 
-    GError *error = NULL;
+    const GError *error = NULL;
     error = signon_identity_get_last_error(identity);
     fail_unless (error != NULL);
 
@@ -1163,6 +1168,63 @@ START_TEST(test_unregistered_auth_session)
 }
 END_TEST
 
+static void
+test_regression_unref_process_cb (SignonAuthSession *self,
+                                  GHashTable *reply,
+                                  const GError *error,
+                                  gpointer user_data)
+{
+    GValue *v_string;
+
+    if (error)
+    {
+        g_warning ("%s: %s", G_STRFUNC, error->message);
+        g_main_loop_quit (main_loop);
+        fail();
+    }
+
+    fail_unless (reply != NULL, "The result is empty");
+
+    fail_unless (g_strcmp0 (user_data, "Hi there!") == 0,
+                 "Didn't get expected user_data");
+
+    v_string = g_hash_table_lookup(reply, "James");
+    fail_unless (v_string != 0);
+    fail_unless (g_strcmp0 (g_value_get_string (v_string), "Bond") == 0,
+                 "Wrong reply data");
+
+    /* The next line is actually the regression we want to test */
+    g_object_unref (self);
+
+    g_main_loop_quit (main_loop);
+}
+
+START_TEST(test_regression_unref)
+{
+    SignonAuthSession *auth_session;
+    GHashTable *session_data;
+    GError *error = NULL;
+    GValue v_string = G_VALUE_INIT;
+
+    g_type_init ();
+    main_loop = g_main_loop_new (NULL, FALSE);
+
+    auth_session = signon_auth_session_new (0, "ssotest", &error);
+    fail_unless (auth_session != NULL);
+
+    session_data = g_hash_table_new (g_str_hash, g_str_equal);
+    g_value_init (&v_string, G_TYPE_STRING);
+    g_value_set_static_string (&v_string, "Bond");
+    g_hash_table_insert (session_data, "James", &v_string);
+
+    signon_auth_session_process (auth_session,
+                                 session_data,
+                                 "mech1",
+                                 test_regression_unref_process_cb,
+                                 g_strdup ("Hi there!"));
+    g_main_loop_run (main_loop);
+}
+END_TEST
 
 Suite *
 signon_suite(void)
@@ -1194,6 +1256,9 @@ signon_suite(void)
     tcase_add_test (tc_core, test_signout_identity);
     tcase_add_test (tc_core, test_unregistered_identity);
     tcase_add_test (tc_core, test_unregistered_auth_session);
+
+    tcase_add_test (tc_core, test_regression_unref);
+
     suite_add_tcase (s, tc_core);
 
     return s;
