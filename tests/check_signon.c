@@ -76,21 +76,21 @@ signon_query_methods_cb (SignonAuthService *auth_service, gchar **methods,
         fail();
     }
 
-    gboolean has_sasl = FALSE;
+    gboolean has_ssotest = FALSE;
 
     fail_unless (g_strcmp0 (user_data, "Hello") == 0, "Got wrong string");
     fail_unless (methods != NULL, "The methods does not exist");
 
     while (*methods)
     {
-        if (g_strcmp0 (*methods, "sasl") == 0)
+        if (g_strcmp0 (*methods, "ssotest") == 0)
         {
-            has_sasl = TRUE;
+            has_ssotest = TRUE;
             break;
         }
         methods++;
     }
-    fail_unless (has_sasl, "sasl method does not exist");
+    fail_unless (has_ssotest, "ssotest method does not exist");
 
     g_main_loop_quit (main_loop);
 }
@@ -125,25 +125,30 @@ signon_query_mechanisms_cb (SignonAuthService *auth_service, gchar *method,
         fail();
     }
 
-    gboolean has_plain = FALSE;
-    gboolean has_digest = FALSE;
+    gboolean has_mech1 = FALSE;
+    gboolean has_mech2 = FALSE;
+    gboolean has_mech3 = FALSE;
 
     fail_unless (strcmp (user_data, "Hello") == 0, "Got wrong string");
     fail_unless (mechanisms != NULL, "The mechanisms does not exist");
 
     while (*mechanisms)
     {
-        if (g_strcmp0 (*mechanisms, "PLAIN") == 0)
-            has_plain = TRUE;
+        if (g_strcmp0 (*mechanisms, "mech1") == 0)
+            has_mech1 = TRUE;
 
-        if (g_strcmp0 (*mechanisms, "DIGEST-MD5") == 0)
-            has_digest = TRUE;
+        if (g_strcmp0 (*mechanisms, "mech2") == 0)
+            has_mech2 = TRUE;
+
+        if (g_strcmp0 (*mechanisms, "mech3") == 0)
+            has_mech3 = TRUE;
 
         mechanisms++;
     }
 
-    fail_unless (has_plain, "PLAIN mechanism does not exist");
-    fail_unless (has_digest, "DIGEST-MD5 mechanism does not exist");
+    fail_unless (has_mech1, "mech1 mechanism does not exist");
+    fail_unless (has_mech2, "mech2 mechanism does not exist");
+    fail_unless (has_mech3, "mech3 mechanism does not exist");
 
     g_main_loop_quit (main_loop);
 }
@@ -159,7 +164,7 @@ START_TEST(test_query_mechanisms)
                  "Failed to initialize the AuthService.");
 
     signon_auth_service_query_mechanisms (auth_service,
-                                          "sasl",
+                                          "ssotest",
                                           (SignonQueryMechanismCb)signon_query_mechanisms_cb,
                                           "Hello");
     if(!main_loop)
