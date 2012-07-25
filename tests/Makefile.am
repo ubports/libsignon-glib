@@ -3,7 +3,7 @@
 INCLUDES=-I$(top_srcdir) $(DEPS_CFLAGS)
 
 check_PROGRAMS = signon-glib-testsuite
-check_SCRIPTS = signon-glib-test.sh
+dist_check_SCRIPTS = signon-glib-test.sh
 
 signon_glib_testsuite_SOURCES = check_signon.c
 signon_glib_testsuite_CFLAGS = $(CHECK_FLAGS) -I$(top_srcdir)
