@@ -12,7 +12,7 @@ libsignon_glib_la_LDFLAGS = \
 	-version-info 1:0:0 \
 	-export-symbols-regex '^signon_'
 
-BUILT_SOURCES = \
+nodist_libsignon_glib_la_SOURCES = \
 	signon-marshal.c \
 	signon-marshal.h \
 	signon-enum-types.h \
@@ -25,6 +25,10 @@ BUILT_SOURCES = \
 	sso-identity-gen.c \
 	sso-identity-gen.h \
 	stamp-signon-enum-types.h
+
+BUILT_SOURCES = \
+	$(nodist_libsignon_glib_la_SOURCES) \
+	signon-errors-map.c
 
 CLEANFILES = $(BUILT_SOURCES)
 
@@ -46,9 +50,6 @@ libsignon_glib_la_SOURCES = \
 	signon-utils.c \
 	sso-auth-service.c \
 	sso-auth-service.h
-
-nodist_libsignon_glib_la_SOURCES = \
-	$(BUILT_SOURCES)
 
 libsignon_glib_includedir = $(includedir)/libsignon-glib
 libsignon_glib_include_HEADERS = \
@@ -137,9 +138,6 @@ signon-errors-map.c: Makefile signon-errors.h
 	  grep "^ *SIGNON_ERROR_" signon-errors.h | \
 	    sed -e 's/SIGNON_ERROR_\([A-Z_0-9]*\).*/{ SIGNON_ERROR_\1, SIGNOND_\1_ERR_NAME },/' && \
 	  echo -e "};\n" ) > signon-errors-map.c
-
-CLEANFILES += signon-errors-map.c
-signon-errors.$(OBJEXT): signon-errors-map.c
 
 EXTRA_DIST = signon-marshal.list \
 	     stamp-signon-enum-types.h
