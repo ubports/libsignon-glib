@@ -21,6 +21,12 @@ BUILT_SOURCES = \
 	signon-enum-types.h \
 	signon-enum-types.c \
 	signon-errors-enum.c \
+	sso-auth-service-gen.c \
+	sso-auth-service-gen.h \
+	sso-auth-session-gen.c \
+	sso-auth-session-gen.h \
+	sso-identity-gen.c \
+	sso-identity-gen.h \
 	stamp-signon-enum-types.h
 
 CLEANFILES = $(BUILT_SOURCES)
@@ -42,7 +48,9 @@ libsignon_glib_la_SOURCES = \
 	signon-proxy.h \
 	signon-proxy.c \
 	signon-utils.h \
-	signon-utils.c
+	signon-utils.c \
+	sso-auth-service.c \
+	sso-auth-service.h
 
 nodist_libsignon_glib_la_SOURCES = \
 	$(BUILT_SOURCES)
@@ -69,6 +77,18 @@ DBUS_INTERFACES_DIR = /usr/share/dbus-1/interfaces
 signon-client-glib-gen.h: $(DBUS_INTERFACES_DIR)/com.google.code.AccountsSSO.SingleSignOn.AuthService.xml
 	dbus-binding-tool --prefix=signon-client-glib --mode=glib-client $< \
 	| sed s/com_google_code_AccountsSSO_SingleSignOn/SSO/g > $@
+
+sso-auth-service-gen.h sso-auth-service-gen.c: $(DBUS_INTERFACES_DIR)/com.google.code.AccountsSSO.SingleSignOn.AuthService.xml
+	gdbus-codegen --generate-c-code sso-auth-service-gen \
+		--annotate "com.google.code.AccountsSSO.SingleSignOn.AuthService" org.gtk.GDBus.C.Name SsoAuthService $<
+
+sso-auth-session-gen.h sso-auth-session-gen.c: $(DBUS_INTERFACES_DIR)/com.google.code.AccountsSSO.SingleSignOn.AuthSession.xml
+	gdbus-codegen --generate-c-code sso-auth-session-gen \
+		--annotate "com.google.code.AccountsSSO.SingleSignOn.AuthSession" org.gtk.GDBus.C.Name SsoAuthSession $<
+
+sso-identity-gen.h sso-identity-gen.c: $(DBUS_INTERFACES_DIR)/com.google.code.AccountsSSO.SingleSignOn.Identity.xml
+	gdbus-codegen --generate-c-code sso-identity-gen \
+		--annotate "com.google.code.AccountsSSO.SingleSignOn.Identity" org.gtk.GDBus.C.Name SsoIdentity $<
 
 signon-auth-session-client-glib-gen.h: $(DBUS_INTERFACES_DIR)/com.google.code.AccountsSSO.SingleSignOn.AuthSession.xml
 	dbus-binding-tool --prefix=signon-auth-session-client-glib --mode=glib-client $< \
@@ -127,6 +147,16 @@ signon-errors-enum.c: Makefile signon-errors.h
 	    > xgen-getc \
 	    && cp xgen-getc signon-errors-enum.c  \
 	    && rm -f xgen-getc
+
+signon-errors-map.c: Makefile signon-errors.h
+	( cd $(srcdir) && \
+	  echo "static const GDBusErrorEntry signon_error_entries[] = {" && \
+	  grep "^ *SIGNON_ERROR_" signon-errors.h | \
+	    sed -e 's/SIGNON_ERROR_\([A-Z_0-9]*\).*/{ SIGNON_ERROR_\1, SIGNOND_\1_ERR_NAME },/' && \
+	  echo -e "};\n" ) > signon-errors-map.c
+
+CLEANFILES += signon-errors-map.c
+signon-errors.$(OBJEXT): signon-errors-map.c
 
 EXTRA_DIST = signon-marshal.list \
 	     stamp-signon-enum-types.h

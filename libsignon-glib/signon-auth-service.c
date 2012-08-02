@@ -4,8 +4,9 @@
  * This file is part of libsignon-glib
  *
  * Copyright (C) 2009-2010 Nokia Corporation.
+ * Copyright (C) 2012 Canonical Ltd.
  *
- * Contact: Alberto Mardegan <alberto.mardegan@nokia.com>
+ * Contact: Alberto Mardegan <alberto.mardegan@canonical.com>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -31,17 +32,18 @@
  */
 
 #include "signon-auth-service.h"
-#include "signon-client-glib-gen.h"
-#include "signon-internals.h"
 #include "signon-errors.h"
-#include "signon-proxy.h"
+#include "signon-internals.h"
+#include "sso-auth-service.h"
+#include <gio/gio.h>
 #include <glib.h>
 
 G_DEFINE_TYPE (SignonAuthService, signon_auth_service, G_TYPE_OBJECT);
 
 struct _SignonAuthServicePrivate
 {
-    SignonProxy *signon_proxy;
+    SsoAuthService *proxy;
+    GCancellable *cancellable;
 };
 
 typedef struct _MethodCbData
@@ -70,21 +72,9 @@ signon_auth_service_init (SignonAuthService *auth_service)
                                         SignonAuthServicePrivate);
     auth_service->priv = priv;
 
-    priv->signon_proxy = signon_proxy_new ();
-}
-
-static GObject *
-signon_auth_service_constructor (GType type, guint n_params,
-                                 GObjectConstructParam *params)
-{
-    GObjectClass *object_class =
-        (GObjectClass *)signon_auth_service_parent_class;
-    GObject *object;
-
-    object = object_class->constructor (type, n_params, params);
-    g_return_val_if_fail (SIGNON_IS_AUTH_SERVICE (object), NULL);
-
-    return object;
+    /* Create the proxy */
+    priv->cancellable = g_cancellable_new ();
+    priv->proxy = sso_auth_service_get_instance ();
 }
 
 static void
@@ -93,10 +83,16 @@ signon_auth_service_dispose (GObject *object)
     SignonAuthService *auth_service = SIGNON_AUTH_SERVICE (object);
     SignonAuthServicePrivate *priv = auth_service->priv;
 
-    if (priv->signon_proxy)
+    if (priv->cancellable)
     {
-        g_object_unref (priv->signon_proxy);
-        priv->signon_proxy = NULL;
+        g_cancellable_cancel (priv->cancellable);
+        priv->cancellable = NULL;
+    }
+
+    if (priv->proxy)
+    {
+        g_object_unref (priv->proxy);
+        priv->proxy = NULL;
     }
 
     G_OBJECT_CLASS (signon_auth_service_parent_class)->dispose (object);
@@ -116,7 +112,6 @@ signon_auth_service_class_init (SignonAuthServiceClass *klass)
     g_type_class_add_private (object_class, sizeof (SignonAuthServicePrivate));
 
     object_class->dispose = signon_auth_service_dispose;
-    object_class->constructor = signon_auth_service_constructor;
     object_class->finalize = signon_auth_service_finalize;
 }
 
@@ -134,46 +129,46 @@ signon_auth_service_new ()
 }
 
 static void
-auth_query_methods_cb (DBusGProxy *proxy, char **value,
-                       GError *error, gpointer user_data)
+auth_query_methods_cb (GObject *object, GAsyncResult *res,
+                       gpointer user_data)
 {
+    SsoAuthService *proxy = SSO_AUTH_SERVICE (object);
     MethodCbData *data = (MethodCbData*)user_data;
-    GError *new_error = NULL;
+    gchar **value = NULL;
+    GError *error = NULL;
+
     g_return_if_fail (data != NULL);
 
-    if (error)
-    {
-        new_error = _signon_errors_get_error_from_dbus (error);
-        value = NULL;
-    }
-
+    sso_auth_service_call_query_methods_finish (proxy, &value,
+                                                res, &error);
     (data->cb)
-        (data->service, value, new_error, data->userdata);
+        (data->service, value, error, data->userdata);
 
-    if (new_error)
-        g_error_free (new_error);
+    g_free (value);
+    if (error)
+        g_error_free (error);
     g_slice_free (MethodCbData, data);
 }
 
 static void
-auth_query_mechanisms_cb (DBusGProxy *proxy, char **value,
-                          GError *error, gpointer user_data)
+auth_query_mechanisms_cb (GObject *object, GAsyncResult *res,
+                          gpointer user_data)
 {
+    SsoAuthService *proxy = SSO_AUTH_SERVICE (object);
     MechanismCbData *data = (MechanismCbData*) user_data;
-    GError *new_error = NULL;
+    gchar **value = NULL;
+    GError *error = NULL;
+
     g_return_if_fail (data != NULL);
 
-    if (error)
-    {
-        new_error = _signon_errors_get_error_from_dbus (error);
-        value = NULL;
-    }
-
+    sso_auth_service_call_query_mechanisms_finish (proxy, &value,
+                                                   res, &error);
     (data->cb)
-        (data->service, data->method, value, new_error, data->userdata);
+        (data->service, data->method, value, error, data->userdata);
 
-    if (new_error)
-        g_error_free (new_error);
+    g_free (value);
+    if (error)
+        g_error_free (error);
     g_free (data->method);
     g_slice_free (MechanismCbData, data);
 }
@@ -201,10 +196,10 @@ signon_auth_service_query_methods (SignonAuthService *auth_service,
                                    SignonQueryMethodsCb cb,
                                    gpointer user_data)
 {
+    SignonAuthServicePrivate *priv;
+
     g_return_if_fail (SIGNON_IS_AUTH_SERVICE (auth_service));
     g_return_if_fail (cb != NULL);
-
-    SignonAuthServicePrivate *priv;
     priv = SIGNON_AUTH_SERVICE_PRIV (auth_service);
 
     MethodCbData *cb_data;
@@ -213,7 +208,8 @@ signon_auth_service_query_methods (SignonAuthService *auth_service,
     cb_data->cb = cb;
     cb_data->userdata = user_data;
 
-    SSO_AuthService_query_methods_async (DBUS_G_PROXY(priv->signon_proxy),
+    sso_auth_service_call_query_methods (priv->proxy,
+                                         priv->cancellable,
                                          auth_query_methods_cb,
                                          cb_data);
 }
@@ -245,8 +241,11 @@ signon_auth_service_query_mechanisms (SignonAuthService *auth_service,
                                       SignonQueryMechanismCb cb,
                                       gpointer user_data)
 {
+    SignonAuthServicePrivate *priv;
+
     g_return_if_fail (SIGNON_IS_AUTH_SERVICE (auth_service));
     g_return_if_fail (cb != NULL);
+    priv = SIGNON_AUTH_SERVICE_PRIV (auth_service);
 
     MechanismCbData *cb_data;
     cb_data = g_slice_new (MechanismCbData);
@@ -255,11 +254,9 @@ signon_auth_service_query_mechanisms (SignonAuthService *auth_service,
     cb_data->userdata = user_data;
     cb_data->method = g_strdup (method);
 
-    SignonAuthServicePrivate *priv;
-    priv = SIGNON_AUTH_SERVICE_PRIV (auth_service);
-
-    SSO_AuthService_query_mechanisms_async (DBUS_G_PROXY(priv->signon_proxy),
+    sso_auth_service_call_query_mechanisms (priv->proxy,
                                             method,
+                                            priv->cancellable,
                                             auth_query_mechanisms_cb,
                                             cb_data);
 }

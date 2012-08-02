@@ -3,7 +3,6 @@
 /*
  * This file is part of libsignon-glib
  *
- * Copyright (C) 2009-2010 Nokia Corporation.
  * Copyright (C) 2012 Canonical Ltd.
  *
  * Contact: Alberto Mardegan <alberto.mardegan@canonical.com>
@@ -22,28 +21,17 @@
  * Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA
  */
-#ifndef _SIGNON_UTILS_H_
-#define _SIGNON_UTILS_H_
 
-#include <glib-object.h>
+#ifndef _SSO_AUTH_SERVICE_H_
+#define _SSO_AUTH_SERVICE_H_
 
-#define SIGNON_RETURN_IF_CANCELLED(error) \
-    if (error != NULL && \
-        error->domain == G_IO_ERROR && \
-        error->code == G_IO_ERROR_CANCELLED) \
-    { \
-        g_error_free (error); \
-        return; \
-    }
+#include "sso-auth-service-gen.h"
+
+G_BEGIN_DECLS
 
 G_GNUC_INTERNAL
-GValue *signon_gvalue_new (GType type);
-G_GNUC_INTERNAL
-void signon_gvalue_free (gpointer val);
+SsoAuthService *sso_auth_service_get_instance ();
 
-G_GNUC_INTERNAL
-GHashTable *signon_hash_table_from_variant (GVariant *variant);
-G_GNUC_INTERNAL
-GVariant *signon_hash_table_to_variant (const GHashTable *hash_table);
+G_END_DECLS
 
-#endif //_SIGNON_UTILS_H_
+#endif /* _SSO_AUTH_SERVICE_H_ */

@@ -4,7 +4,7 @@
  * This file is part of libsignon-glib
  *
  * Copyright (C) 2009-2010 Nokia Corporation.
- * Copyright (C) 2011 Canonical Ltd.
+ * Copyright (C) 2011-2012 Canonical Ltd.
  *
  * Contact: Alberto Mardegan <alberto.mardegan@canonical.com>
  *
@@ -40,6 +40,12 @@ G_DEFINE_BOXED_TYPE (SignonIdentityInfo, signon_identity_info,
                      (GBoxedCopyFunc)signon_identity_info_copy,
                      (GBoxedFreeFunc)signon_identity_info_free);
 
+
+static GVariant *
+signon_variant_new_string (const gchar *string)
+{
+    return g_variant_new_string (string != NULL ? string : "");
+}
 
 static const gchar *identity_info_get_secret (const SignonIdentityInfo *info)
 {
@@ -236,6 +242,153 @@ signon_identity_info_to_hash_table (const SignonIdentityInfo *self)
     g_hash_table_insert (map, SIGNOND_IDENTITY_INFO_TYPE, value);
 
     return map;
+}
+
+SignonIdentityInfo *
+signon_identity_info_new_from_variant (GVariant *variant)
+{
+    GVariant *method_map;
+
+    if (!variant)
+        return NULL;
+
+    SignonIdentityInfo *info = signon_identity_info_new ();
+
+    DEBUG("%s: ", G_STRFUNC);
+
+    g_variant_lookup (variant,
+                      SIGNOND_IDENTITY_INFO_ID,
+                      "u",
+                      &info->id);
+
+    g_variant_lookup (variant,
+                      SIGNOND_IDENTITY_INFO_USERNAME,
+                      "s",
+                      &info->username);
+
+    if (g_variant_lookup (variant,
+                          SIGNOND_IDENTITY_INFO_SECRET,
+                          "s",
+                          &info->secret))
+    {
+        g_variant_lookup (variant,
+                          SIGNOND_IDENTITY_INFO_STORESECRET,
+                          "b",
+                          &info->store_secret);
+    }
+
+    g_variant_lookup (variant,
+                      SIGNOND_IDENTITY_INFO_CAPTION,
+                      "s",
+                      &info->caption);
+
+    g_variant_lookup (variant,
+                      SIGNOND_IDENTITY_INFO_REALMS,
+                      "^as",
+                      &info->realms);
+
+    /* get the methods */
+    if (g_variant_lookup (variant,
+                          SIGNOND_IDENTITY_INFO_AUTHMETHODS,
+                          "@a{sas}",
+                          &method_map))
+    {
+        GVariantIter iter;
+        gchar *method;
+        gchar **mechanisms;
+
+        g_variant_iter_init (&iter, method_map);
+        while (g_variant_iter_next (&iter, "{s^as}", &method, &mechanisms))
+        {
+            g_hash_table_insert (info->methods, method, mechanisms);
+        }
+    }
+
+    g_variant_lookup (variant,
+                      SIGNOND_IDENTITY_INFO_ACL,
+                      "^as",
+                      &info->access_control_list);
+
+    g_variant_lookup (variant,
+                      SIGNOND_IDENTITY_INFO_TYPE,
+                      "u",
+                      &info->type);
+
+    return info;
+}
+
+GVariant *
+signon_identity_info_to_variant (const SignonIdentityInfo *self)
+{
+    GVariantBuilder builder;
+    GVariantBuilder method_builder;
+    GVariant *method_map;
+    GHashTableIter iter;
+    const gchar *method;
+    const gchar **mechanisms;
+
+    g_variant_builder_init (&builder, G_VARIANT_TYPE_VARDICT);
+
+    g_variant_builder_add (&builder, "{sv}",
+                           SIGNOND_IDENTITY_INFO_ID,
+                           g_variant_new_uint32 (self->id));
+
+    g_variant_builder_add (&builder, "{sv}",
+                           SIGNOND_IDENTITY_INFO_USERNAME,
+                           signon_variant_new_string (self->username));
+
+    g_variant_builder_add (&builder, "{sv}",
+                           SIGNOND_IDENTITY_INFO_SECRET,
+                           signon_variant_new_string (self->secret));
+
+    g_variant_builder_add (&builder, "{sv}",
+                           SIGNOND_IDENTITY_INFO_CAPTION,
+                           signon_variant_new_string (self->caption));
+
+    g_variant_builder_add (&builder, "{sv}",
+                           SIGNOND_IDENTITY_INFO_STORESECRET,
+                           g_variant_new_boolean (self->store_secret));
+
+    g_variant_builder_init (&method_builder,
+                            (const GVariantType *)"a{sas}");
+    g_hash_table_iter_init (&iter, self->methods);
+    while (g_hash_table_iter_next (&iter,
+                                   (gpointer)&method,
+                                   (gpointer)&mechanisms))
+    {
+        g_variant_builder_add (&method_builder, "{s^as}",
+                               method,
+                               mechanisms);
+    }
+    method_map = g_variant_builder_end (&method_builder);
+
+    g_variant_builder_add (&builder, "{sv}",
+                           SIGNOND_IDENTITY_INFO_AUTHMETHODS,
+                           method_map);
+
+    if (self->realms != NULL)
+    {
+        g_variant_builder_add (&builder, "{sv}",
+                               SIGNOND_IDENTITY_INFO_REALMS,
+                               g_variant_new_strv ((const gchar * const *)
+                                                   self->realms,
+                                                   -1));
+    }
+
+    if (self->access_control_list != NULL)
+    {
+        g_variant_builder_add (&builder, "{sv}",
+                               SIGNOND_IDENTITY_INFO_ACL,
+                               g_variant_new_strv ((const gchar * const *)
+                                                   self->access_control_list,
+                                                   -1));
+    }
+
+    g_variant_builder_add (&builder, "{sv}",
+                           SIGNOND_IDENTITY_INFO_TYPE,
+                           g_variant_new_int32 (self->type));
+
+    return g_variant_builder_end (&builder);
 }
 
 /*

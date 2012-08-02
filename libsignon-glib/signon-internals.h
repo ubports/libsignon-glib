@@ -4,8 +4,9 @@
  * This file is part of libsignon-glib
  *
  * Copyright (C) 2009-2010 Nokia Corporation.
+ * Copyright (C) 2012 Canonical Ltd.
  *
- * Contact: Alberto Mardegan <alberto.mardegan@nokia.com>
+ * Contact: Alberto Mardegan <alberto.mardegan@canonical.com>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -59,6 +60,14 @@ struct _SignonIdentityInfo
 G_GNUC_INTERNAL
 SignonIdentityInfo *
 signon_identity_info_new_from_hash_table (GHashTable *map);
+
+G_GNUC_INTERNAL
+SignonIdentityInfo *
+signon_identity_info_new_from_variant (GVariant *variant);
+
+G_GNUC_INTERNAL
+GVariant *
+signon_identity_info_to_variant (const SignonIdentityInfo *self);
 
 G_GNUC_INTERNAL
 GHashTable *

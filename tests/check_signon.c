@@ -171,6 +171,19 @@ signon_query_mechanisms_cb (SignonAuthService *auth_service, gchar *method,
     g_main_loop_quit (main_loop);
 }
 
+static void
+signon_query_mechanisms_cb_fail (SignonAuthService *auth_service,
+                                 gchar *method,
+                                 gchar **mechanisms,
+                                 GError *error, gpointer user_data)
+{
+    fail_unless (error != NULL);
+    fail_unless (mechanisms == NULL);
+    fail_unless (error->domain == SIGNON_ERROR);
+    fail_unless (error->code == SIGNON_ERROR_METHOD_NOT_KNOWN);
+    g_main_loop_quit (main_loop);
+}
+
 START_TEST(test_query_mechanisms)
 {
     g_type_init ();
@@ -188,6 +201,13 @@ START_TEST(test_query_mechanisms)
     if(!main_loop)
         main_loop = g_main_loop_new (NULL, FALSE);
 
+    g_main_loop_run (main_loop);
+
+    /* Test a non existing method */
+    signon_auth_service_query_mechanisms (auth_service,
+                                          "non-existing",
+                                          (SignonQueryMechanismCb)signon_query_mechanisms_cb_fail,
+                                          "Hello");
     g_main_loop_run (main_loop);
     end_test ();
 }
@@ -626,11 +646,7 @@ START_TEST(test_get_nonexisting_identity)
     fail_unless (error != NULL);
 
     fail_unless (error->domain == SIGNON_ERROR);
-
-    //TODO: as the error management will
-    //became stable we will need to change
-    //the expected value of error code
-    fail_unless (error->code == SIGNON_ERROR_UNKNOWN);
+    fail_unless (error->code == SIGNON_ERROR_IDENTITY_NOT_FOUND);
 
     end_test ();
 }
@@ -658,7 +674,10 @@ static void store_credentials_identity_cb(SignonIdentity *self,
         (*last_id) += 1;
     }
 
-    g_main_loop_quit (main_loop);
+    /* Wait some time to ensure that the info-updated signals are
+     * processed
+     */
+    g_timeout_add_seconds (2, test_quit_main_loop_cb, main_loop);
 }
 
 START_TEST(test_store_credentials_identity)
@@ -984,6 +1003,7 @@ START_TEST(test_info_identity)
     g_main_loop_run (main_loop);
 
     gint id = signon_identity_info_get_id (info);
+    fail_unless (id != 0);
     SignonIdentity *idty2 = signon_identity_new_from_db (id);
 
     signon_identity_query_info (idty2, identity_info_cb, &info);
@@ -1068,6 +1088,10 @@ START_TEST(test_signout_identity)
     gint id = signon_identity_info_get_id (info);
     SignonIdentity *idty2 = signon_identity_new_from_db (id);
 
+    /* wait some more time to ensure that the object gets registered */
+    g_timeout_add_seconds (2, test_quit_main_loop_cb, main_loop);
+    g_main_loop_run (main_loop);
+
     signon_identity_info_free (info);
 
     GError *err = NULL;
@@ -1128,7 +1152,7 @@ START_TEST(test_unregistered_identity)
     /*
      * give time to handle unregistered signal
      * */
-    g_timeout_add_seconds (5, (GSourceFunc)g_main_loop_quit, main_loop);
+    g_timeout_add_seconds (5, test_quit_main_loop_cb, main_loop);
 
     signon_identity_query_info (idty, identity_info_cb, &info);
     g_main_loop_run (main_loop);
@@ -1153,6 +1177,10 @@ START_TEST(test_unregistered_auth_session)
     SignonAuthSession *as = signon_identity_create_session(idty,
                                                           "ssotest",
                                                            &err);
+    /* give time to register the objects */
+    g_timeout_add_seconds (2, test_quit_main_loop_cb, main_loop);
+    g_main_loop_run (main_loop);
+
     /*
      * give the time for identity to became idle
      * */
@@ -1162,7 +1190,9 @@ START_TEST(test_unregistered_auth_session)
     /*
      * give time to handle unregistered signal
      * */
-    g_timeout_add_seconds (5, (GSourceFunc)g_main_loop_quit, main_loop);
+    g_timeout_add_seconds (5, test_quit_main_loop_cb, main_loop);
+    g_main_loop_run (main_loop);
+
 
     gchar* patterns[4];
     patterns[0] = g_strdup("mech1");
@@ -1176,6 +1206,7 @@ START_TEST(test_unregistered_auth_session)
                                                   (gpointer)patterns);
     g_main_loop_run (main_loop);
 
+    g_object_unref (as);
     g_object_unref (idty);
     g_object_unref (idty2);
 
@@ -1223,6 +1254,8 @@ START_TEST(test_regression_unref)
     GHashTable *session_data;
     GError *error = NULL;
     GValue v_string = G_VALUE_INIT;
+
+    g_debug ("%s", G_STRFUNC);
 
     g_type_init ();
     main_loop = g_main_loop_new (NULL, FALSE);

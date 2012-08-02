@@ -4,8 +4,9 @@
  * This file is part of libsignon-glib
  *
  * Copyright (C) 2009-2010 Nokia Corporation.
+ * Copyright (C) 2012 Canonical Ltd.
  *
- * Contact: Alberto Mardegan <alberto.mardegan@nokia.com>
+ * Contact: Alberto Mardegan <alberto.mardegan@canonical.com>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -25,7 +26,9 @@
 #include "signon-errors.h"
 #include "signon-enum-types.h"
 #include "signon-internals.h"
+#include "signoncommon.h"
 #include <dbus/dbus-glib.h>
+#include <gio/gio.h>
 
 /**
  * SECTION:signon-errors
@@ -36,20 +39,16 @@
  */
 #define SIGNON_ERROR_PREFIX SIGNOND_SERVICE_PREFIX ".Error"
 
+#include "signon-errors-map.c"
+
 GQuark signon_error_quark (void)
 {
-    static gsize quark = 0;
+    static volatile gsize quark = 0;
 
-    if (g_once_init_enter (&quark))
-    {
-        GQuark domain = g_quark_from_static_string ("signon-errors");
-
-        g_assert (sizeof (GQuark) <= sizeof (gsize));
-
-        g_type_init ();
-        dbus_g_error_domain_register (domain, SIGNON_ERROR_PREFIX, SIGNON_TYPE_ERROR);
-        g_once_init_leave (&quark, domain);
-    }
+    g_dbus_error_register_error_domain ("signon-errors",
+                                        &quark,
+                                        signon_error_entries,
+                                        G_N_ELEMENTS (signon_error_entries));
     return (GQuark) quark;
 }
 
