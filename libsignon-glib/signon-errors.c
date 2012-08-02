@@ -27,7 +27,6 @@
 #include "signon-enum-types.h"
 #include "signon-internals.h"
 #include "signoncommon.h"
-#include <dbus/dbus-glib.h>
 #include <gio/gio.h>
 
 /**
@@ -50,40 +49,4 @@ GQuark signon_error_quark (void)
                                         signon_error_entries,
                                         G_N_ELEMENTS (signon_error_entries));
     return (GQuark) quark;
-}
-
-GError *
-_signon_errors_get_error_from_dbus (GError *error)
-{
-    const gchar *error_name;
-    const gchar *nick;
-    GType enum_type;
-    GEnumClass *enum_class;
-    GEnumValue *enum_value;
-    GError *new_error;
-    gint code = SIGNON_ERROR_UNKNOWN;
-
-    if (error == NULL)
-        return NULL;
-
-    error_name = dbus_g_error_get_name (error);
-
-    if (!g_str_has_prefix (error_name, SIGNON_ERROR_PREFIX))
-        return error;
-
-    nick = error_name + sizeof(SIGNON_ERROR_PREFIX);
-
-    enum_type = signon_error_get_type ();
-    enum_class = g_type_class_ref (enum_type);
-    enum_value = g_enum_get_value_by_nick (enum_class, nick);
-
-    if (enum_value)
-        code = enum_value->value;
-
-    new_error = g_error_new_literal (SIGNON_ERROR, code, error->message);
-
-    g_error_free (error);
-    g_type_class_unref (enum_class);
-
-    return new_error;
 }

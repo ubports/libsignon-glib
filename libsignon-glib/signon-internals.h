@@ -37,7 +37,6 @@
 #endif
 
 #include <signoncommon.h>
-#include <dbus/dbus-glib.h>
 
 #include "signon-identity.h"
 #include "signon-auth-session.h"
@@ -59,10 +58,6 @@ struct _SignonIdentityInfo
 
 G_GNUC_INTERNAL
 SignonIdentityInfo *
-signon_identity_info_new_from_hash_table (GHashTable *map);
-
-G_GNUC_INTERNAL
-SignonIdentityInfo *
 signon_identity_info_new_from_variant (GVariant *variant);
 
 G_GNUC_INTERNAL
@@ -70,20 +65,8 @@ GVariant *
 signon_identity_info_to_variant (const SignonIdentityInfo *self);
 
 G_GNUC_INTERNAL
-GHashTable *
-signon_identity_info_to_hash_table (const SignonIdentityInfo *self);
-
-G_GNUC_INTERNAL
 void signon_identity_info_set_methods (SignonIdentityInfo *self,
                                        const GHashTable *methods);
-
-G_GNUC_INTERNAL
-void _signon_identity_registered (SignonIdentity *identity, DBusGProxy *proxy,
-                                  char *objectPath, GPtrArray *identityArray,
-                                  GError *error);
-
-G_GNUC_INTERNAL
-GError *_signon_errors_get_error_from_dbus (GError *error);
 
 G_GNUC_INTERNAL
 void signon_auth_session_set_id(SignonAuthSession* self,

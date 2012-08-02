@@ -45,8 +45,6 @@ libsignon_glib_la_SOURCES = \
 	signon-auth-session.c \
 	signon-errors.h \
 	signon-errors.c \
-	signon-proxy.h \
-	signon-proxy.c \
 	signon-utils.h \
 	signon-utils.c \
 	sso-auth-service.c \

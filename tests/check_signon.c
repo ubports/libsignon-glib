@@ -30,15 +30,12 @@
 #include "libsignon-glib/signon-auth-service.h"
 #include "libsignon-glib/signon-auth-session.h"
 #include "libsignon-glib/signon-identity.h"
-#include "libsignon-glib/signon-client-glib-gen.h"
-#include "libsignon-glib/signon-identity-glib-gen.h"
 #include "libsignon-glib/signon-errors.h"
 
 #include <glib.h>
 #include <check.h>
 #include <stdlib.h>
 #include <string.h>
-#include <dbus/dbus-glib.h>
 
 static GMainLoop *main_loop = NULL;
 static SignonIdentity *identity = NULL;

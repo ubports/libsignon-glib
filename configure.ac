@@ -15,9 +15,7 @@ PKG_CHECK_MODULES(
 	gio-unix-2.0
 	glib-2.0 >= 2.32
 	gobject-2.0
-        dbus-1
-        dbus-glib-1
-        signond >= 8.40);
+	signond >= 8.40);
 AC_SUBST(DEPS_CFLAGS)
 AC_SUBST(DEPS_LIBS)
 
