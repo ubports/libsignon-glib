@@ -15,9 +15,6 @@ libsignon_glib_la_LDFLAGS = \
 BUILT_SOURCES = \
 	signon-marshal.c \
 	signon-marshal.h \
-	signon-client-glib-gen.h \
-	signon-identity-glib-gen.h \
-	signon-auth-session-client-glib-gen.h \
 	signon-enum-types.h \
 	signon-enum-types.c \
 	signon-errors-enum.c \
@@ -72,10 +69,6 @@ libsignon_glib_headers_with_enums = \
 
 DBUS_INTERFACES_DIR = /usr/share/dbus-1/interfaces
 
-signon-client-glib-gen.h: $(DBUS_INTERFACES_DIR)/com.google.code.AccountsSSO.SingleSignOn.AuthService.xml
-	dbus-binding-tool --prefix=signon-client-glib --mode=glib-client $< \
-	| sed s/com_google_code_AccountsSSO_SingleSignOn/SSO/g > $@
-
 sso-auth-service-gen.h sso-auth-service-gen.c: $(DBUS_INTERFACES_DIR)/com.google.code.AccountsSSO.SingleSignOn.AuthService.xml
 	gdbus-codegen --generate-c-code sso-auth-service-gen \
 		--annotate "com.google.code.AccountsSSO.SingleSignOn.AuthService" org.gtk.GDBus.C.Name SsoAuthService $<
@@ -87,14 +80,6 @@ sso-auth-session-gen.h sso-auth-session-gen.c: $(DBUS_INTERFACES_DIR)/com.google
 sso-identity-gen.h sso-identity-gen.c: $(DBUS_INTERFACES_DIR)/com.google.code.AccountsSSO.SingleSignOn.Identity.xml
 	gdbus-codegen --generate-c-code sso-identity-gen \
 		--annotate "com.google.code.AccountsSSO.SingleSignOn.Identity" org.gtk.GDBus.C.Name SsoIdentity $<
-
-signon-auth-session-client-glib-gen.h: $(DBUS_INTERFACES_DIR)/com.google.code.AccountsSSO.SingleSignOn.AuthSession.xml
-	dbus-binding-tool --prefix=signon-auth-session-client-glib --mode=glib-client $< \
-	| sed s/com_google_code_AccountsSSO_SingleSignOn/SSO/g > $@
-
-signon-identity-glib-gen.h: $(DBUS_INTERFACES_DIR)/com.google.code.AccountsSSO.SingleSignOn.Identity.xml
-	dbus-binding-tool --prefix=signon-identity-glib --mode=glib-client $< \
-	| sed s/com_google_code_AccountsSSO_SingleSignOn/SSO/g > $@
 
 %-marshal.h: %-marshal.list Makefile
 	glib-genmarshal --header --prefix=_$(subst -,_,$*)_marshal $< > $*-marshal.h
