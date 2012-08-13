@@ -1,4 +1,4 @@
-INCLUDES = $(DBUS_CFLAGS) -I$(top_srcdir) \
+INCLUDES = -I$(top_srcdir) \
 	   -DLIBDIR="@libdir@" -DLIBVERSION="0"
 lib_LTLIBRARIES = \
 	libsignon-glib.la

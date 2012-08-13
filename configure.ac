@@ -55,10 +55,6 @@ if test "x$coverage" = "xyes"; then
     CFLAGS="$CFLAGS -g -fprofile-arcs -ftest-coverage"
 fi
 
-PKG_CHECK_MODULES(DBUS, [dbus-1 >= 0.51, dbus-glib-1 >= 0.51], have_dbus=yes, have_dbus=no)
-AC_SUBST(DBUS_CFLAGS)
-AC_SUBST(DBUS_LIBS)
-
 AC_OUTPUT([
 	Makefile
 	libsignon-glib/Makefile
