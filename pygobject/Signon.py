@@ -24,4 +24,3 @@ class AuthSession(Signon.AuthSession):
 AuthSession = override(AuthSession)
 __all__.append('AuthSession')
 
-

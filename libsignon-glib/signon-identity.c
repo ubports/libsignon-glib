@@ -4,8 +4,9 @@
  * This file is part of libsignon-glib
  *
  * Copyright (C) 2009-2010 Nokia Corporation.
+ * Copyright (C) 2012 Canonical Ltd.
  *
- * Contact: Alberto Mardegan <alberto.mardegan@nokia.com>
+ * Contact: Alberto Mardegan <alberto.mardegan@canonical.com>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -33,12 +34,11 @@
 #include "signon-identity.h"
 #include "signon-auth-session.h"
 #include "signon-internals.h"
-#include "signon-proxy.h"
-#include "signon-identity-glib-gen.h"
-#include "signon-client-glib-gen.h"
 #include "signon-dbus-queue.h"
 #include "signon-utils.h"
 #include "signon-errors.h"
+#include "sso-auth-service.h"
+#include "sso-identity-gen.h"
 
 G_DEFINE_TYPE (SignonIdentity, signon_identity, G_TYPE_OBJECT);
 
@@ -62,8 +62,9 @@ typedef enum  {
 
 struct _SignonIdentityPrivate
 {
-    DBusGProxy *proxy;
-    SignonProxy *signon_proxy;
+    SsoIdentity *proxy;
+    SsoAuthService *auth_service_proxy;
+    GCancellable *cancellable;
 
     SignonIdentityInfo *identity_info;
 
@@ -75,6 +76,9 @@ struct _SignonIdentityPrivate
     gboolean updated;
 
     guint id;
+
+    guint signal_info_updated;
+    guint signal_unregistered;
 };
 
 enum {
@@ -95,7 +99,7 @@ typedef struct _IdentityStoreCredentialsCbData
 
 typedef struct _IdentityStoreCredentialsData
 {
-    GHashTable *info_map;
+    GVariant *info_variant;
     gpointer cb_data;
 } IdentityStoreCredentialsData;
 
@@ -142,30 +146,19 @@ typedef struct _IdentityVoidData
     gpointer cb_data;
 } IdentityVoidData;
 
-static void identity_registered (SignonIdentity *identity, DBusGProxy *proxy, char *object_path,
-                                 GHashTable *identity_data, GError *error);
 static void identity_check_remote_registration (SignonIdentity *self);
-static void identity_new_cb (DBusGProxy *proxy, char *objectPath, GError *error, gpointer userdata);
-static void identity_new_from_db_cb (DBusGProxy *proxy, char *objectPath, GHashTable *identityData,
-                                      GError *error, gpointer userdata);
 static void identity_store_credentials_ready_cb (gpointer object, const GError *error, gpointer user_data);
-static void identity_store_credentials_reply (DBusGProxy *proxy, guint id, GError *error, gpointer userdata);
+static void identity_store_credentials_reply (GObject *object,
+                                              GAsyncResult *res,
+                                              gpointer userdata);
 static void identity_session_object_destroyed_cb (gpointer data, GObject *where_the_session_was);
 static void identity_verify_data (SignonIdentity *self, const gchar *data_to_send, gint operation,
                                     SignonIdentityVerifyCb cb, gpointer user_data);
 static void identity_verify_ready_cb (gpointer object, const GError *error, gpointer user_data);
-static void identity_verify_reply (DBusGProxy *proxy, gboolean valid, GError *error, gpointer userdata);
 
-static void identity_signout_reply (DBusGProxy *proxy, gboolean result, GError *error, gpointer userdata);
-static void identity_removed_reply (DBusGProxy *proxy, GError *error, gpointer userdata);
-static void identity_info_reply(DBusGProxy *proxy,
-                                GHashTable *identity_data,
-                                GError *error, gpointer userdata);
 static void identity_remove_ready_cb (gpointer object, const GError *error, gpointer user_data);
 static void identity_signout_ready_cb (gpointer object, const GError *error, gpointer user_data);
 static void identity_info_ready_cb (gpointer object, const GError *error, gpointer user_data);
-static void identity_state_changed_cb (DBusGProxy *proxy, gint state, gpointer user_data);
-static void identity_remote_object_destroyed_cb(DBusGProxy *proxy, gpointer user_data);
 
 static void identity_process_signout (SignonIdentity *self);
 static void identity_process_updated (SignonIdentity *self);
@@ -223,16 +216,20 @@ signon_identity_get_property (GObject *object,
 static void
 signon_identity_init (SignonIdentity *identity)
 {
+    SignonIdentityPrivate *priv;
+
     identity->priv = G_TYPE_INSTANCE_GET_PRIVATE (identity,
                                                   SIGNON_TYPE_IDENTITY,
                                                   SignonIdentityPrivate);
 
-    identity->priv->signon_proxy = signon_proxy_new();
-    identity->priv->registration_state = NOT_REGISTERED;
+    priv = identity->priv;
+    priv->auth_service_proxy = sso_auth_service_get_instance();
+    priv->cancellable = g_cancellable_new ();
+    priv->registration_state = NOT_REGISTERED;
 
-    identity->priv->removed = FALSE;
-    identity->priv->signed_out = FALSE;
-    identity->priv->updated = FALSE;
+    priv->removed = FALSE;
+    priv->signed_out = FALSE;
+    priv->updated = FALSE;
 }
 
 static void
@@ -241,28 +238,24 @@ signon_identity_dispose (GObject *object)
     SignonIdentity *identity = SIGNON_IDENTITY (object);
     SignonIdentityPrivate *priv = identity->priv;
 
+    if (priv->cancellable)
+    {
+        g_cancellable_cancel (priv->cancellable);
+        priv->cancellable = NULL;
+    }
+
     if (priv->identity_info)
     {
         signon_identity_info_free (priv->identity_info);
         priv->identity_info = NULL;
     }
 
-    if (priv->signon_proxy)
-    {
-        g_object_unref (priv->signon_proxy);
-        priv->signon_proxy = NULL;
-    }
+    g_clear_object (&priv->auth_service_proxy);
 
     if (priv->proxy)
     {
-        dbus_g_proxy_disconnect_signal (priv->proxy,
-                                        "infoUpdated",
-                                        G_CALLBACK (identity_state_changed_cb),
-                                        identity);
-        dbus_g_proxy_disconnect_signal (priv->proxy,
-                                        "unregistered",
-                                        G_CALLBACK (identity_remote_object_destroyed_cb),
-                                        identity);
+        g_signal_handler_disconnect (priv->proxy, priv->signal_info_updated);
+        g_signal_handler_disconnect (priv->proxy, priv->signal_unregistered);
         g_object_unref (priv->proxy);
         priv->proxy = NULL;
     }
@@ -322,7 +315,7 @@ signon_identity_class_init (SignonIdentityClass *klass)
 }
 
 static void
-identity_state_changed_cb (DBusGProxy *proxy,
+identity_state_changed_cb (GDBusProxy *proxy,
                            gint state,
                            gpointer user_data)
 {
@@ -348,7 +341,7 @@ identity_state_changed_cb (DBusGProxy *proxy,
 }
 
 static void
-identity_remote_object_destroyed_cb(DBusGProxy *proxy,
+identity_remote_object_destroyed_cb(GDBusProxy *proxy,
                                     gpointer user_data)
 {
     g_return_if_fail (SIGNON_IS_IDENTITY (user_data));
@@ -378,8 +371,8 @@ identity_remote_object_destroyed_cb(DBusGProxy *proxy,
 }
 
 static void
-identity_registered (SignonIdentity *identity, DBusGProxy *proxy,
-                     char *object_path, GHashTable *identity_data,
+identity_registered (SignonIdentity *identity,
+                     char *object_path, GVariant *identity_data,
                      GError *error)
 {
     g_return_if_fail (SIGNON_IS_IDENTITY (identity));
@@ -391,6 +384,11 @@ identity_registered (SignonIdentity *identity, DBusGProxy *proxy,
 
     if (!error)
     {
+        GDBusConnection *connection;
+        GDBusProxy *auth_service_proxy;
+        const gchar *bus_name;
+        GError *proxy_error = NULL;
+
         DEBUG("%s: %s", G_STRFUNC, object_path);
         /*
          * TODO: as Aurel will finalize the code polishing so we will
@@ -398,46 +396,42 @@ identity_registered (SignonIdentity *identity, DBusGProxy *proxy,
          * */
         g_return_if_fail (priv->proxy == NULL);
 
-        priv->proxy = dbus_g_proxy_new_from_proxy (DBUS_G_PROXY (priv->signon_proxy),
-                                                   SIGNOND_IDENTITY_INTERFACE,
-                                                   object_path);
+        auth_service_proxy = (GDBusProxy *)priv->auth_service_proxy;
+        connection = g_dbus_proxy_get_connection (auth_service_proxy);
+        bus_name = g_dbus_proxy_get_name (auth_service_proxy);
 
-        dbus_g_object_register_marshaller (g_cclosure_marshal_VOID__INT,
-                                           G_TYPE_NONE,
-                                           G_TYPE_INT,
-                                           G_TYPE_INVALID);
+        priv->proxy =
+            sso_identity_proxy_new_sync (connection,
+                                         G_DBUS_PROXY_FLAGS_NONE,
+                                         bus_name,
+                                         object_path,
+                                         priv->cancellable,
+                                         &proxy_error);
+        if (G_UNLIKELY (proxy_error != NULL))
+        {
+            g_warning ("Failed to initialize Identity proxy: %s",
+                       proxy_error->message);
+            g_clear_error (&proxy_error);
+        }
 
-        dbus_g_proxy_add_signal (priv->proxy,
-                                 "infoUpdated",
-                                 G_TYPE_INT,
-                                 G_TYPE_INVALID);
+        priv->signal_info_updated =
+            g_signal_connect (priv->proxy,
+                              "info-updated",
+                              G_CALLBACK (identity_state_changed_cb),
+                              identity);
 
-        dbus_g_proxy_connect_signal (priv->proxy,
-                                     "infoUpdated",
-                                     G_CALLBACK (identity_state_changed_cb),
-                                     identity,
-                                     NULL);
-
-        dbus_g_object_register_marshaller (g_cclosure_marshal_VOID__VOID,
-                                           G_TYPE_NONE,
-                                           G_TYPE_INVALID);
-
-        dbus_g_proxy_add_signal (priv->proxy,
-                                 "unregistered",
-                                 G_TYPE_INVALID);
-
-        dbus_g_proxy_connect_signal (priv->proxy,
-                                     "unregistered",
-                                     G_CALLBACK (identity_remote_object_destroyed_cb),
-                                     identity,
-                                     NULL);
+        priv->signal_unregistered =
+            g_signal_connect (priv->proxy,
+                              "unregistered",
+                              G_CALLBACK (identity_remote_object_destroyed_cb),
+                              identity);
 
         if (identity_data)
         {
             DEBUG("%s: ", G_STRFUNC);
             priv->identity_info =
-                signon_identity_info_new_from_hash_table (identity_data);
-            g_hash_table_unref (identity_data);
+                signon_identity_info_new_from_variant (identity_data);
+            g_variant_unref (identity_data);
         }
 
         priv->updated = TRUE;
@@ -479,30 +473,45 @@ signon_identity_get_last_error (SignonIdentity *identity)
 }
 
 static void
-identity_new_cb (DBusGProxy *proxy,
-                 char *object_path,
-                 GError *error,
+identity_new_cb (GObject *object, GAsyncResult *res,
                  gpointer userdata)
 {
     SignonIdentity *identity = (SignonIdentity*)userdata;
+    SsoAuthService *proxy = SSO_AUTH_SERVICE (object);
+    gchar *object_path;
+    GError *error = NULL;
+
     g_return_if_fail (identity != NULL);
-    DEBUG ("%s %d", G_STRFUNC, __LINE__);
-    GError *new_error = _signon_errors_get_error_from_dbus (error);
-    identity_registered (identity, proxy, object_path, NULL, new_error);
+    DEBUG ("%s", G_STRFUNC);
+
+    sso_auth_service_call_register_new_identity_finish (proxy,
+                                                        &object_path,
+                                                        res,
+                                                        &error);
+    SIGNON_RETURN_IF_CANCELLED (error);
+    identity_registered (identity, object_path, NULL, error);
 }
 
 static void
-identity_new_from_db_cb (DBusGProxy *proxy,
-                         char *objectPath,
-                         GHashTable *identityData,
-                         GError *error,
+identity_new_from_db_cb (GObject *object, GAsyncResult *res,
                          gpointer userdata)
 {
     SignonIdentity *identity = (SignonIdentity*)userdata;
+    SsoAuthService *proxy = SSO_AUTH_SERVICE (object);
+    gchar *object_path;
+    GVariant *identity_data;
+    GError *error = NULL;
+
     g_return_if_fail (identity != NULL);
-    DEBUG ("%s %d", G_STRFUNC, __LINE__);
-    GError *new_error = _signon_errors_get_error_from_dbus (error);
-    identity_registered (identity, proxy, objectPath, identityData, new_error);
+    DEBUG ("%s", G_STRFUNC);
+
+    sso_auth_service_call_get_identity_finish (proxy,
+                                               &object_path,
+                                               &identity_data,
+                                               res,
+                                               &error);
+    SIGNON_RETURN_IF_CANCELLED (error);
+    identity_registered (identity, object_path, identity_data, error);
 }
 
 static void
@@ -517,11 +526,16 @@ identity_check_remote_registration (SignonIdentity *self)
         return;
 
     if (priv->id != 0)
-        SSO_AuthService_get_identity_async
-            (DBUS_G_PROXY (priv->signon_proxy), priv->id, identity_new_from_db_cb, self);
+        sso_auth_service_call_get_identity (priv->auth_service_proxy,
+                                            priv->id,
+                                            priv->cancellable,
+                                            identity_new_from_db_cb,
+                                            self);
     else
-        SSO_AuthService_register_new_identity_async
-            (DBUS_G_PROXY (priv->signon_proxy), identity_new_cb, self);
+        sso_auth_service_call_register_new_identity (priv->auth_service_proxy,
+                                                     priv->cancellable,
+                                                     identity_new_cb,
+                                                     self);
 
     priv->registration_state = PENDING_REGISTRATION;
 }
@@ -533,7 +547,7 @@ identity_check_remote_registration (SignonIdentity *self)
  * Construct an identity object associated with an existing identity
  * record.
  *
- * Returns: an instance of an #SignonIdentity.
+ * Returns: an instance of a #SignonIdentity.
  */
 SignonIdentity*
 signon_identity_new_from_db (guint32 id)
@@ -687,7 +701,7 @@ signon_identity_store_credentials_with_info(SignonIdentity *self,
     cb_data->user_data = user_data;
 
     operation_data = g_slice_new0 (IdentityStoreCredentialsData);
-    operation_data->info_map = signon_identity_info_to_hash_table (info);
+    operation_data->info_variant = signon_identity_info_to_variant (info);
     operation_data->cb_data = cb_data;
 
     identity_check_remote_registration (self);
@@ -775,25 +789,24 @@ identity_store_credentials_ready_cb (gpointer object, const GError *error, gpoin
     {
         g_return_if_fail (priv->proxy != NULL);
 
-        SSO_Identity_store_async(
-            priv->proxy,
-            operation_data->info_map,
-            identity_store_credentials_reply,
-            cb_data);
+        sso_identity_call_store (priv->proxy,
+                                 operation_data->info_variant,
+                                 priv->cancellable,
+                                 identity_store_credentials_reply,
+                                 cb_data);
     }
 
-    g_hash_table_unref (operation_data->info_map);
     g_slice_free (IdentityStoreCredentialsData, operation_data);
 }
 
 static void
-identity_store_credentials_reply (DBusGProxy *proxy,
-                                  guint id,
-                                  GError *error,
+identity_store_credentials_reply (GObject *object, GAsyncResult *res,
                                   gpointer userdata)
 {
-    GError *new_error = NULL;
     IdentityStoreCredentialsCbData *cb_data = (IdentityStoreCredentialsCbData *)userdata;
+    SsoIdentity *proxy = SSO_IDENTITY (object);
+    guint id;
+    GError *error = NULL;
 
     g_return_if_fail (cb_data != NULL);
     g_return_if_fail (cb_data->self != NULL);
@@ -801,11 +814,12 @@ identity_store_credentials_reply (DBusGProxy *proxy,
 
     SignonIdentityPrivate *priv = cb_data->self->priv;
 
-    new_error = _signon_errors_get_error_from_dbus (error);
+    sso_identity_call_store_finish (proxy, &id, res, &error);
+    SIGNON_RETURN_IF_CANCELLED (error);
 
     if (cb_data->cb)
     {
-        (cb_data->cb) (cb_data->self, id, new_error, cb_data->user_data);
+        (cb_data->cb) (cb_data->self, id, error, cb_data->user_data);
     }
 
     if (error == NULL)
@@ -831,30 +845,31 @@ identity_store_credentials_reply (DBusGProxy *proxy,
         priv->removed = FALSE;
     }
 
-    g_clear_error(&new_error);
+    g_clear_error(&error);
     g_slice_free (IdentityStoreCredentialsCbData, cb_data);
 }
 
 static void
-identity_verify_reply (DBusGProxy *proxy,
-                       gboolean valid,
-                       GError *error,
+identity_verify_reply (GObject *object, GAsyncResult *res,
                        gpointer userdata)
 {
-    GError *new_error = NULL;
+    SsoIdentity *proxy = SSO_IDENTITY (object);
+    gboolean valid;
+    GError *error = NULL;
     IdentityVerifyCbData *cb_data = (IdentityVerifyCbData *)userdata;
 
     g_return_if_fail (cb_data != NULL);
     g_return_if_fail (cb_data->self != NULL);
 
-    new_error = _signon_errors_get_error_from_dbus (error);
+    sso_identity_call_verify_secret_finish (proxy, &valid, res, &error);
+    SIGNON_RETURN_IF_CANCELLED (error);
 
     if (cb_data->cb)
     {
-        (cb_data->cb) (cb_data->self, valid, new_error, cb_data->user_data);
+        (cb_data->cb) (cb_data->self, valid, error, cb_data->user_data);
     }
 
-    g_clear_error(&new_error);
+    g_clear_error(&error);
     g_slice_free (IdentityVerifyCbData, cb_data);
 }
 
@@ -908,10 +923,11 @@ identity_verify_ready_cb (gpointer object, const GError *error, gpointer user_da
 
         switch (operation_data->operation) {
         case SIGNON_VERIFY_SECRET:
-            SSO_Identity_verify_secret_async (priv->proxy,
-                                              operation_data->data_to_send,
-                                              identity_verify_reply,
-                                              cb_data);
+            sso_identity_call_verify_secret (priv->proxy,
+                                             operation_data->data_to_send,
+                                             priv->cancellable,
+                                             identity_verify_reply,
+                                             cb_data);
             break;
         default: g_critical ("Wrong operation code");
         };
@@ -1042,59 +1058,63 @@ identity_process_signout(SignonIdentity *self)
  * in ANY CASE
  * */
 static void
-identity_signout_reply (DBusGProxy *proxy,
-                        gboolean result,
-                        GError *error,
+identity_signout_reply (GObject *object, GAsyncResult *res,
                         gpointer userdata)
 {
-    GError *new_error = NULL;
+    SsoIdentity *proxy = SSO_IDENTITY (object);
+    gboolean result;
+    GError *error = NULL;
     IdentityVoidCbData *cb_data = (IdentityVoidCbData *)userdata;
 
     g_return_if_fail (cb_data != NULL);
     g_return_if_fail (cb_data->self != NULL);
     g_return_if_fail (cb_data->self->priv != NULL);
 
-    new_error = _signon_errors_get_error_from_dbus (error);
+    sso_identity_call_sign_out_finish (proxy, &result, res, &error);
+    SIGNON_RETURN_IF_CANCELLED (error);
 
     if (cb_data->cb)
     {
-        (cb_data->cb) (cb_data->self, new_error, cb_data->user_data);
+        (cb_data->cb) (cb_data->self, error, cb_data->user_data);
     }
 
-    g_clear_error(&new_error);
+    g_clear_error(&error);
     g_slice_free (IdentityVoidCbData, cb_data);
 }
 
 static void
-identity_removed_reply (DBusGProxy *proxy,
-                        GError *error,
+identity_removed_reply (GObject *object, GAsyncResult *res,
                         gpointer userdata)
 {
-    GError *new_error = NULL;
+    SsoIdentity *proxy = SSO_IDENTITY (object);
+    GError *error = NULL;
     IdentityVoidCbData *cb_data = (IdentityVoidCbData *)userdata;
 
     g_return_if_fail (cb_data != NULL);
     g_return_if_fail (cb_data->self != NULL);
     g_return_if_fail (cb_data->self->priv != NULL);
 
-    new_error = _signon_errors_get_error_from_dbus (error);
+    sso_identity_call_remove_finish (proxy, res, &error);
+    SIGNON_RETURN_IF_CANCELLED (error);
 
     if (cb_data->cb)
     {
-        (cb_data->cb) (cb_data->self, new_error, cb_data->user_data);
+        (cb_data->cb) (cb_data->self, error, cb_data->user_data);
     }
 
-    g_clear_error(&new_error);
+    g_clear_error(&error);
     g_slice_free (IdentityVoidCbData, cb_data);
 }
 
 static void
-identity_info_reply(DBusGProxy *proxy, GHashTable *identity_data,
-                    GError *error, gpointer userdata)
+identity_info_reply(GObject *object, GAsyncResult *res,
+                    gpointer userdata)
 {
+    SsoIdentity *proxy = SSO_IDENTITY (object);
+    GVariant *identity_data = NULL;
     DEBUG ("%d %s", __LINE__, __func__);
 
-    GError *new_error = NULL;
+    GError *error = NULL;
     IdentityInfoCbData *cb_data = (IdentityInfoCbData *)userdata;
 
     g_return_if_fail (cb_data != NULL);
@@ -1103,17 +1123,19 @@ identity_info_reply(DBusGProxy *proxy, GHashTable *identity_data,
 
     SignonIdentityPrivate *priv = cb_data->self->priv;
 
-    new_error = _signon_errors_get_error_from_dbus (error);
+    sso_identity_call_get_info_finish (proxy, &identity_data, res, &error);
+    SIGNON_RETURN_IF_CANCELLED (error);
     priv->identity_info =
-        signon_identity_info_new_from_hash_table (identity_data);
-    g_hash_table_unref (identity_data);
+        signon_identity_info_new_from_variant (identity_data);
+    if (identity_data != NULL)
+        g_variant_unref (identity_data);
 
     if (cb_data->cb)
     {
-        (cb_data->cb) (cb_data->self, priv->identity_info, new_error, cb_data->user_data);
+        (cb_data->cb) (cb_data->self, priv->identity_info, error, cb_data->user_data);
     }
 
-    g_clear_error(&new_error);
+    g_clear_error(&error);
     g_slice_free (IdentityInfoCbData, cb_data);
 
     priv->updated = TRUE;
@@ -1164,9 +1186,10 @@ identity_info_ready_cb(gpointer object, const GError *error, gpointer user_data)
     else if (priv->updated == FALSE)
     {
         g_return_if_fail (priv->proxy != NULL);
-        SSO_Identity_get_info_async (priv->proxy,
-                                     identity_info_reply,
-                                     cb_data);
+        sso_identity_call_get_info (priv->proxy,
+                                    priv->cancellable,
+                                    identity_info_reply,
+                                    cb_data);
     }
     else
     {
@@ -1222,10 +1245,10 @@ identity_signout_ready_cb(gpointer object, const GError *error, gpointer user_da
     else
     {
         g_return_if_fail (priv->proxy != NULL);
-        SSO_Identity_sign_out_async(
-                priv->proxy,
-                identity_signout_reply,
-                cb_data);
+        sso_identity_call_sign_out (priv->proxy,
+                                    priv->cancellable,
+                                    identity_signout_reply,
+                                    cb_data);
     }
 }
 
@@ -1268,10 +1291,10 @@ identity_remove_ready_cb(gpointer object, const GError *error, gpointer user_dat
     else
     {
         g_return_if_fail (priv->proxy != NULL);
-        SSO_Identity_remove_async(
-                priv->proxy,
-                identity_removed_reply,
-                cb_data);
+        sso_identity_call_remove (priv->proxy,
+                                  priv->cancellable,
+                                  identity_removed_reply,
+                                  cb_data);
     }
 }
 

@@ -1,4 +1,4 @@
-INCLUDES = $(DBUS_CFLAGS) -I$(top_srcdir) \
+INCLUDES = -I$(top_srcdir) \
 	   -DLIBDIR="@libdir@" -DLIBVERSION="0"
 lib_LTLIBRARIES = \
 	libsignon-glib.la
@@ -12,16 +12,23 @@ libsignon_glib_la_LDFLAGS = \
 	-version-info 1:0:0 \
 	-export-symbols-regex '^signon_'
 
-BUILT_SOURCES = \
+nodist_libsignon_glib_la_SOURCES = \
 	signon-marshal.c \
 	signon-marshal.h \
-	signon-client-glib-gen.h \
-	signon-identity-glib-gen.h \
-	signon-auth-session-client-glib-gen.h \
 	signon-enum-types.h \
 	signon-enum-types.c \
 	signon-errors-enum.c \
+	sso-auth-service-gen.c \
+	sso-auth-service-gen.h \
+	sso-auth-session-gen.c \
+	sso-auth-session-gen.h \
+	sso-identity-gen.c \
+	sso-identity-gen.h \
 	stamp-signon-enum-types.h
+
+BUILT_SOURCES = \
+	$(nodist_libsignon_glib_la_SOURCES) \
+	signon-errors-map.c
 
 CLEANFILES = $(BUILT_SOURCES)
 
@@ -39,13 +46,10 @@ libsignon_glib_la_SOURCES = \
 	signon-auth-session.c \
 	signon-errors.h \
 	signon-errors.c \
-	signon-proxy.h \
-	signon-proxy.c \
 	signon-utils.h \
-	signon-utils.c
-
-nodist_libsignon_glib_la_SOURCES = \
-	$(BUILT_SOURCES)
+	signon-utils.c \
+	sso-auth-service.c \
+	sso-auth-service.h
 
 libsignon_glib_includedir = $(includedir)/libsignon-glib
 libsignon_glib_include_HEADERS = \
@@ -66,17 +70,17 @@ libsignon_glib_headers_with_enums = \
 
 DBUS_INTERFACES_DIR = /usr/share/dbus-1/interfaces
 
-signon-client-glib-gen.h: $(DBUS_INTERFACES_DIR)/com.google.code.AccountsSSO.SingleSignOn.AuthService.xml
-	dbus-binding-tool --prefix=signon-client-glib --mode=glib-client $< \
-	| sed s/com_google_code_AccountsSSO_SingleSignOn/SSO/g > $@
+sso-auth-service-gen.h sso-auth-service-gen.c: $(DBUS_INTERFACES_DIR)/com.google.code.AccountsSSO.SingleSignOn.AuthService.xml
+	gdbus-codegen --generate-c-code sso-auth-service-gen \
+		--annotate "com.google.code.AccountsSSO.SingleSignOn.AuthService" org.gtk.GDBus.C.Name SsoAuthService $<
 
-signon-auth-session-client-glib-gen.h: $(DBUS_INTERFACES_DIR)/com.google.code.AccountsSSO.SingleSignOn.AuthSession.xml
-	dbus-binding-tool --prefix=signon-auth-session-client-glib --mode=glib-client $< \
-	| sed s/com_google_code_AccountsSSO_SingleSignOn/SSO/g > $@
+sso-auth-session-gen.h sso-auth-session-gen.c: $(DBUS_INTERFACES_DIR)/com.google.code.AccountsSSO.SingleSignOn.AuthSession.xml
+	gdbus-codegen --generate-c-code sso-auth-session-gen \
+		--annotate "com.google.code.AccountsSSO.SingleSignOn.AuthSession" org.gtk.GDBus.C.Name SsoAuthSession $<
 
-signon-identity-glib-gen.h: $(DBUS_INTERFACES_DIR)/com.google.code.AccountsSSO.SingleSignOn.Identity.xml
-	dbus-binding-tool --prefix=signon-identity-glib --mode=glib-client $< \
-	| sed s/com_google_code_AccountsSSO_SingleSignOn/SSO/g > $@
+sso-identity-gen.h sso-identity-gen.c: $(DBUS_INTERFACES_DIR)/com.google.code.AccountsSSO.SingleSignOn.Identity.xml
+	gdbus-codegen --generate-c-code sso-identity-gen \
+		--annotate "com.google.code.AccountsSSO.SingleSignOn.Identity" org.gtk.GDBus.C.Name SsoIdentity $<
 
 %-marshal.h: %-marshal.list Makefile
 	glib-genmarshal --header --prefix=_$(subst -,_,$*)_marshal $< > $*-marshal.h
@@ -127,6 +131,13 @@ signon-errors-enum.c: Makefile signon-errors.h
 	    > xgen-getc \
 	    && cp xgen-getc signon-errors-enum.c  \
 	    && rm -f xgen-getc
+
+signon-errors-map.c: Makefile signon-errors.h
+	( cd $(srcdir) && \
+	  echo "static const GDBusErrorEntry signon_error_entries[] = {" && \
+	  grep "^ *SIGNON_ERROR_" signon-errors.h | \
+	    sed -e 's/SIGNON_ERROR_\([A-Z_0-9]*\).*/{ SIGNON_ERROR_\1, SIGNOND_\1_ERR_NAME },/' && \
+	  echo -e "};\n" ) > signon-errors-map.c
 
 EXTRA_DIST = signon-marshal.list \
 	     stamp-signon-enum-types.h

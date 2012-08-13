@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT(libsignon-glib, 1.3)
+AC_INIT(libsignon-glib, 1.4)
 
 AM_INIT_AUTOMAKE(AC_PACKAGE_NAME, AC_PACKAGE_VERSION)
 AM_CONFIG_HEADER(config.h)
@@ -11,11 +11,11 @@ GOBJECT_INTROSPECTION_CHECK([1.30.0])
 
 PKG_CHECK_MODULES(
 	DEPS,
-	glib-2.0
+	gio-2.0 >= 2.30
+	gio-unix-2.0
+	glib-2.0 >= 2.32
 	gobject-2.0
-        dbus-1
-        dbus-glib-1
-        signond >= 8.40);
+	signond >= 8.40);
 AC_SUBST(DEPS_CFLAGS)
 AC_SUBST(DEPS_LIBS)
 
@@ -55,9 +55,28 @@ if test "x$coverage" = "xyes"; then
     CFLAGS="$CFLAGS -g -fprofile-arcs -ftest-coverage"
 fi
 
-PKG_CHECK_MODULES(DBUS, [dbus-1 >= 0.51, dbus-glib-1 >= 0.51], have_dbus=yes, have_dbus=no)
-AC_SUBST(DBUS_CFLAGS)
-AC_SUBST(DBUS_LIBS)
+AM_PATH_PYTHON
+
+PYGOBJECT_REQUIRED=2.90
+
+AC_ARG_ENABLE([python],
+              AS_HELP_STRING([--enable-python[=@<:@no/auto/yes@:>@]],[Build with python support]),
+              [enable_python=$enableval],
+              [enable_python="auto"])
+
+if test "x$enable_python" = "xauto"; then
+    PKG_CHECK_EXISTS([pygobject-3.0 >= $PYGOBJECT_REQUIRED],
+		     [enable_python=yes],[enable_python=no])
+fi
+
+if test "x$enable_python" = "xyes"; then
+    PKG_CHECK_MODULES(PYTHON, [pygobject-3.0 >= $PYGOBJECT_REQUIRED])
+
+    pyoverridesdir=`$PYTHON -c "import gi;print gi._overridesdir"`
+    AC_SUBST(pyoverridesdir)
+fi
+
+AM_CONDITIONAL(ENABLE_PYTHON, test x"$enable_python" = "xyes")
 
 AM_PATH_PYTHON
 

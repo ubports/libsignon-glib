@@ -3,7 +3,6 @@
 /*
  * This file is part of libsignon-glib
  *
- * Copyright (C) 2009-2010 Nokia Corporation.
  * Copyright (C) 2012 Canonical Ltd.
  *
  * Contact: Alberto Mardegan <alberto.mardegan@canonical.com>
@@ -23,30 +22,16 @@
  * 02110-1301 USA
  */
 
-#include "signon-errors.h"
-#include "signon-enum-types.h"
-#include "signon-internals.h"
-#include "signoncommon.h"
-#include <gio/gio.h>
+#ifndef _SSO_AUTH_SERVICE_H_
+#define _SSO_AUTH_SERVICE_H_
 
-/**
- * SECTION:signon-errors
- * @title: SignonError
- * @short_description: Possible errors from Signon.
- *
- * An enumeration of errors that are possible from Signon.
- */
-#define SIGNON_ERROR_PREFIX SIGNOND_SERVICE_PREFIX ".Error"
+#include "sso-auth-service-gen.h"
 
-#include "signon-errors-map.c"
+G_BEGIN_DECLS
 
-GQuark signon_error_quark (void)
-{
-    static volatile gsize quark = 0;
+G_GNUC_INTERNAL
+SsoAuthService *sso_auth_service_get_instance ();
 
-    g_dbus_error_register_error_domain ("signon-errors",
-                                        &quark,
-                                        signon_error_entries,
-                                        G_N_ELEMENTS (signon_error_entries));
-    return (GQuark) quark;
-}
+G_END_DECLS
+
+#endif /* _SSO_AUTH_SERVICE_H_ */

@@ -38,8 +38,8 @@ FIXXREF_OPTIONS=
 # Used for dependencies. The docs will be rebuilt if any of these change.
 # e.g. HFILE_GLOB=$(top_srcdir)/gtk/*.h
 # e.g. CFILE_GLOB=$(top_srcdir)/gtk/*.c
-HFILE_GLOB=$(top_srcdir)/libsignon-glib/*.h
-CFILE_GLOB=$(top_srcdir)/libsignon-glib/*.c
+HFILE_GLOB=$(top_srcdir)/libsignon-glib/signon-*.h
+CFILE_GLOB=$(top_srcdir)/libsignon-glib/signon-*.c
 
 # Header files to ignore when scanning.
 # e.g. IGNORE_HFILES=gtkdebug.h gtkintl.h
@@ -51,7 +51,11 @@ IGNORE_HFILES= \
 	signon-internals.h \
 	signon-proxy.h \
 	signon-utils.h \
-	so-marshal.h
+	so-marshal.h \
+	sso-auth-service-gen.h \
+	sso-auth-service.h \
+	sso-auth-session-gen.h \
+	sso-identity-gen.h
 
 # Images to copy into HTML directory.
 # e.g. HTML_IMAGES=$(top_srcdir)/gtk/stock-icons/stock_about_24.png
