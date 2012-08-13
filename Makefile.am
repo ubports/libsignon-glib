@@ -4,6 +4,10 @@ DISTCHECK_CONFIGURE_FLAGS = \
 	--enable-introspection=yes
 SUBDIRS = libsignon-glib docs tests
 
+if ENABLE_PYTHON
+SUBDIRS += pygobject
+endif
+
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libsignon-glib.pc
 
