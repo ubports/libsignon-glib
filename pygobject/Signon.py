@@ -11,10 +11,10 @@ class GStrv(list):
 
 class AuthSession(Signon.AuthSession):
 
-    # Convert list of strings into a single string
+    # Convert list of strings into a GStrv
     def process(self, session_data, mechanism, callback, userdata):
         cleaned_data = {}
-        for (key, value) in session_data.iteritems():
+        for (key, value) in session_data.items():
             if isinstance(value, list):
                 cleaned_data[key] = GStrv(value)
             else:
