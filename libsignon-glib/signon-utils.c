@@ -103,9 +103,17 @@ GVariant *signon_hash_table_to_variant (const GHashTable *hash_table)
     while (g_hash_table_iter_next (&iter, (gpointer)&key, (gpointer)&value))
     {
         GVariant *val;
-        const GVariantType *type;
-        type = signon_gtype_to_variant_type (G_VALUE_TYPE (value));
-        val = g_dbus_gvalue_to_gvariant (value, type);
+
+        if (G_VALUE_TYPE (value) == G_TYPE_VARIANT)
+        {
+            val = g_value_get_variant (value);
+        }
+        else
+        {
+            const GVariantType *type;
+            type = signon_gtype_to_variant_type (G_VALUE_TYPE (value));
+            val = g_dbus_gvalue_to_gvariant (value, type);
+        }
         g_variant_builder_add (&builder, "{sv}", key, val);
     }
     return g_variant_builder_end (&builder);
