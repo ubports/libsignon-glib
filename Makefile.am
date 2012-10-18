@@ -9,11 +9,12 @@ SUBDIRS += pygobject
 endif
 
 pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = libsignon-glib.pc
+pkgconfig_in_files = libsignon-glib.pc.in
+pkgconfig_DATA = $(pkgconfig_in_files:.pc.in=.pc)
 
-libsignondocdir = ${prefix}/doc/reference
-libsignondoc_DATA= README COPYING AUTHORS ChangeLog INSTALL NEWS
-
-EXTRA_DIST = \
+dist_noinst_DATA = \
 	$(libsignondoc_DATA) \
 	m4/introspection.m4
+
+DISTCLEANFILES = \
+	$(pkgconfig_DATA)

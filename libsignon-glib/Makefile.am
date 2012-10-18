@@ -1,10 +1,11 @@
-INCLUDES = -I$(top_srcdir) \
-	   -DLIBDIR="@libdir@" -DLIBVERSION="0"
 lib_LTLIBRARIES = \
 	libsignon-glib.la
 
-libsignon_glib_la_CFLAGS = \
+libsignon_glib_la_CPPFLAGS = \
 	-I$(top_srcdir) \
+	-I$(srcdir) \
+	-I$(top_builddir) \
+	-I$(builddir) \
 	$(DEPS_CFLAGS) \
 	-Wall -Werror
 libsignon_glib_la_LIBADD = $(DEPS_LIBS)
@@ -68,32 +69,33 @@ libsignon_glib_headers_with_enums = \
 	signon-auth-session.h \
 	signon-identity-info.h
 
+# This should come from `pkg-config --variable=interfaces_dir dbus-1`
 DBUS_INTERFACES_DIR = /usr/share/dbus-1/interfaces
 
 sso-auth-service-gen.h sso-auth-service-gen.c: $(DBUS_INTERFACES_DIR)/com.google.code.AccountsSSO.SingleSignOn.AuthService.xml
-	gdbus-codegen --generate-c-code sso-auth-service-gen \
+	$(AM_V_GEN)gdbus-codegen --generate-c-code sso-auth-service-gen \
 		--annotate "com.google.code.AccountsSSO.SingleSignOn.AuthService" org.gtk.GDBus.C.Name SsoAuthService $<
 
 sso-auth-session-gen.h sso-auth-session-gen.c: $(DBUS_INTERFACES_DIR)/com.google.code.AccountsSSO.SingleSignOn.AuthSession.xml
-	gdbus-codegen --generate-c-code sso-auth-session-gen \
+	$(AM_V_GEN)gdbus-codegen --generate-c-code sso-auth-session-gen \
 		--annotate "com.google.code.AccountsSSO.SingleSignOn.AuthSession" org.gtk.GDBus.C.Name SsoAuthSession $<
 
 sso-identity-gen.h sso-identity-gen.c: $(DBUS_INTERFACES_DIR)/com.google.code.AccountsSSO.SingleSignOn.Identity.xml
-	gdbus-codegen --generate-c-code sso-identity-gen \
+	$(AM_V_GEN)gdbus-codegen --generate-c-code sso-identity-gen \
 		--annotate "com.google.code.AccountsSSO.SingleSignOn.Identity" org.gtk.GDBus.C.Name SsoIdentity $<
 
-%-marshal.h: %-marshal.list Makefile
-	glib-genmarshal --header --prefix=_$(subst -,_,$*)_marshal $< > $*-marshal.h
+signon-marshal.h: signon-marshal.list Makefile
+	$(AM_V_GEN)glib-genmarshal --header --prefix=_signon_marshal $< > $@
 
-%-marshal.c: %-marshal.list Makefile
-	glib-genmarshal --body --prefix=_$(subst -,_,$*)_marshal $< > $*-marshal.c
+signon-marshal.c: signon-marshal.list Makefile
+	$(AM_V_GEN)glib-genmarshal --body --prefix=_signon_marshal $< > $@
 
 signon-enum-types.h: stamp-signon-enum-types.h
-	@true
+	$(AM_V_at)true
 
 stamp-signon-enum-types.h: Makefile \
 	$(libsignon_glib_headers_with_enums) signon-errors.h
-	( cd $(srcdir) &&  glib-mkenums \
+	$(AM_V_GEN)( cd $(srcdir) &&  glib-mkenums \
 	    --fhead "#ifndef __SIGNON_ENUM_TYPES_H__\n#define __SIGNON_ENUM_TYPES_H__\n#include <glib-object.h>\n\nG_BEGIN_DECLS\n" \
 	    --fprod "/* enumerations from \"@filename@\" */\n" \
 	    --vhead "GType @enum_name@_get_type (void) G_GNUC_CONST;\n#define SIGNON_TYPE_@ENUMSHORT@ (@enum_name@_get_type())\n" \
@@ -104,7 +106,7 @@ stamp-signon-enum-types.h: Makefile \
 	    && echo timestamp > $(@F)
 
 signon-enum-types.c: Makefile $(libsignon_glib_headers_with_enums)
-	( cd $(srcdir) && glib-mkenums \
+	$(AM_V_GEN)( cd $(srcdir) && glib-mkenums \
 	    --fhead "#include \"signon-enum-types.h\"\n" \
 	    --fhead "#include \"signon-identity-info.h\"\n" \
 			--fhead "#include \"signon-auth-session.h\"\n" \
@@ -119,7 +121,7 @@ signon-enum-types.c: Makefile $(libsignon_glib_headers_with_enums)
 	    && rm -f xgen-getc
 
 signon-errors-enum.c: Makefile signon-errors.h
-	( cd $(srcdir) && glib-mkenums \
+	$(AM_V_GEN)( cd $(srcdir) && glib-mkenums \
 	    --fhead "#include \"signon-enum-types.h\"\n#include \"signon-errors.h\"\n#include \"signoncommon.h\"\n#define g_intern_static_string(s) (s)\n" \
 	    --fprod "\n/* enumerations from \"@filename@\" */" \
 	    --ftail "\n#define __SIGNON_ENUM_TYPES_C__\n" \
@@ -127,20 +129,21 @@ signon-errors-enum.c: Makefile signon-errors.h
 	    --vprod "      { @VALUENAME@, SED@VALUENAME@, \"@valuenick@\" }," \
 	    --vtail "      { 0, NULL, NULL }\n    };\n    etype = g_@type@_register_static (g_intern_static_string (\"@EnumName@\"), values);\n  }\n  return etype;\n}\n" \
 	    signon-errors.h ) | \
-	    sed -e 's/SEDSIGNON_ERROR_\([^,]*\)/SIGNOND_\1_ERR_NAME/' \
+	    $(SED) -e 's/SEDSIGNON_ERROR_\([^,]*\)/SIGNOND_\1_ERR_NAME/' \
 	    > xgen-getc \
 	    && cp xgen-getc signon-errors-enum.c  \
 	    && rm -f xgen-getc
 
 signon-errors-map.c: Makefile signon-errors.h
-	( cd $(srcdir) && \
+	$(AM_V_GEN)( cd $(srcdir) && \
 	  echo "static const GDBusErrorEntry signon_error_entries[] = {" && \
 	  grep "^ *SIGNON_ERROR_" signon-errors.h | \
-	    sed -e 's/SIGNON_ERROR_\([A-Z_0-9]*\).*/{ SIGNON_ERROR_\1, SIGNOND_\1_ERR_NAME },/' && \
+	    $(SED) -e 's/SIGNON_ERROR_\([A-Z_0-9]*\).*/{ SIGNON_ERROR_\1, SIGNOND_\1_ERR_NAME },/' && \
 	  echo -e "};\n" ) > signon-errors-map.c
 
-EXTRA_DIST = signon-marshal.list \
-	     stamp-signon-enum-types.h
+dist_noinst_DATA = \
+	signon-marshal.list \
+	stamp-signon-enum-types.h
 
 -include $(INTROSPECTION_MAKEFILE)
 INTROSPECTION_GIRS =
@@ -184,7 +187,6 @@ typelib_DATA = $(INTROSPECTION_GIRS:.gir=.typelib)
 
 CLEANFILES += $(gir_DATA) $(typelib_DATA)
 endif
-
 
 # Vala bindings
 vapidir = $(datadir)/vala/vapi
