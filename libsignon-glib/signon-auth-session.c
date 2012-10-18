@@ -203,6 +203,9 @@ signon_auth_session_class_init (SignonAuthSessionClass *klass)
 
     /**
      * SignonAuthSession::state-changed:
+     * @auth_session: the #SignonAuthSession
+     * @state: the current state of the #SignonAuthSession
+     * @message: the message associated with the state change
      *
      * Emitted when the state of the #SignonAuthSession changes.
      */
