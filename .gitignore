@@ -19,6 +19,7 @@ gtk-doc.make
 /libsignon-glib/signon-marshal.c
 /libsignon-glib/signon-marshal.h
 /libsignon-glib/sso-*-gen.*
+/libsignon-glib/sso-*-gen-doc-*
 libtool
 m4/gtk-doc.m4
 m4/libtool.m4

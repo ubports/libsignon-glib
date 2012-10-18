@@ -42,6 +42,13 @@
     </chapter>
   </part>
 
+  <part id="signond-dbus-api">
+    <title>signond D-Bus API</title>
+      <xi:include href="../../libsignon-glib/sso-auth-service-gen-doc-com.google.code.AccountsSSO.SingleSignOn.AuthService.xml"/>
+      <xi:include href="../../libsignon-glib/sso-auth-session-gen-doc-com.google.code.AccountsSSO.SingleSignOn.AuthSession.xml"/>
+      <xi:include href="../../libsignon-glib/sso-identity-gen-doc-com.google.code.AccountsSSO.SingleSignOn.Identity.xml"/>
+  </part>
+
   <part id="appendices">
     <title>Appendices</title>
     <index id="api-index-full">
