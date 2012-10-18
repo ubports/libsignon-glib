@@ -11,7 +11,7 @@ debian
 /docs/reference/html/
 /docs/reference/libsignon-glib*
 !/docs/reference/libsignon-glib-sections.txt
-/docs/reference/tmpl/
+/docs/reference/version.xml
 /docs/reference/xml/
 gtk-doc.make
 /INSTALL

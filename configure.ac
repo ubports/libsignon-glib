@@ -84,6 +84,7 @@ AC_CONFIG_FILES([
 	libsignon-glib.pc
 	docs/Makefile
 	docs/reference/Makefile
+	docs/reference/version.xml
 	tests/Makefile
 	pygobject/Makefile
 ])
