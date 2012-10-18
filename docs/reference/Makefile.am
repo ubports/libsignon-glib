@@ -51,7 +51,7 @@ IGNORE_HFILES= \
 	signon-internals.h \
 	signon-proxy.h \
 	signon-utils.h \
-	so-marshal.h \
+	signon-marshal.h \
 	sso-auth-service-gen.h \
 	sso-auth-service.h \
 	sso-auth-session-gen.h \
