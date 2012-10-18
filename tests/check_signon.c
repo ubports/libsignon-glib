@@ -36,6 +36,7 @@
 #include <check.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 static GMainLoop *main_loop = NULL;
 static SignonIdentity *identity = NULL;
