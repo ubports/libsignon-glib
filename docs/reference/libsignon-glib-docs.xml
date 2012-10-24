@@ -44,9 +44,18 @@
 
   <part id="signond-dbus-api">
     <title>signond D-Bus API</title>
-      <xi:include href="../../libsignon-glib/sso-auth-service-gen-doc-com.google.code.AccountsSSO.SingleSignOn.AuthService.xml"/>
-      <xi:include href="../../libsignon-glib/sso-auth-session-gen-doc-com.google.code.AccountsSSO.SingleSignOn.AuthSession.xml"/>
-      <xi:include href="../../libsignon-glib/sso-identity-gen-doc-com.google.code.AccountsSSO.SingleSignOn.Identity.xml"/>
+
+    <partintro>
+      <para>
+      The signond D-Bus APIs are unstable, subject to change and should not be
+      used by client applications, which should use libsignon-glib or
+      libsignon-qt instead.
+      </para>
+    </partintro>
+
+    <xi:include href="../../libsignon-glib/sso-auth-service-gen-doc-com.google.code.AccountsSSO.SingleSignOn.AuthService.xml"/>
+    <xi:include href="../../libsignon-glib/sso-auth-session-gen-doc-com.google.code.AccountsSSO.SingleSignOn.AuthSession.xml"/>
+    <xi:include href="../../libsignon-glib/sso-identity-gen-doc-com.google.code.AccountsSSO.SingleSignOn.Identity.xml"/>
   </part>
 
   <part id="appendices">
