@@ -31,7 +31,11 @@ BUILT_SOURCES = \
 	$(nodist_libsignon_glib_la_SOURCES) \
 	signon-errors-map.c
 
-CLEANFILES = $(BUILT_SOURCES)
+CLEANFILES = \
+	$(BUILT_SOURCES) \
+	sso-auth-service-gen-doc-com.google.code.AccountsSSO.SingleSignOn.AuthService.xml \
+	sso-auth-session-gen-doc-com.google.code.AccountsSSO.SingleSignOn.AuthSession.xml \
+	sso-identity-gen-doc-com.google.code.AccountsSSO.SingleSignOn.Identity.xml
 
 libsignon_glib_la_SOURCES = \
 	signon-auth-service.h \
