@@ -1,6 +1,7 @@
 <SECTION>
 <FILE>signon-auth-service</FILE>
 <TITLE>SignonAuthService</TITLE>
+SignonAuthService
 SignonQueryMechanismCb
 SignonQueryMethodsCb
 signon_auth_service_new
