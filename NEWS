@@ -1,0 +1,46 @@
+libsignon-glib NEWS
+
+Version 1.7
+-----------
+
+* Support GValues of type GVariant
+  http://code.google.com/p/accounts-sso/issues/detail?id=121
+
+Version 1.6
+-----------
+
+* Be Python 3 compatible
+
+Version 1.5
+-----------
+
+* Add workaround for missing GStrv support in PyGObject
+* Port from dbus-glib to GDBus
+
+Version 1.4
+-----------
+
+* Update licence is tests
+
+Version 1.3
+-----------
+
+* AuthSession: let the callback unreference "self"
+  http://code.google.com/p/accounts-sso/issues/detail?id=121
+* Several improvements to tests
+* Distribute Vala bindings
+* Add Requires.private to pkg-config files
+
+Version 1.2
+-----------
+
+* Depend on latest signond
+* Remove support for old D-Bus API
+* Improve creation of GError instances
+* Use dbus-test-runner for running tests if available
+* Support new signond D-Bus API
+* Several API reference documentation improvements
+* Add GObject-Introspection for bindings
+* Add GType information to enums
+* Tidy public includes
+* Define SignonIdentityInfo as a new boxed type
