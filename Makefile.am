@@ -2,10 +2,14 @@ ACLOCAL_AMFLAGS = -I m4
 DISTCHECK_CONFIGURE_FLAGS = \
 	--enable-gtk-doc \
 	--enable-introspection=yes
-SUBDIRS = libsignon-glib docs tests
+SUBDIRS = libsignon-glib docs
 
 if ENABLE_PYTHON
 SUBDIRS += pygobject
+endif
+
+if ENABLE_TESTS
+SUBDIRS += tests
 endif
 
 pkgconfigdir = $(libdir)/pkgconfig
