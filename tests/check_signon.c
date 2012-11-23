@@ -522,6 +522,104 @@ START_TEST(test_auth_session_process)
 }
 END_TEST
 
+static void
+test_auth_session_process_after_store_cb (SignonAuthSession *self,
+                                          GHashTable *reply,
+                                          const GError *error,
+                                          gpointer user_data)
+{
+    GValue *v_username;
+
+    if (error != NULL)
+    {
+        fail("Got error: %s", error->message);
+        g_main_loop_quit (main_loop);
+        return;
+    }
+
+    fail_unless (reply != NULL, "The result is empty");
+
+    v_username = g_hash_table_lookup(reply,
+                                     SIGNON_SESSION_DATA_USERNAME);
+
+    fail_unless (g_strcmp0 (g_value_get_string (v_username), "Nice user") == 0,
+                 "Wrong value of username");
+
+    g_hash_table_unref (reply);
+    g_object_unref (self);
+
+    g_main_loop_quit (main_loop);
+}
+
+static void
+test_auth_session_process_after_store_start_session(SignonIdentity *self,
+                                                    guint32 id,
+                                                    const GError *error,
+                                                    gpointer user_data)
+{
+    GError *err = NULL;
+
+    if (error != NULL)
+    {
+        g_warning ("%s %d: %s", G_STRFUNC, __LINE__, error->message);
+        fail();
+        g_main_loop_quit (main_loop);
+        return;
+    }
+
+    fail_unless (id > 0);
+
+    SignonAuthSession *auth_session =
+        signon_identity_create_session (self,
+                                        "ssotest",
+                                        &err);
+
+    fail_unless (auth_session != NULL, "Cannot create AuthSession object");
+    if (err != NULL)
+    {
+        fail ("Got error: %s", err->message);
+        g_clear_error (&err);
+    }
+
+    GHashTable *session_data = g_hash_table_new (g_str_hash,
+                                                 g_str_equal);
+
+    signon_auth_session_process (auth_session,
+                                 session_data,
+                                 "mech1",
+                                 test_auth_session_process_after_store_cb,
+                                 NULL);
+}
+
+START_TEST(test_auth_session_process_after_store)
+{
+    SignonIdentityInfo *info;
+    SignonIdentity *identity;
+
+    g_debug("%s", G_STRFUNC);
+
+    g_type_init();
+    main_loop = g_main_loop_new (NULL, FALSE);
+
+    identity = signon_identity_new ();
+    fail_unless (SIGNON_IS_IDENTITY (identity),
+                 "Failed to initialize the Identity.");
+
+    info = signon_identity_info_new ();
+    signon_identity_info_set_username (info, "Nice user");
+
+    signon_identity_store_credentials_with_info (identity,
+                                                 info,
+                                                 test_auth_session_process_after_store_start_session,
+                                                 NULL);
+    g_main_loop_run (main_loop);
+
+    g_object_unref (identity);
+
+    end_test ();
+}
+END_TEST
+
 static GHashTable *create_methods_hashtable()
 {
     gchar *mechanisms[] = {
@@ -1297,6 +1395,7 @@ signon_suite(void)
     tcase_add_test (tc_core, test_auth_session_query_mechanisms);
     tcase_add_test (tc_core, test_auth_session_query_mechanisms_nonexisting);
     tcase_add_test (tc_core, test_auth_session_process);
+    tcase_add_test (tc_core, test_auth_session_process_after_store);
     tcase_add_test (tc_core, test_store_credentials_identity);
     tcase_add_test (tc_core, test_verify_secret_identity);
     tcase_add_test (tc_core, test_remove_identity);

@@ -817,11 +817,6 @@ identity_store_credentials_reply (GObject *object, GAsyncResult *res,
     sso_identity_call_store_finish (proxy, &id, res, &error);
     SIGNON_RETURN_IF_CANCELLED (error);
 
-    if (cb_data->cb)
-    {
-        (cb_data->cb) (cb_data->self, id, error, cb_data->user_data);
-    }
-
     if (error == NULL)
     {
         g_return_if_fail (priv->identity_info == NULL);
@@ -843,6 +838,11 @@ identity_store_credentials_reply (GObject *object, GAsyncResult *res,
          * then we need to reset it
          * */
         priv->removed = FALSE;
+    }
+
+    if (cb_data->cb)
+    {
+        (cb_data->cb) (cb_data->self, id, error, cb_data->user_data);
     }
 
     g_clear_error(&error);
