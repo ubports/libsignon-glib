@@ -61,7 +61,8 @@ enum
 };
 
 static guint auth_session_signals[LAST_SIGNAL] = { 0 };
-static gchar auth_session_process_pending_message[] = "The request is added to queue.";
+static const gchar auth_session_process_pending_message[] =
+    "The request is added to queue.";
 
 struct _SignonAuthSessionPrivate
 {
