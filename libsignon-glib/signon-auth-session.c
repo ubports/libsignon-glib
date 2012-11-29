@@ -530,6 +530,7 @@ auth_session_get_object_path_reply (GObject *object, GAsyncResult *res,
     }
 
     DEBUG ("Object path received: %s", object_path);
+    g_free (object_path);
     _signon_object_ready (self, auth_session_object_quark (), error);
     g_clear_error (&error);
 }
