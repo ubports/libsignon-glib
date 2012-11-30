@@ -40,6 +40,8 @@ signon_auth_session_cancel
 signon_auth_session_get_method
 signon_auth_session_new
 signon_auth_session_process
+signon_auth_session_process_async
+signon_auth_session_process_finish
 signon_auth_session_query_available_mechanisms
 <SUBSECTION Private>
 SignonAuthSessionClass

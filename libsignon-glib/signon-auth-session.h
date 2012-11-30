@@ -4,8 +4,9 @@
  * This file is part of libsignon-glib
  *
  * Copyright (C) 2009-2010 Nokia Corporation.
+ * Copyright (C) 2012 Canonical Ltd.
  *
- * Contact: Alberto Mardegan <alberto.mardegan@nokia.com>
+ * Contact: Alberto Mardegan <alberto.mardegan@canonical.com>
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public License
@@ -25,6 +26,7 @@
 #ifndef SIGNONAUTHSESSION_H_
 #define SIGNONAUTHSESSION_H_
 
+#include <gio/gio.h>
 #include <glib-object.h>
 
 G_BEGIN_DECLS
@@ -169,6 +171,15 @@ void signon_auth_session_process(SignonAuthSession *self,
                                 const gchar *mechanism,
                                 SignonAuthSessionProcessCb cb,
                                 gpointer user_data);
+void signon_auth_session_process_async (SignonAuthSession *self,
+                                        GVariant *session_data,
+                                        const gchar *mechanism,
+                                        GCancellable *cancellable,
+                                        GAsyncReadyCallback callback,
+                                        gpointer user_data);
+GVariant *signon_auth_session_process_finish (SignonAuthSession *self,
+                                              GAsyncResult *res,
+                                              GError **error);
 
 void signon_auth_session_cancel(SignonAuthSession *self);
 

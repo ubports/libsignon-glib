@@ -179,7 +179,7 @@ introspection_sources = \
 	signon-identity.h
 
 Signon-1.0.gir: libsignon-glib.la
-Signon_1_0_gir_INCLUDES = GObject-2.0
+Signon_1_0_gir_INCLUDES = GObject-2.0 Gio-2.0
 Signon_1_0_gir_SCANNERFLAGS = \
 	--identifier-prefix=Signon \
 	--symbol-prefix=signon \
