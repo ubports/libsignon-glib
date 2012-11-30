@@ -26,6 +26,9 @@
  * @example check_signon.c
  * Shows how to initialize the framework.
  */
+
+#define SIGNON_DISABLE_DEPRECATION_WARNINGS
+
 #include "libsignon-glib/signon-internals.h"
 #include "libsignon-glib/signon-auth-service.h"
 #include "libsignon-glib/signon-auth-session.h"

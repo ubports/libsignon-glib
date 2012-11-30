@@ -28,6 +28,7 @@
 
 #include <gio/gio.h>
 #include <glib-object.h>
+#include <libsignon-glib/signon-types.h>
 
 G_BEGIN_DECLS
 
@@ -162,15 +163,18 @@ void signon_auth_session_query_available_mechanisms(SignonAuthSession *self,
                                                     SignonAuthSessionQueryAvailableMechanismsCb cb,
                                                     gpointer user_data);
 
+#ifndef SIGNON_DISABLE_DEPRECATED
 typedef void (*SignonAuthSessionProcessCb) (SignonAuthSession *self,
                                             GHashTable *session_data,
                                             const GError *error,
                                             gpointer user_data);
+SIGNON_DEPRECATED_FOR(signon_auth_session_process_async)
 void signon_auth_session_process(SignonAuthSession *self,
                                 const GHashTable *session_data,
                                 const gchar *mechanism,
                                 SignonAuthSessionProcessCb cb,
                                 gpointer user_data);
+#endif
 void signon_auth_session_process_async (SignonAuthSession *self,
                                         GVariant *session_data,
                                         const gchar *mechanism,
