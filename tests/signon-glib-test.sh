@@ -10,6 +10,7 @@ export SSO_EXTENSIONS_DIR="/tmp" # this disables all extensions
 
 #Environment variables for the test application
 export G_MESSAGES_DEBUG=all
+export G_SLICE=debug-blocks
 
 TEST_APP=./signon-glib-testsuite
 

@@ -478,7 +478,7 @@ identity_new_cb (GObject *object, GAsyncResult *res,
 {
     SignonIdentity *identity = (SignonIdentity*)userdata;
     SsoAuthService *proxy = SSO_AUTH_SERVICE (object);
-    gchar *object_path;
+    gchar *object_path = NULL;
     GError *error = NULL;
 
     g_return_if_fail (identity != NULL);
@@ -490,6 +490,7 @@ identity_new_cb (GObject *object, GAsyncResult *res,
                                                         &error);
     SIGNON_RETURN_IF_CANCELLED (error);
     identity_registered (identity, object_path, NULL, error);
+    g_free (object_path);
 }
 
 static void
@@ -498,7 +499,7 @@ identity_new_from_db_cb (GObject *object, GAsyncResult *res,
 {
     SignonIdentity *identity = (SignonIdentity*)userdata;
     SsoAuthService *proxy = SSO_AUTH_SERVICE (object);
-    gchar *object_path;
+    gchar *object_path = NULL;
     GVariant *identity_data;
     GError *error = NULL;
 
@@ -512,6 +513,7 @@ identity_new_from_db_cb (GObject *object, GAsyncResult *res,
                                                &error);
     SIGNON_RETURN_IF_CANCELLED (error);
     identity_registered (identity, object_path, identity_data, error);
+    g_free (object_path);
 }
 
 static void

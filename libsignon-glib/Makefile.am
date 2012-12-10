@@ -53,6 +53,7 @@ libsignon_glib_la_SOURCES = \
 	signon-errors.c \
 	signon-utils.h \
 	signon-utils.c \
+	signon-types.h \
 	sso-auth-service.c \
 	sso-auth-service.h
 
@@ -65,6 +66,7 @@ libsignon_glib_include_HEADERS = \
 	signon-errors.h \
 	signon-enum-types.h \
 	signon-glib.h \
+	signon-types.h \
 	$(signon_headers)
 
 # Headers with enums to be parsed with glib-mkenums;
@@ -179,7 +181,7 @@ introspection_sources = \
 	signon-identity.h
 
 Signon-1.0.gir: libsignon-glib.la
-Signon_1_0_gir_INCLUDES = GObject-2.0
+Signon_1_0_gir_INCLUDES = GObject-2.0 Gio-2.0
 Signon_1_0_gir_SCANNERFLAGS = \
 	--identifier-prefix=Signon \
 	--symbol-prefix=signon \

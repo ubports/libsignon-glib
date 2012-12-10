@@ -61,7 +61,9 @@ enum
 };
 
 static guint auth_session_signals[LAST_SIGNAL] = { 0 };
-static gchar auth_session_process_pending_message[] = "The request is added to queue.";
+static const gchar auth_session_process_pending_message[] =
+    "The request is added to queue.";
+static const gchar data_key_process[] = "signon-process";
 
 struct _SignonAuthSessionPrivate
 {
@@ -91,7 +93,7 @@ typedef struct _AuthSessionProcessData
 {
     GVariant *session_data;
     gchar *mechanism;
-    gpointer cb_data;
+    GCancellable *cancellable;
 } AuthSessionProcessData;
 
 typedef struct _AuthSessionQueryAvailableMechanismsCbData
@@ -103,7 +105,6 @@ typedef struct _AuthSessionQueryAvailableMechanismsCbData
 
 typedef struct _AuthSessionProcessCbData
 {
-    SignonAuthSession *self;
     SignonAuthSessionProcessCb cb;
     gpointer user_data;
 } AuthSessionProcessCbData;
@@ -119,10 +120,130 @@ static gboolean auth_session_priv_init (SignonAuthSession *self, guint id, const
 
 static void auth_session_set_id_ready_cb (gpointer object, const GError *error, gpointer user_data);
 static void auth_session_query_available_mechanisms_ready_cb (gpointer object, const GError *error, gpointer user_data);
-static void auth_session_process_ready_cb (gpointer object, const GError *error, gpointer user_data);
 static void auth_session_cancel_ready_cb (gpointer object, const GError *error, gpointer user_data);
 
 static void auth_session_check_remote_object(SignonAuthSession *self);
+
+static void
+auth_session_process_data_free (AuthSessionProcessData *process_data)
+{
+    g_free (process_data->mechanism);
+    g_variant_unref (process_data->session_data);
+    g_slice_free (AuthSessionProcessData, process_data);
+}
+
+static void
+auth_session_process_reply (GObject *object, GAsyncResult *res,
+                            gpointer userdata)
+{
+    SignonAuthSession *self;
+    SsoAuthSession *proxy = SSO_AUTH_SESSION (object);
+    GSimpleAsyncResult *res_process = (GSimpleAsyncResult *)userdata;
+    GVariant *reply;
+    GError *error = NULL;
+
+    g_return_if_fail (res_process != NULL);
+
+    sso_auth_session_call_process_finish (proxy, &reply, res, &error);
+
+    self = SIGNON_AUTH_SESSION (g_async_result_get_source_object (
+        (GAsyncResult *)res_process));
+    self->priv->busy = FALSE;
+
+    if (G_LIKELY (error == NULL))
+    {
+        g_simple_async_result_set_op_res_gpointer (res_process, reply,
+                                                   (GDestroyNotify)
+                                                   g_variant_unref);
+        g_simple_async_result_complete (res_process);
+    }
+    else
+    {
+        g_simple_async_result_take_error (res_process, error);
+    }
+
+    g_object_unref (self);
+}
+
+static void
+auth_session_process_ready_cb (gpointer object, const GError *error, gpointer user_data)
+{
+    SignonAuthSession *self = SIGNON_AUTH_SESSION (object);
+    SignonAuthSessionPrivate *priv;
+    GSimpleAsyncResult *res = G_SIMPLE_ASYNC_RESULT (user_data);
+    AuthSessionProcessData *process_data;
+
+    g_return_if_fail (self != NULL);
+    priv = self->priv;
+
+    if (error != NULL)
+    {
+        DEBUG ("AuthSessionError: %s", error->message);
+        g_simple_async_result_set_from_error (res, error);
+        return;
+    }
+
+    if (priv->canceled)
+    {
+        priv->busy = FALSE;
+        priv->canceled = FALSE;
+        g_simple_async_result_set_error (res,
+                                         signon_error_quark (),
+                                         SIGNON_ERROR_SESSION_CANCELED,
+                                         "Authentication session was canceled");
+        return;
+    }
+
+    process_data = g_object_get_data ((GObject *)res, data_key_process);
+    g_return_if_fail (process_data != NULL);
+
+    sso_auth_session_call_process (priv->proxy,
+                                   process_data->session_data,
+                                   process_data->mechanism,
+                                   process_data->cancellable,
+                                   auth_session_process_reply,
+                                   res);
+
+    g_signal_emit (self,
+                   auth_session_signals[STATE_CHANGED],
+                   0,
+                   SIGNON_AUTH_SESSION_STATE_PROCESS_PENDING,
+                   auth_session_process_pending_message);
+}
+
+static void
+process_async_cb_wrapper (GObject *object, GAsyncResult *res,
+                          gpointer user_data)
+{
+    AuthSessionProcessCbData *cb_data = user_data;
+    SignonAuthSession *self = SIGNON_AUTH_SESSION (object);
+    GVariant *v_reply;
+    GHashTable *reply = NULL;
+    GError *error = NULL;
+    gboolean cancelled;
+
+    v_reply = signon_auth_session_process_finish (self, res, &error);
+
+    cancelled = error != NULL &&
+        error->domain == G_IO_ERROR &&
+        error->code == G_IO_ERROR_CANCELLED;
+
+    /* Do not invoke the callback if the operation was cancelled */
+    if (cb_data->cb != NULL && !cancelled)
+    {
+        if (v_reply != NULL)
+            reply = signon_hash_table_from_variant (v_reply);
+
+        cb_data->cb (self, reply, error, cb_data->user_data);
+        if (reply != NULL)
+            g_hash_table_unref (reply);
+    }
+    g_variant_unref (v_reply);
+
+    g_slice_free (AuthSessionProcessCbData, cb_data);
+    g_clear_error (&error);
+    g_object_unref (res);
+}
 
 static GQuark
 auth_session_object_quark ()
@@ -399,6 +520,8 @@ signon_auth_session_query_available_mechanisms (SignonAuthSession *self,
  * there's no need to fill them into @session_data.
  * @session_data can be used to add additional authentication parameters to the
  * session, or to override the parameters otherwise taken from the identity.
+ *
+ * Deprecated: 1.8: Use signon_auth_session_process_async() instead.
  */
 void
 signon_auth_session_process (SignonAuthSession *self,
@@ -407,23 +530,66 @@ signon_auth_session_process (SignonAuthSession *self,
                              SignonAuthSessionProcessCb cb,
                              gpointer user_data)
 {
-    g_return_if_fail (SIGNON_IS_AUTH_SESSION (self));
-    SignonAuthSessionPrivate *priv = self->priv;
+    GVariant *v_session_data;
 
-    g_return_if_fail (priv != NULL);
-    g_return_if_fail (session_data != NULL);
+    g_return_if_fail (SIGNON_IS_AUTH_SESSION (self));
 
     AuthSessionProcessCbData *cb_data = g_slice_new0 (AuthSessionProcessCbData);
-    cb_data->self = self;
     cb_data->cb = cb;
     cb_data->user_data = user_data;
 
-    AuthSessionProcessData *operation_data = g_slice_new0 (AuthSessionProcessData);
+    v_session_data = signon_hash_table_to_variant (session_data);
 
-    operation_data->session_data =
-        signon_hash_table_to_variant (session_data);
-    operation_data->mechanism = g_strdup (mechanism);
-    operation_data->cb_data = cb_data;
+    signon_auth_session_process_async (self, v_session_data, mechanism, NULL,
+                                       process_async_cb_wrapper, cb_data);
+}
+
+/**
+ * signon_auth_session_process_async:
+ * @self: the #SignonAuthSession.
+ * @session_data: (transfer floating): a dictionary of parameters.
+ * @mechanism: the authentication mechanism to be used.
+ * @cancellable: (allow-none): optional #GCancellable object, %NULL to ignore.
+ * @callback: (scope async): a callback which will be called when the
+ * authentication reply is available.
+ * @user_data: user data to be passed to the callback.
+ *
+ * Performs one step of the authentication process. If the #SignonAuthSession
+ * object is bound to an existing identity, the identity properties such as
+ * username and password will be also passed to the authentication plugin, so
+ * there's no need to fill them into @session_data.
+ * @session_data can be used to add additional authentication parameters to the
+ * session, or to override the parameters otherwise taken from the identity.
+ *
+ * Since: 1.8
+ */
+void
+signon_auth_session_process_async (SignonAuthSession *self,
+                                   GVariant *session_data,
+                                   const gchar *mechanism,
+                                   GCancellable *cancellable,
+                                   GAsyncReadyCallback callback,
+                                   gpointer user_data)
+{
+    SignonAuthSessionPrivate *priv;
+    AuthSessionProcessData *process_data;
+    GSimpleAsyncResult *res;
+
+    g_return_if_fail (SIGNON_IS_AUTH_SESSION (self));
+    priv = self->priv;
+
+    g_return_if_fail (session_data != NULL);
+
+    res = g_simple_async_result_new ((GObject *)self, callback, user_data,
+                                     signon_auth_session_process_async);
+    g_simple_async_result_set_check_cancellable (res, cancellable);
+
+    process_data = g_slice_new0 (AuthSessionProcessData);
+    process_data->session_data = g_variant_ref_sink (session_data);
+    process_data->mechanism = g_strdup (mechanism);
+    process_data->cancellable = cancellable;
+    g_object_set_data_full ((GObject *)res, data_key_process, process_data,
+                            (GDestroyNotify)auth_session_process_data_free);
 
     priv->busy = TRUE;
 
@@ -431,7 +597,38 @@ signon_auth_session_process (SignonAuthSession *self,
     _signon_object_call_when_ready (self,
                                     auth_session_object_quark(),
                                     auth_session_process_ready_cb,
-                                    operation_data);
+                                    res);
+}
+
+/**
+ * signon_auth_session_process_finish:
+ * @self: the #SignonAuthSession.
+ * @res: A #GAsyncResult obtained from the #GAsyncReadyCallback passed to
+ * signon_auth_session_process_async().
+ * @error: return location for error, or %NULL.
+ *
+ * Collect the result of the signon_auth_session_process_async() operation.
+ *
+ * Returns: a #GVariant of type %G_VARIANT_TYPE_VARDICT containing the
+ * authentication reply.
+ *
+ * Since: 1.8
+ */
+GVariant *
+signon_auth_session_process_finish (SignonAuthSession *self, GAsyncResult *res,
+                                    GError **error)
+{
+    GSimpleAsyncResult *async_result;
+    GVariant *reply;
+
+    g_return_val_if_fail (SIGNON_IS_AUTH_SESSION (self), NULL);
+
+    async_result = (GSimpleAsyncResult *)res;
+    if (g_simple_async_result_propagate_error (async_result, error))
+        return NULL;
+
+    reply = g_simple_async_result_get_op_res_gpointer (async_result);
+    return g_variant_ref (reply);
 }
 
 /**
@@ -529,6 +726,7 @@ auth_session_get_object_path_reply (GObject *object, GAsyncResult *res,
     }
 
     DEBUG ("Object path received: %s", object_path);
+    g_free (object_path);
     _signon_object_ready (self, auth_session_object_quark (), error);
     g_clear_error (&error);
 }
@@ -624,46 +822,6 @@ auth_session_query_mechanisms_reply (GObject *object, GAsyncResult *res,
 }
 
 static void
-auth_session_process_reply (GObject *object, GAsyncResult *res,
-                            gpointer userdata)
-{
-    SsoAuthSession *proxy = SSO_AUTH_SESSION (object);
-    GVariant *session_data_variant;
-    GHashTable *session_data = NULL;
-    GError *error = NULL;
-    AuthSessionProcessCbData *cb_data = (AuthSessionProcessCbData *)userdata;
-    g_return_if_fail (cb_data != NULL);
-    g_return_if_fail (cb_data->self != NULL);
-    g_return_if_fail (cb_data->self->priv != NULL);
-
-    sso_auth_session_call_process_finish (proxy,
-                                          &session_data_variant,
-                                          res,
-                                          &error);
-    SIGNON_RETURN_IF_CANCELLED (error);
-
-    if (!error)
-    {
-        session_data = signon_hash_table_from_variant (session_data_variant);
-    }
-
-    /* Keep a reference on the SignonAuthSession, because the callback
-     * code might unreference it, while we still need it. */
-    g_object_ref (cb_data->self);
-    (cb_data->cb) (cb_data->self, session_data, error, cb_data->user_data);
-
-    cb_data->self->priv->busy = FALSE;
-    if (error)
-        g_error_free (error);
-
-    if (session_data != NULL)
-        g_hash_table_unref (session_data);
-
-    g_object_unref (cb_data->self);
-    g_slice_free (AuthSessionProcessCbData, cb_data);
-}
-
-static void
 auth_session_query_available_mechanisms_ready_cb (gpointer object, const GError *error,
                                                   gpointer user_data)
 {
@@ -705,63 +863,6 @@ auth_session_query_available_mechanisms_ready_cb (gpointer object, const GError 
 
     g_strfreev (operation_data->wanted_mechanisms);
     g_slice_free (AuthSessionQueryAvailableMechanismsData, operation_data);
-}
-
-static void
-auth_session_process_ready_cb (gpointer object, const GError *error, gpointer user_data)
-{
-    g_return_if_fail (SIGNON_IS_AUTH_SESSION (object));
-
-    SignonAuthSession *self = SIGNON_AUTH_SESSION (object);
-    SignonAuthSessionPrivate *priv = SIGNON_AUTH_SESSION_PRIV (self);
-
-    AuthSessionProcessData *operation_data =
-        (AuthSessionProcessData *)user_data;
-    g_return_if_fail (operation_data != NULL);
-
-    AuthSessionProcessCbData *cb_data = operation_data->cb_data;
-    g_return_if_fail (cb_data != NULL);
-
-    if (error || priv->canceled)
-    {
-        GError *err = (error ? (GError *)error :
-                       g_error_new (signon_error_quark (),
-                                    SIGNON_ERROR_SESSION_CANCELED,
-                                    "Authentication session was canceled"));
-
-        DEBUG ("AuthSessionError: %s", err->message);
-
-        (cb_data->cb)
-            (self, NULL, err, cb_data->user_data);
-
-        if (!error)
-            g_clear_error (&err);
-
-        g_slice_free (AuthSessionProcessCbData, cb_data);
-
-        priv->busy = FALSE;
-        priv->canceled = FALSE;
-    }
-    else
-    {
-        g_return_if_fail (priv->proxy != NULL);
-
-        sso_auth_session_call_process (priv->proxy,
-                                       operation_data->session_data,
-                                       operation_data->mechanism,
-                                       priv->cancellable,
-                                       auth_session_process_reply,
-                                       cb_data);
-
-       g_signal_emit (self,
-                       auth_session_signals[STATE_CHANGED],
-                       0,
-                       SIGNON_AUTH_SESSION_STATE_PROCESS_PENDING,
-                       auth_session_process_pending_message);
-    }
-
-    g_free (operation_data->mechanism);
-    g_slice_free (AuthSessionProcessData, operation_data);
 }
 
 static void

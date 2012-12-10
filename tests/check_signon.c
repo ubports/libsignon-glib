@@ -26,6 +26,9 @@
  * @example check_signon.c
  * Shows how to initialize the framework.
  */
+
+#define SIGNON_DISABLE_DEPRECATION_WARNINGS
+
 #include "libsignon-glib/signon-internals.h"
 #include "libsignon-glib/signon-auth-service.h"
 #include "libsignon-glib/signon-auth-session.h"
@@ -358,6 +361,8 @@ START_TEST(test_auth_session_query_mechanisms_nonexisting)
     g_main_loop_run (main_loop);
 
     g_free(patterns[0]);
+    g_free(patterns[1]);
+    g_free(patterns[2]);
     g_object_unref(idty);
 
     end_test ();
@@ -479,8 +484,7 @@ START_TEST(test_auth_session_process)
                                "mech1",
                                test_auth_session_process_cb,
                                sessionData);
-    if(!main_loop)
-        main_loop = g_main_loop_new (NULL, FALSE);
+    main_loop = g_main_loop_new (NULL, FALSE);
 
 
     g_main_loop_run (main_loop);
@@ -518,7 +522,7 @@ START_TEST(test_auth_session_process)
     g_free(passwordVa);
     g_free(passwordKey);
 
-
+    end_test ();
 }
 END_TEST
 
@@ -666,9 +670,6 @@ new_identity()
     GHashTable *methods;
     guint id = 0;
 
-    if (main_loop == NULL)
-        main_loop = g_main_loop_new (NULL, FALSE);
-
     identity = signon_identity_new(NULL, NULL);
     fail_unless (SIGNON_IS_IDENTITY (identity));
     methods = g_hash_table_new (g_str_hash, g_str_equal);
@@ -704,6 +705,8 @@ START_TEST(test_get_existing_identity)
     g_type_init ();
 
     g_debug("%s", G_STRFUNC);
+
+    main_loop = g_main_loop_new (NULL, FALSE);
     guint id = new_identity();
 
     fail_unless (id != 0);
@@ -715,7 +718,6 @@ START_TEST(test_get_existing_identity)
                  "Failed to initialize the Identity.");
 
     g_timeout_add (1000, identity_registered_cb, identity);
-    main_loop = g_main_loop_new (NULL, FALSE);
     g_main_loop_run (main_loop);
 
     end_test ();
@@ -785,6 +787,7 @@ START_TEST(test_store_credentials_identity)
     fail_unless (SIGNON_IS_IDENTITY (idty),
                  "Failed to initialize the Identity.");
 
+    main_loop = g_main_loop_new (NULL, FALSE);
     gint last_id = new_identity();
 
     GHashTable *methods = create_methods_hashtable();
@@ -803,7 +806,6 @@ START_TEST(test_store_credentials_identity)
     g_hash_table_destroy (methods);
 
     g_timeout_add (1000, test_quit_main_loop_cb, idty);
-    main_loop = g_main_loop_new (NULL, FALSE);
     g_main_loop_run (main_loop);
 
     g_object_unref(idty);
@@ -1218,6 +1220,8 @@ START_TEST(test_signout_identity)
 
     g_object_unref (idty);
     g_object_unref (idty2);
+
+    end_test ();
 }
 END_TEST
 
@@ -1255,6 +1259,8 @@ START_TEST(test_unregistered_identity)
 
     g_object_unref (idty);
     g_object_unref (idty2);
+
+    end_test ();
 }
 END_TEST
 
@@ -1368,8 +1374,10 @@ START_TEST(test_regression_unref)
                                  session_data,
                                  "mech1",
                                  test_regression_unref_process_cb,
-                                 g_strdup ("Hi there!"));
+                                 "Hi there!");
     g_main_loop_run (main_loop);
+
+    end_test ();
 }
 END_TEST
 

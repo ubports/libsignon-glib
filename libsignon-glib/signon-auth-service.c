@@ -144,7 +144,7 @@ auth_query_methods_cb (GObject *object, GAsyncResult *res,
     (data->cb)
         (data->service, value, error, data->userdata);
 
-    g_free (value);
+    g_strfreev (value);
     if (error)
         g_error_free (error);
     g_slice_free (MethodCbData, data);
@@ -166,7 +166,7 @@ auth_query_mechanisms_cb (GObject *object, GAsyncResult *res,
     (data->cb)
         (data->service, data->method, value, error, data->userdata);
 
-    g_free (value);
+    g_strfreev (value);
     if (error)
         g_error_free (error);
     g_free (data->method);
