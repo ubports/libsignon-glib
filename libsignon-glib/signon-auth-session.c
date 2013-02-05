@@ -155,13 +155,17 @@ auth_session_process_reply (GObject *object, GAsyncResult *res,
         g_simple_async_result_set_op_res_gpointer (res_process, reply,
                                                    (GDestroyNotify)
                                                    g_variant_unref);
-        g_simple_async_result_complete (res_process);
     }
     else
     {
         g_simple_async_result_take_error (res_process, error);
     }
 
+    /* We use the idle variant in order to avoid the following critical
+     * message:
+     * g_main_context_pop_thread_default: assertion `g_queue_peek_head (stack) == context' failed
+     */
+    g_simple_async_result_complete_in_idle (res_process);
     g_object_unref (self);
 }
 
@@ -180,6 +184,7 @@ auth_session_process_ready_cb (gpointer object, const GError *error, gpointer us
     {
         DEBUG ("AuthSessionError: %s", error->message);
         g_simple_async_result_set_from_error (res, error);
+        g_simple_async_result_complete (res);
         return;
     }
 
@@ -191,6 +196,7 @@ auth_session_process_ready_cb (gpointer object, const GError *error, gpointer us
                                          signon_error_quark (),
                                          SIGNON_ERROR_SESSION_CANCELED,
                                          "Authentication session was canceled");
+        g_simple_async_result_complete (res);
         return;
     }
 
