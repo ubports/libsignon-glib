@@ -1,5 +1,25 @@
 libsignon-glib NEWS
 
+Version 1.9
+-----------
+
+* Invoke the callback when errors occur
+* Add NOCONFIGURE logic to autogen.sh
+* Fix the check for pyoverridesdir for python3
+* Fix a memory leak
+
+Version 1.8
+-----------
+
+* Add signon_auth_session_process_async
+  http://code.google.com/p/accounts-sso/issues/detail?id=115
+* Fix all memory leaks detected by valgrind
+* Set ID before invoking the client callback
+  http://code.google.com/p/accounts-sso/issues/detail?id=132
+* Make tests optional at configure time
+  http://code.google.com/p/accounts-sso/issues/detail?id=124
+* Documentation and build system improvements
+
 Version 1.7
 -----------
 
