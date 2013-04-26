@@ -1,4 +1,10 @@
-libsignon-glib (1.9-0ubuntu1) UNRELEASED; urgency=low
+libsignon-glib (1.9-0ubuntu2) UNRELEASED; urgency=low
+
+  * Automatic snapshot from revision 139 (bootstrap)
+
+ -- Ken VanDine <ken.vandine@canonical.com>  Fri, 26 Apr 2013 13:58:47 -0400
+
+libsignon-glib (1.9-0ubuntu1) raring; urgency=low
 
   [ Robert Bruce Park ]
   * Inline packaging metadata.
