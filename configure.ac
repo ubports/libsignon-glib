@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 AC_PREREQ([2.64])
 AC_INIT([libsignon-glib],
-        [1.8],
+        [1.9],
         [http://code.google.com/p/accounts-sso/issues/entry],
         [libsignon-glib],
         [http://code.google.com/p/accounts-sso/])
@@ -11,7 +11,7 @@ AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_SRCDIR([libsignon-glib.pc.in])
 AC_CONFIG_MACRO_DIR([m4])
 
-AM_INIT_AUTOMAKE([1.11 -Wall nostdinc silent-rules subdir-objects])
+AM_INIT_AUTOMAKE([1.11 -Wall check-news nostdinc silent-rules subdir-objects])
 
 AC_PROG_CC
 AC_PROG_CC_STDC

@@ -1359,7 +1359,8 @@ void signon_identity_remove(SignonIdentity *self,
  * @user_data: user_data.
  *
  * Asks signond to close all authentication sessions for this
- * identity.
+ * identity, and to remove any stored secrets associated with it (password and
+ * authentication tokens).
  */
 void signon_identity_signout(SignonIdentity *self,
                              SignonIdentitySignedOutCb cb,

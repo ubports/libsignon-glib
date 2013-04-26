@@ -9,6 +9,8 @@ test -z "$srcdir" && srcdir=.
 	exit 1
 }
 
+cd "$srcdir"
 gtkdocize --copy --flavour no-tmpl
-autoreconf --install --force
-. $srcdir/configure "$@"
+cd "$OLDPWD"
+autoreconf --install --force --verbose --warnings=all "$srcdir"
+test -n "$NOCONFIGURE" || "$srcdir/configure" "$@"
