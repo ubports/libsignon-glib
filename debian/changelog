@@ -1,8 +1,16 @@
-libsignon-glib (1.8.1-0ubuntu1) UNRELEASED; urgency=low
+libsignon-glib (1.9-0ubuntu1) UNRELEASED; urgency=low
 
+  [ Robert Bruce Park ]
   * Inline packaging metadata.
 
- -- Robert Bruce Park <robert.park@canonical.com>  Tue, 22 Jan 2013 18:06:19 -0800
+  [ Alberto Mardegan ]
+  * New upstream release.
+    - Invoke the callback when errors occur
+    - Add NOCONFIGURE logic to autogen.sh
+    - Fix the check for pyoverridesdir for python3
+    - Fix a memory leak
+
+ -- Alberto Mardegan <alberto.mardegan@canonical.com>  Fri, 26 Apr 2013 17:20:58 +0300
 
 libsignon-glib (1.8-0ubuntu1) raring; urgency=low
 

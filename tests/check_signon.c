@@ -527,6 +527,63 @@ START_TEST(test_auth_session_process)
 END_TEST
 
 static void
+test_auth_session_process_failure_cb (GObject *source_object,
+                                      GAsyncResult *res,
+                                      gpointer user_data)
+{
+    SignonAuthSession *auth_session = SIGNON_AUTH_SESSION (source_object);
+    GVariant *v_reply;
+    GError **error = user_data;
+
+    fail_unless (SIGNON_IS_AUTH_SESSION (source_object));
+
+    v_reply = signon_auth_session_process_finish (auth_session, res, error);
+    fail_unless (v_reply == NULL);
+
+    g_main_loop_quit (main_loop);
+}
+
+START_TEST(test_auth_session_process_failure)
+{
+    SignonAuthSession *auth_session;
+    GVariantBuilder builder;
+    GVariant *session_data;
+    GError *error = NULL;
+
+    g_debug("%s", G_STRFUNC);
+
+    g_type_init ();
+
+    auth_session = signon_auth_session_new (0, "nonexisting-method", &error);
+    fail_unless (auth_session != NULL, "Cannot create AuthSession object");
+    fail_unless (error == NULL);
+
+    g_variant_builder_init (&builder, G_VARIANT_TYPE_VARDICT);
+    g_variant_builder_add (&builder, "{sv}",
+                           "key", g_variant_new_string ("value"));
+
+    session_data = g_variant_builder_end (&builder);
+
+    signon_auth_session_process_async (auth_session,
+                                       session_data,
+                                       "mech1",
+                                       NULL,
+                                       test_auth_session_process_failure_cb,
+                                       &error);
+
+    main_loop = g_main_loop_new (NULL, FALSE);
+    g_main_loop_run (main_loop);
+    fail_unless (error != NULL);
+    fail_unless (error->domain == SIGNON_ERROR);
+    fail_unless (error->code == SIGNON_ERROR_METHOD_NOT_KNOWN);
+
+    g_object_unref (auth_session);
+
+    end_test ();
+}
+END_TEST
+
+static void
 test_auth_session_process_after_store_cb (SignonAuthSession *self,
                                           GHashTable *reply,
                                           const GError *error,
@@ -1403,6 +1460,7 @@ signon_suite(void)
     tcase_add_test (tc_core, test_auth_session_query_mechanisms);
     tcase_add_test (tc_core, test_auth_session_query_mechanisms_nonexisting);
     tcase_add_test (tc_core, test_auth_session_process);
+    tcase_add_test (tc_core, test_auth_session_process_failure);
     tcase_add_test (tc_core, test_auth_session_process_after_store);
     tcase_add_test (tc_core, test_store_credentials_identity);
     tcase_add_test (tc_core, test_verify_secret_identity);
