@@ -1,4 +1,4 @@
-libsignon-glib (1.9-0ubuntu1) UNRELEASED; urgency=low
+libsignon-glib (1.9-0ubuntu1) raring; urgency=low
 
   [ Robert Bruce Park ]
   * Inline packaging metadata.
