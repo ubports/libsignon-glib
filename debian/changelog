@@ -1,8 +1,12 @@
-libsignon-glib (1.9-0ubuntu2) UNRELEASED; urgency=low
+libsignon-glib (1.9daily13.05.01.2ubuntu.unity.next-0ubuntu1) raring; urgency=low
 
+  [ Ken VanDine ]
   * Automatic snapshot from revision 138 (bootstrap)
 
- -- Ken VanDine <ken.vandine@canonical.com>  Fri, 26 Apr 2013 13:58:47 -0400
+  [ Ubuntu daily release ]
+  * Automatic snapshot from revision 140 (ubuntu-unity/next)
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Wed, 01 May 2013 15:32:52 +0000
 
 libsignon-glib (1.9-0ubuntu1) raring; urgency=low
 
