@@ -28,7 +28,7 @@ PKG_CHECK_MODULES(
     [gio-2.0 >= 2.30
      gio-unix-2.0
      glib-2.0 >= 2.32
-     gobject-2.0
+     gobject-2.0 >= 2.35.1
      signond >= 8.40])
 AC_SUBST(DEPS_CFLAGS)
 AC_SUBST(DEPS_LIBS)
