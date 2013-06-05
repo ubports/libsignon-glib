@@ -1,3 +1,14 @@
+libsignon-glib (1.10-0ubuntu1) UNRELEASED; urgency=low
+
+  * New upstream release.
+    - Temporarily disable GTKDOC_CHECK, it tries to write a log to /usr/bin
+    - Tests: do not access invalidated objects
+    - Remove calls to g_type_init()
+    - Doc: mention that Identity::signout() clears password and tokens
+    - Check that NEWS has been updated
+
+ -- Alberto Mardegan <alberto.mardegan@canonical.com>  Wed, 05 Jun 2013 14:48:03 +0300
+
 libsignon-glib (1.9daily13.05.02ubuntu.unity.next-0ubuntu1) raring; urgency=low
 
   * Automatic snapshot from revision 142 (ubuntu-unity/next)
