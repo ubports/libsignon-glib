@@ -80,6 +80,6 @@ include $(top_srcdir)/gtk-doc.make
 # e.g. EXTRA_DIST += version.xml.in
 #EXTRA_DIST += 
 
-if ENABLE_GTK_DOC
-TESTS = $(GTKDOC_CHECK)
-endif
+#if ENABLE_GTK_DOC
+#TESTS = $(GTKDOC_CHECK)
+#endif

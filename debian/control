@@ -3,7 +3,7 @@ Priority: optional
 Maintainer: Ubuntu Desktop Team <ubuntu-desktop@lists.ubuntu.com>
 Build-Depends: debhelper (>= 9),
                autotools-dev,
-               libglib2.0-dev,
+               libglib2.0-dev (>= 2.35.1),
                libgirepository1.0-dev,
                gobject-introspection,
                gir1.2-glib-2.0,
