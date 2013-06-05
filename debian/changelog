@@ -1,5 +1,6 @@
-libsignon-glib (1.10-0ubuntu1) UNRELEASED; urgency=low
+libsignon-glib (1.10daily13.06.05.1-0ubuntu1) saucy; urgency=low
 
+  [ Alberto Mardegan ]
   * New upstream release.
     - Temporarily disable GTKDOC_CHECK, it tries to write a log to /usr/bin
     - Tests: do not access invalidated objects
@@ -7,7 +8,10 @@ libsignon-glib (1.10-0ubuntu1) UNRELEASED; urgency=low
     - Doc: mention that Identity::signout() clears password and tokens
     - Check that NEWS has been updated
 
- -- Alberto Mardegan <alberto.mardegan@canonical.com>  Wed, 05 Jun 2013 14:48:03 +0300
+  [ Ubuntu daily release ]
+  * Automatic snapshot from revision 144
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Wed, 05 Jun 2013 18:49:04 +0000
 
 libsignon-glib (1.9daily13.05.02ubuntu.unity.next-0ubuntu1) raring; urgency=low
 
