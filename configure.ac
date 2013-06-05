@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 AC_PREREQ([2.64])
 AC_INIT([libsignon-glib],
-        [1.9],
+        [1.10],
         [http://code.google.com/p/accounts-sso/issues/entry],
         [libsignon-glib],
         [http://code.google.com/p/accounts-sso/])
@@ -28,7 +28,7 @@ PKG_CHECK_MODULES(
     [gio-2.0 >= 2.30
      gio-unix-2.0
      glib-2.0 >= 2.32
-     gobject-2.0
+     gobject-2.0 >= 2.35.1
      signond >= 8.40])
 AC_SUBST(DEPS_CFLAGS)
 AC_SUBST(DEPS_LIBS)

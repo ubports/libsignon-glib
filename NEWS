@@ -1,5 +1,14 @@
 libsignon-glib NEWS
 
+Version 1.10
+------------
+
+* Temporarily disable GTKDOC_CHECK, it tries to write a log to /usr/bin
+* Tests: do not access invalidated objects
+* Remove calls to g_type_init()
+* Doc: mention that Identity::signout() clears password and tokens
+* Check that NEWS has been updated
+
 Version 1.9
 -----------
 
