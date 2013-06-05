@@ -405,6 +405,8 @@ test_auth_session_process_cb (SignonAuthSession *self,
 START_TEST(test_auth_session_creation)
 {
     GError *err = NULL;
+    gpointer auth_session_sentinel;
+    gpointer idty_sentinel;
 
     g_debug("%s", G_STRFUNC);
     SignonIdentity *idty = signon_identity_new(NULL, NULL);
@@ -416,12 +418,15 @@ START_TEST(test_auth_session_creation)
 
     fail_unless (auth_session != NULL, "Cannot create AuthSession object");
 
+    g_object_add_weak_pointer (G_OBJECT (idty), &idty_sentinel);
+    g_object_add_weak_pointer (G_OBJECT (auth_session), &auth_session_sentinel);
+
     g_object_unref (idty);
     fail_unless (SIGNON_IS_IDENTITY(idty), "Identity must stay untill all its session are not destroyed");
     g_object_unref (auth_session);
 
-    fail_if (SIGNON_IS_AUTH_SESSION(auth_session), "AuthSession is not synchronized with parent Identity");
-    fail_if (SIGNON_IS_IDENTITY(idty), "Identity is not synchronized with its AuthSession");
+    fail_if (auth_session_sentinel != NULL, "AuthSession is not synchronized with parent Identity");
+    fail_if (idty_sentinel != NULL, "Identity is not synchronized with its AuthSession");
 
     g_clear_error(&err);
 }
@@ -1200,6 +1205,8 @@ static void identity_signout_signal_cb (gpointer instance, gpointer user_data)
 
 START_TEST(test_signout_identity)
 {
+    gpointer as1_sentinel, as2_sentinel;
+
     g_debug("%s", G_STRFUNC);
     SignonIdentity *idty = signon_identity_new();
     fail_unless (idty != NULL);
@@ -1244,13 +1251,15 @@ START_TEST(test_signout_identity)
                       G_CALLBACK(identity_signout_signal_cb), &counter);
     g_signal_connect (idty2, "signout",
                       G_CALLBACK(identity_signout_signal_cb), &counter);
+    g_object_add_weak_pointer (G_OBJECT (as1), &as1_sentinel);
+    g_object_add_weak_pointer (G_OBJECT (as2), &as2_sentinel);
 
     signon_identity_signout (idty, identity_signout_cb, NULL);
     g_main_loop_run (main_loop);
 
     fail_unless (counter == 2, "Lost some of SIGNOUT signals");
-    fail_if (SIGNON_IS_AUTH_SESSION (as1), "Authsession1 was not destroyed after signout");
-    fail_if (SIGNON_IS_AUTH_SESSION (as2), "Authsession2 was not destroyed after signout");
+    fail_if (as1_sentinel != NULL, "Authsession1 was not destroyed after signout");
+    fail_if (as2_sentinel != NULL, "Authsession2 was not destroyed after signout");
 
     g_object_unref (idty);
     g_object_unref (idty2);
