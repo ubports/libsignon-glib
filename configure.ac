@@ -35,7 +35,7 @@ AC_SUBST(DEPS_LIBS)
 
 # Build tests.
 
-CHECK_REQUIRED= "check >= 0.9.4"
+CHECK_REQUIRED="check >= 0.9.4"
 
 AC_ARG_ENABLE([tests],
   [AS_HELP_STRING([--disable-tests], [build with testing support disabled])])
