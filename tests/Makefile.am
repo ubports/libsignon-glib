@@ -10,7 +10,8 @@ signon_glib_testsuite_CPPFLAGS = \
 	$(CHECK_FLAGS)
 signon_glib_testsuite_LDADD = \
 	$(top_builddir)/libsignon-glib/libsignon-glib.la \
+	$(CHECK_LIBS) \
 	$(DEPS_LIBS) \
-	$(CHECK_LIBS) 
+	-lpthread
 
 TESTS = signon-glib-test.sh
