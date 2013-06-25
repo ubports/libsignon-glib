@@ -1,3 +1,19 @@
+libsignon-glib (1.10daily13.06.25-0ubuntu1) saucy; urgency=low
+
+  [ Jeremy Bicha ]
+  * Don't have libsignon-glib1 depend on signond. (LP: #1191522)
+
+  [ Łukasz 'sil2100' Zemczak ]
+  * Fix the linking problem when using check.
+  * Previous fix was not enough, we need to add manually pthread as it's
+    not linked, because the toolchain, quoting, 'only links with needed
+    libraries'.
+
+  [ Ubuntu daily release ]
+  * Automatic snapshot from revision 148
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Tue, 25 Jun 2013 04:31:08 +0000
+
 libsignon-glib (1.10daily13.06.05.1-0ubuntu1) saucy; urgency=low
 
   [ Alberto Mardegan ]
