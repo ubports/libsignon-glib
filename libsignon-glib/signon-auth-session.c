@@ -244,7 +244,9 @@ process_async_cb_wrapper (GObject *object, GAsyncResult *res,
         if (reply != NULL)
             g_hash_table_unref (reply);
     }
-    g_variant_unref (v_reply);
+
+    if (v_reply != NULL)
+        g_variant_unref (v_reply);
 
     g_slice_free (AuthSessionProcessCbData, cb_data);
     g_clear_error (&error);
