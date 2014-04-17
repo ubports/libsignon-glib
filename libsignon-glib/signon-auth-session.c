@@ -253,6 +253,16 @@ process_async_cb_wrapper (GObject *object, GAsyncResult *res,
     g_object_unref (res);
 }
 
+static void
+destroy_proxy (SignonAuthSessionPrivate *priv)
+{
+    g_signal_handler_disconnect (priv->proxy, priv->signal_state_changed);
+    g_signal_handler_disconnect (priv->proxy, priv->signal_unregistered);
+    g_object_unref (priv->proxy);
+
+    priv->proxy = NULL;
+}
+
 static GQuark
 auth_session_object_quark ()
 {
@@ -290,13 +300,7 @@ signon_auth_session_dispose (GObject *object)
     }
 
     if (priv->proxy)
-    {
-        g_signal_handler_disconnect (priv->proxy, priv->signal_state_changed);
-        g_signal_handler_disconnect (priv->proxy, priv->signal_unregistered);
-        g_object_unref (priv->proxy);
-
-        priv->proxy = NULL;
-    }
+        destroy_proxy (priv);
 
     if (priv->auth_service_proxy)
     {
@@ -765,19 +769,8 @@ static void auth_session_remote_object_destroyed_cb (GDBusProxy *proxy,
     DEBUG ("remote object unregistered");
 
     if (priv->proxy)
-    {
-        g_object_unref (priv->proxy);
-        priv->proxy = NULL;
-    }
+        destroy_proxy (priv);
 
-    /*
-     * as remote object is destroyed only
-     * when the session core is destroyed,
-     * so there should not be any processes
-     * running
-     * */
-    priv->busy = FALSE;
-    priv->canceled = FALSE;
     _signon_object_not_ready(self);
 }
 
