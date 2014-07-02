@@ -1,5 +1,13 @@
 libsignon-glib NEWS
 
+Version 1.11
+------------
+
+* Disconnect from signals when the remote AuthSession dies
+  http://code.google.com/p/accounts-sso/issues/detail?id=229
+* Avoid unreferencing a NULL GVariant
+* Fix the linking problem when using check
+
 Version 1.10
 ------------
 
