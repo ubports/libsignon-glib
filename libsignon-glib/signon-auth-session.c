@@ -509,7 +509,7 @@ signon_auth_session_query_available_mechanisms (SignonAuthSession *self,
 /**
  * SignonAuthSessionProcessCb:
  * @self: the #SignonAuthSession.
- * @session_data: (transfer full) (element-type utf8 GValue): a dictionary with
+ * @session_data: (transfer none) (element-type utf8 GValue): a dictionary with
  * the response.
  * @error: a #GError if an error occurred, %NULL otherwise.
  * @user_data: the user data that was passed when installing this callback.

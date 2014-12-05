@@ -165,7 +165,7 @@ void signon_identity_verify_secret(SignonIdentity *self,
 /**
  * SignonIdentityInfoCb:
  * @self: the #SignonIdentity.
- * @info: the #SignonIdentityInfo for @self.
+ * @info: (transfer none): the #SignonIdentityInfo for @self.
  * @error: a #GError if an error occurred, or %NULL otherwise.
  * @user_data: the user data that was passed when installing this callback.
  *
