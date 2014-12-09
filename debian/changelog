@@ -1,10 +1,14 @@
-libsignon-glib (1.12-0ubuntu1) UNRELEASED; urgency=medium
+libsignon-glib (1.12+15.04.20141209-0ubuntu1) vivid; urgency=medium
 
+  [ Alberto Mardegan ]
   * New upstream release.
     - Introspection: fix transfer type of some methods
     - Update VALA bindings (LP: #1382843)
 
- -- Alberto Mardegan <alberto.mardegan@canonical.com>  Tue, 09 Dec 2014 11:21:44 +0200
+  [ Ubuntu daily release ]
+  * New rebuild forced
+
+ -- Ubuntu daily release <ps-jenkins@lists.canonical.com>  Tue, 09 Dec 2014 13:48:27 +0000
 
 libsignon-glib (1.10daily13.06.25-0ubuntu2) trusty; urgency=medium
 
