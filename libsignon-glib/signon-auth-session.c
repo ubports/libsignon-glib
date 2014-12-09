@@ -244,11 +244,23 @@ process_async_cb_wrapper (GObject *object, GAsyncResult *res,
         if (reply != NULL)
             g_hash_table_unref (reply);
     }
-    g_variant_unref (v_reply);
+
+    if (v_reply != NULL)
+        g_variant_unref (v_reply);
 
     g_slice_free (AuthSessionProcessCbData, cb_data);
     g_clear_error (&error);
     g_object_unref (res);
+}
+
+static void
+destroy_proxy (SignonAuthSessionPrivate *priv)
+{
+    g_signal_handler_disconnect (priv->proxy, priv->signal_state_changed);
+    g_signal_handler_disconnect (priv->proxy, priv->signal_unregistered);
+    g_object_unref (priv->proxy);
+
+    priv->proxy = NULL;
 }
 
 static GQuark
@@ -288,13 +300,7 @@ signon_auth_session_dispose (GObject *object)
     }
 
     if (priv->proxy)
-    {
-        g_signal_handler_disconnect (priv->proxy, priv->signal_state_changed);
-        g_signal_handler_disconnect (priv->proxy, priv->signal_unregistered);
-        g_object_unref (priv->proxy);
-
-        priv->proxy = NULL;
-    }
+        destroy_proxy (priv);
 
     if (priv->auth_service_proxy)
     {
@@ -503,7 +509,7 @@ signon_auth_session_query_available_mechanisms (SignonAuthSession *self,
 /**
  * SignonAuthSessionProcessCb:
  * @self: the #SignonAuthSession.
- * @session_data: (transfer full) (element-type utf8 GValue): a dictionary with
+ * @session_data: (transfer none) (element-type utf8 GValue): a dictionary with
  * the response.
  * @error: a #GError if an error occurred, %NULL otherwise.
  * @user_data: the user data that was passed when installing this callback.
@@ -763,19 +769,8 @@ static void auth_session_remote_object_destroyed_cb (GDBusProxy *proxy,
     DEBUG ("remote object unregistered");
 
     if (priv->proxy)
-    {
-        g_object_unref (priv->proxy);
-        priv->proxy = NULL;
-    }
+        destroy_proxy (priv);
 
-    /*
-     * as remote object is destroyed only
-     * when the session core is destroyed,
-     * so there should not be any processes
-     * running
-     * */
-    priv->busy = FALSE;
-    priv->canceled = FALSE;
     _signon_object_not_ready(self);
 }
 

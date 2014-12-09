@@ -6,8 +6,8 @@ namespace Signon {
 	public class AuthService : GLib.Object {
 		[CCode (has_construct_function = false)]
 		public AuthService ();
-		public void query_mechanisms (string method, Signon.QueryMechanismCb cb);
-		public void query_methods (Signon.QueryMethodsCb cb);
+		public void query_mechanisms (string method, [CCode (scope = "async")] owned Signon.QueryMechanismCb cb);
+		public void query_methods ([CCode (scope = "async")] owned Signon.QueryMethodsCb cb);
 	}
 	[CCode (cheader_filename = "libsignon-glib/signon-glib.h", type_id = "signon_auth_session_get_type ()")]
 	public class AuthSession : GLib.Object {
@@ -15,9 +15,11 @@ namespace Signon {
 		public AuthSession (uint id, string method_name) throws GLib.Error;
 		public void cancel ();
 		public unowned string get_method ();
-		public void process (GLib.HashTable<string,GLib.Value?> session_data, string mechanism, Signon.AuthSessionProcessCb cb);
-		public void query_available_mechanisms (string wanted_mechanisms, Signon.AuthSessionQueryAvailableMechanismsCb cb);
-		public signal void state_changed (int object, string p0);
+		[Deprecated (since = "1.8")]
+		public void process (GLib.HashTable<string,GLib.Value?> session_data, string mechanism, [CCode (scope = "async")] owned Signon.AuthSessionProcessCb cb);
+		public async GLib.Variant process_async (GLib.Variant session_data, string mechanism, GLib.Cancellable? cancellable) throws GLib.Error;
+		public void query_available_mechanisms (string wanted_mechanisms, [CCode (scope = "async")] owned Signon.AuthSessionQueryAvailableMechanismsCb cb);
+		public signal void state_changed (int state, string message);
 	}
 	[CCode (cheader_filename = "libsignon-glib/signon-glib.h", type_id = "signon_identity_get_type ()")]
 	public class Identity : GLib.Object {
@@ -28,12 +30,12 @@ namespace Signon {
 		[CCode (has_construct_function = false)]
 		public Identity.from_db (uint32 id);
 		public unowned GLib.Error get_last_error ();
-		public void query_info (Signon.IdentityInfoCb cb);
-		public void remove (Signon.IdentityRemovedCb cb, void* user_data);
+		public void query_info ([CCode (scope = "async")] owned Signon.IdentityInfoCb cb);
+		public void remove ([CCode (scope = "async")] owned Signon.IdentityRemovedCb cb, void* user_data);
 		public void remove_reference (string reference, Signon.IdentityReferenceRemovedCb cb, void* user_data);
-		public void store_credentials_with_args (string username, string secret, bool store_secret, GLib.HashTable<string,string[]> methods, string caption, string realms, string access_control_list, Signon.IdentityType type, Signon.IdentityStoreCredentialsCb cb);
-		public void store_credentials_with_info (Signon.IdentityInfo info, Signon.IdentityStoreCredentialsCb cb);
-		public void verify_secret (string secret, Signon.IdentityVerifyCb cb);
+		public void store_credentials_with_args (string username, string secret, bool store_secret, GLib.HashTable<string,string[]> methods, string caption, string realms, string access_control_list, Signon.IdentityType type, [CCode (scope = "async")] owned Signon.IdentityStoreCredentialsCb cb);
+		public void store_credentials_with_info (Signon.IdentityInfo info, [CCode (scope = "async")] owned Signon.IdentityStoreCredentialsCb cb);
+		public void verify_secret (string secret, [CCode (scope = "async")] owned Signon.IdentityVerifyCb cb);
 		[NoAccessorMethod]
 		public uint id { get; set; }
 		[HasEmitter]
@@ -65,7 +67,7 @@ namespace Signon {
 		public void set_secret (string secret, bool store_secret);
 		public void set_username (string username);
 	}
-	[CCode (cheader_filename = "libsignon-glib/signon-glib.h", cprefix = "SIGNON_IDENTITY_TYPE_")]
+	[CCode (cheader_filename = "libsignon-glib/signon-glib.h", cprefix = "SIGNON_IDENTITY_TYPE_", type_id = "signon_identity_type_get_type ()")]
 	[Flags]
 	public enum IdentityType {
 		OTHER,
@@ -73,7 +75,7 @@ namespace Signon {
 		WEB,
 		NETWORK
 	}
-	[CCode (cheader_filename = "libsignon-glib/signon-glib.h", cprefix = "SIGNON_POLICY_")]
+	[CCode (cheader_filename = "libsignon-glib/signon-glib.h", cprefix = "SIGNON_POLICY_", type_id = "signon_session_data_ui_policy_get_type ()")]
 	public enum SessionDataUiPolicy {
 		DEFAULT,
 		REQUEST_PASSWORD,
@@ -120,7 +122,7 @@ namespace Signon {
 		public static GLib.Quark quark ();
 	}
 	[CCode (cheader_filename = "libsignon-glib/signon-glib.h", instance_pos = 3.9)]
-	public delegate void AuthSessionProcessCb (Signon.AuthSession self, owned GLib.HashTable<string,GLib.Value?> session_data, GLib.Error error);
+	public delegate void AuthSessionProcessCb (Signon.AuthSession self, GLib.HashTable<string,GLib.Value?> session_data, GLib.Error error);
 	[CCode (cheader_filename = "libsignon-glib/signon-glib.h", instance_pos = 3.9)]
 	public delegate void AuthSessionQueryAvailableMechanismsCb (Signon.AuthSession self, [CCode (array_length = false, array_null_terminated = true)] owned string[] mechanisms, GLib.Error error);
 	[CCode (cheader_filename = "libsignon-glib/signon-glib.h", instance_pos = 3.9)]
@@ -142,9 +144,9 @@ namespace Signon {
 	[CCode (cheader_filename = "libsignon-glib/signon-glib.h", instance_pos = 2.9)]
 	public delegate void IdentityVoidCb (Signon.Identity self, GLib.Error error);
 	[CCode (cheader_filename = "libsignon-glib/signon-glib.h", instance_pos = 4.9)]
-	public delegate void QueryMechanismCb (Signon.AuthService auth_service, string method, [CCode (array_length = false, array_null_terminated = true)] owned string[] mechanisms, GLib.Error error);
+	public delegate void QueryMechanismCb (Signon.AuthService auth_service, string method, [CCode (array_length = false, array_null_terminated = true)] string[] mechanisms, GLib.Error error);
 	[CCode (cheader_filename = "libsignon-glib/signon-glib.h", instance_pos = 3.9)]
-	public delegate void QueryMethodsCb (Signon.AuthService auth_service, [CCode (array_length = false, array_null_terminated = true)] owned string[] methods, GLib.Error error);
+	public delegate void QueryMethodsCb (Signon.AuthService auth_service, [CCode (array_length = false, array_null_terminated = true)] string[] methods, GLib.Error error);
 	[CCode (cheader_filename = "libsignon-glib/signon-glib.h", cname = "SIGNON_SESSION_DATA_CAPTION")]
 	public const string SESSION_DATA_CAPTION;
 	[CCode (cheader_filename = "libsignon-glib/signon-glib.h", cname = "SIGNON_SESSION_DATA_PROXY")]
