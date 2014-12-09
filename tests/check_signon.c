@@ -648,6 +648,7 @@ START_TEST(test_auth_session_process_after_store)
 {
     SignonIdentityInfo *info;
     SignonIdentity *identity;
+    const gchar *const acl[] = { "*", NULL };
 
     g_debug("%s", G_STRFUNC);
 
@@ -659,6 +660,7 @@ START_TEST(test_auth_session_process_after_store)
 
     info = signon_identity_info_new ();
     signon_identity_info_set_username (info, "Nice user");
+    signon_identity_info_set_access_control_list (info, acl);
 
     signon_identity_store_credentials_with_info (identity,
                                                  info,
@@ -716,6 +718,7 @@ new_identity()
 {
     SignonIdentity *identity;
     GHashTable *methods;
+    const gchar *const acl[] = { "*", NULL };
     guint id = 0;
 
     identity = signon_identity_new(NULL, NULL);
@@ -728,7 +731,7 @@ new_identity()
                                                  methods,
                                                  "caption",
                                                  NULL,
-                                                 NULL,
+                                                 acl,
                                                  0,
                                                  new_identity_store_credentials_cb,
                                                  &id);
@@ -788,7 +791,8 @@ START_TEST(test_get_nonexisting_identity)
     fail_unless (error != NULL);
 
     fail_unless (error->domain == SIGNON_ERROR);
-    fail_unless (error->code == SIGNON_ERROR_IDENTITY_NOT_FOUND);
+    fail_unless (error->code == SIGNON_ERROR_IDENTITY_NOT_FOUND ||
+                 error->code == SIGNON_ERROR_PERMISSION_DENIED);
 
     end_test ();
 }
@@ -880,6 +884,8 @@ static void identity_verify_username_cb(SignonIdentity *self,
 
 START_TEST(test_verify_secret_identity)
 {
+    const gchar *const acl[] = { "*", NULL };
+
     g_debug("%s", G_STRFUNC);
     SignonIdentity *idty = signon_identity_new(NULL, NULL);
     fail_unless (idty != NULL);
@@ -899,7 +905,7 @@ START_TEST(test_verify_secret_identity)
                                                  methods,
                                                  caption,
                                                  NULL,
-                                                 NULL,
+                                                 acl,
                                                  0,
                                                  store_credentials_identity_cb,
                                                  NULL);
@@ -1069,6 +1075,7 @@ static void identity_info_cb(SignonIdentity *self, const SignonIdentityInfo *inf
 
 static SignonIdentityInfo *create_standard_info()
 {
+    const gchar *const acl[] = { "*", NULL };
     g_debug("%s", G_STRFUNC);
     SignonIdentityInfo *info = signon_identity_info_new ();
     signon_identity_info_set_username (info, "James Bond");
@@ -1085,12 +1092,15 @@ static SignonIdentityInfo *create_standard_info()
     signon_identity_info_set_method (info, "method1", (const gchar **)mechanisms);
     signon_identity_info_set_method (info, "method2", (const gchar **)mechanisms);
     signon_identity_info_set_method (info, "method3", (const gchar **)mechanisms);
+    signon_identity_info_set_access_control_list (info, acl);
 
     return info;
 }
 
 START_TEST(test_info_identity)
 {
+    const gchar *const acl[] = { "*", NULL };
+
     g_debug("%s", G_STRFUNC);
     SignonIdentity *idty = signon_identity_new();
     fail_unless (idty != NULL);
@@ -1114,7 +1124,7 @@ START_TEST(test_info_identity)
                                                  methods,
                                                  "caption",
                                                  NULL,
-                                                 NULL,
+                                                 acl,
                                                  0,
                                                  store_credentials_identity_cb,
                                                  NULL);
