@@ -1,5 +1,11 @@
 libsignon-glib NEWS
 
+Version 1.12
+------------
+
+* Introspection: fix transfer type of some methods
+* Update VALA bindings
+
 Version 1.11
 ------------
 
