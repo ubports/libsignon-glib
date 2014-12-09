@@ -6,6 +6,12 @@ libsignon-glib (1.12-0ubuntu1) UNRELEASED; urgency=medium
 
  -- Alberto Mardegan <alberto.mardegan@canonical.com>  Tue, 09 Dec 2014 11:21:44 +0200
 
+libsignon-glib (1.10daily13.06.25-0ubuntu2) trusty; urgency=medium
+
+  * Rebuild to drop files installed into /usr/share/pyshared.
+
+ -- Matthias Klose <doko@ubuntu.com>  Sun, 23 Feb 2014 13:48:19 +0000
+
 libsignon-glib (1.10daily13.06.25-0ubuntu1) saucy; urgency=low
 
   [ Jeremy Bicha ]
