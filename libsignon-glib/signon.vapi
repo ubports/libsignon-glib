@@ -59,11 +59,11 @@ namespace Signon {
 		public bool get_storing_secret ();
 		public unowned string get_username ();
 		public void remove_method (string method);
-		public void set_access_control_list (string access_control_list);
+		public void set_access_control_list ([CCode (array_length = false, array_null_terminated = true)] string[] access_control_list);
 		public void set_caption (string caption);
 		public void set_identity_type (Signon.IdentityType type);
-		public void set_method (string method, string mechanisms);
-		public void set_realms (string realms);
+		public void set_method (string method, [CCode (array_length = false, array_null_terminated = true)] string[] mechanisms);
+		public void set_realms ([CCode (array_length = false, array_null_terminated = true)] string[] realms);
 		public void set_secret (string secret, bool store_secret);
 		public void set_username (string username);
 	}

@@ -722,8 +722,8 @@ signon_identity_store_credentials_with_info(SignonIdentity *self,
  * @store_secret: whether signond should store the password.
  * @methods: (transfer none) (element-type utf8 GStrv): methods.
  * @caption: caption.
- * @realms: realms.
- * @access_control_list: access control list.
+ * @realms: (transfer none) (type GStrv): realms.
+ * @access_control_list: (transfer none) (type GStrv): access control list.
  * @type: the type of the identity.
  * @cb: (scope async): callback.
  * @user_data: user_data.

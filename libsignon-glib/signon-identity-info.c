@@ -480,7 +480,7 @@ void signon_identity_info_set_caption (SignonIdentityInfo *info, const gchar *ca
  * signon_identity_info_set_method:
  * @info: the #SignonIdentityInfo.
  * @method: an authentication method.
- * @mechanisms: a %NULL-termianted list of mechanisms.
+ * @mechanisms: (transfer none) (type GStrv): a %NULL-termianted list of mechanisms.
  *
  * Adds a method to the list of allowed methods. If this method is not called
  * even once, then all methods are allowed.
@@ -518,7 +518,7 @@ void signon_identity_info_remove_method (SignonIdentityInfo *info, const gchar *
 /**
  * signon_identity_info_set_realms:
  * @info: the #SignonIdentityInfo.
- * @realms: a %NULL-terminated list of realms.
+ * @realms: (transfer none) (type GStrv): a %NULL-terminated list of realms.
  *
  * Specify what realms this identity can be used in.
  */
@@ -535,7 +535,8 @@ void signon_identity_info_set_realms (SignonIdentityInfo *info,
 /**
  * signon_identity_info_set_access_control_list:
  * @info: the #SignonIdentityInfo.
- * @access_control_list: a %NULL-terminated list of ACL security domains.
+ * @access_control_list: (transfer none) (type GStrv): a %NULL-terminated list
+ * of ACL security domains.
  *
  * Specifies the ACL for this identity. The actual meaning of the ACL depends
  * on the security framework used by signond.
