@@ -18,7 +18,7 @@ TEST_APP=./signon-glib-testsuite
 # session
 if command -v dbus-test-runner > /dev/null ; then
     echo "Using dbus-test-runner"
-    dbus-test-runner -m 180 -t signond \
+    dbus-test-runner -m 180 -t signond -r \
         -t "$TEST_APP" -f com.google.code.AccountsSSO.SingleSignOn
 else
     echo "Using existing D-Bus session"
