@@ -8,6 +8,13 @@ export DPKG_GENSYMBOLS_CHECK_LEVEL=4
 override_dh_auto_configure:
 	dh_auto_configure -- --enable-gtk-doc
 
+override_dh_auto_test:
+	dh_auto_test || ( \
+		echo "Tests failed. Log:"; \
+		cat tests/test-suite.log; \
+		false \
+	)
+
 override_dh_install:
 	# install the python3 gir override file as well
 	PYTHON=python3 ./configure --prefix=/usr
