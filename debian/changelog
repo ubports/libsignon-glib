@@ -1,3 +1,10 @@
+libsignon-glib (1.12+15.04.20150420.1-0ubuntu1) vivid; urgency=medium
+
+  [ Alberto Mardegan ]
+  * Multi arch support
+
+ -- CI Train Bot <ci-train-bot@canonical.com>  Mon, 20 Apr 2015 11:34:53 +0000
+
 libsignon-glib (1.12+15.04.20150410.3-0ubuntu1) vivid; urgency=medium
 
   [ Alberto Mardegan ]
