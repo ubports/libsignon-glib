@@ -47,6 +47,18 @@ static SignonAuthService *auth_service = NULL;
 
 #define SIGNOND_IDLE_TIMEOUT (5 + 2)
 
+static gboolean _contains(gchar **list, gchar *item)
+{
+    gboolean present = FALSE;
+    gint i = 0;
+    while (list[i] != NULL)
+    {
+        if (g_strcmp0 (item, list[i]) == 0) present = TRUE;
+        i++;
+    }
+    return present;
+}
+
 static void
 end_test ()
 {
@@ -239,7 +251,7 @@ test_auth_session_query_mechanisms_cb (SignonAuthSession *self,
     while ( i > 0 )
     {
         gchar* pattern = patterns[--i];
-        fail_unless(g_strcmp0(pattern, mechanisms[i]) == 0, "The obtained mechanism differs from predefined pattern: %s vs %s", mechanisms[i], pattern);
+        fail_unless(_contains(mechanisms, pattern), "The obtained mechanism list does not contain %s", pattern);
     }
 
     g_strfreev(mechanisms);
@@ -1001,18 +1013,6 @@ START_TEST(test_remove_identity)
     end_test ();
 }
 END_TEST
-
-static gboolean _contains(gchar **mechs, gchar *mech)
-{
-    gboolean present = FALSE;
-    gint i = 0;
-    while (mechs[i] != NULL)
-    {
-        if (g_strcmp0 (mech, mechs[i]) == 0) present = TRUE;
-        i++;
-    }
-    return present;
-}
 
 static void identity_info_cb(SignonIdentity *self, const SignonIdentityInfo *info, const GError *error, gpointer user_data)
 {
