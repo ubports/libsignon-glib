@@ -10,7 +10,7 @@
     <releaseinfo>
       This document is for libsignon-glib, version &version;. The latest
       version of this documentation can be built from the source code at
-      <ulink role="online-location" url="https://code.google.com/p/accounts-sso/source/checkout?repo=libsignon-glib">https://code.google.com/p/accounts-sso/source/checkout?repo=libsignon-glib</ulink>.
+      <ulink role="online-location" url="https://gitlab.com/accounts-sso/libsignon-glib">https://gitlab.com/accounts-sso/libsignon-glib</ulink>.
     </releaseinfo>
   </bookinfo>
 

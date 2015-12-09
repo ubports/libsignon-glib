@@ -7,7 +7,7 @@ libsignon_glib_la_CPPFLAGS = \
 	-I$(top_builddir) \
 	-I$(builddir) \
 	$(DEPS_CFLAGS) \
-	-Wall -Werror
+	-Wall -Werror -Wno-error=deprecated-declarations
 libsignon_glib_la_LIBADD = $(DEPS_LIBS)
 libsignon_glib_la_LDFLAGS = \
 	-version-info 1:0:0 \
