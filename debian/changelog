@@ -1,5 +1,6 @@
-libsignon-glib (1.13-0ubuntu1) UNRELEASED; urgency=medium
+libsignon-glib (1.13+16.04.20151209.1-0ubuntu1) xenial; urgency=medium
 
+  [ Alberto Mardegan ]
   * New upstream release.
     - Build: don't emit a build error on deprecations
     - Build: ignore deprecations of GSimpleAsyncResult
@@ -8,7 +9,10 @@ libsignon-glib (1.13-0ubuntu1) UNRELEASED; urgency=medium
     - Tests: do not count on mechanisms being ordered (LP: #1442201)
     - Introspection: mark ACL and realms as string lists, update Vala bindings
 
- -- Alberto Mardegan <alberto.mardegan@canonical.com>  Wed, 09 Dec 2015 09:55:56 +0200
+  [ CI Train Bot ]
+  * No-change rebuild.
+
+ -- David Barth <david.barth@canonical.com>  Wed, 09 Dec 2015 10:24:53 +0000
 
 libsignon-glib (1.12+15.04.20150420.1-0ubuntu2) wily; urgency=medium
 
