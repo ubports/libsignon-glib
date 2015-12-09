@@ -1,10 +1,10 @@
 dnl Process this file with autoconf to produce a configure script.
 AC_PREREQ([2.64])
 AC_INIT([libsignon-glib],
-        [1.12],
-        [http://code.google.com/p/accounts-sso/issues/entry],
+        [1.13],
+        [https://gitlab.com/accounts-sso/libsignon-glib/issues],
         [libsignon-glib],
-        [http://code.google.com/p/accounts-sso/])
+        [https://gitlab.com/accounts-sso/libsignon-glib])
 
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_HEADERS([config.h])

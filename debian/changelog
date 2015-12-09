@@ -1,3 +1,15 @@
+libsignon-glib (1.13-0ubuntu1) UNRELEASED; urgency=medium
+
+  * New upstream release.
+    - Build: don't emit a build error on deprecations
+    - Build: ignore deprecations of GSimpleAsyncResult
+    - pkg-config: remove unused variable
+      Fixes: https://gitlab.com/accounts-sso/libsignon-glib/issues/1
+    - Tests: do not count on mechanisms being ordered (LP: #1442201)
+    - Introspection: mark ACL and realms as string lists, update Vala bindings
+
+ -- Alberto Mardegan <alberto.mardegan@canonical.com>  Wed, 09 Dec 2015 09:55:56 +0200
+
 libsignon-glib (1.12+15.04.20150420.1-0ubuntu1) vivid; urgency=medium
 
   [ Alberto Mardegan ]

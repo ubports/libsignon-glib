@@ -2,7 +2,6 @@ prefix=@prefix@
 exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
-pluginlibdir=@pluginlibdir@
 
 Name: libsignon-glib
 Description: A low-level library for managing account credentials.

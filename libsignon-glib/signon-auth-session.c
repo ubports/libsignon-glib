@@ -146,6 +146,7 @@ auth_session_process_reply (GObject *object, GAsyncResult *res,
 
     sso_auth_session_call_process_finish (proxy, &reply, res, &error);
 
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
     self = SIGNON_AUTH_SESSION (g_async_result_get_source_object (
         (GAsyncResult *)res_process));
     self->priv->busy = FALSE;
@@ -166,6 +167,7 @@ auth_session_process_reply (GObject *object, GAsyncResult *res,
      * g_main_context_pop_thread_default: assertion `g_queue_peek_head (stack) == context' failed
      */
     g_simple_async_result_complete_in_idle (res_process);
+G_GNUC_END_IGNORE_DEPRECATIONS
     g_object_unref (self);
 }
 
@@ -180,6 +182,7 @@ auth_session_process_ready_cb (gpointer object, const GError *error, gpointer us
     g_return_if_fail (self != NULL);
     priv = self->priv;
 
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
     if (error != NULL)
     {
         DEBUG ("AuthSessionError: %s", error->message);
@@ -199,6 +202,7 @@ auth_session_process_ready_cb (gpointer object, const GError *error, gpointer us
         g_simple_async_result_complete (res);
         return;
     }
+G_GNUC_END_IGNORE_DEPRECATIONS
 
     process_data = g_object_get_data ((GObject *)res, data_key_process);
     g_return_if_fail (process_data != NULL);
@@ -592,9 +596,11 @@ signon_auth_session_process_async (SignonAuthSession *self,
 
     g_return_if_fail (session_data != NULL);
 
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
     res = g_simple_async_result_new ((GObject *)self, callback, user_data,
                                      signon_auth_session_process_async);
     g_simple_async_result_set_check_cancellable (res, cancellable);
+G_GNUC_END_IGNORE_DEPRECATIONS
 
     process_data = g_slice_new0 (AuthSessionProcessData);
     process_data->session_data = g_variant_ref_sink (session_data);
@@ -636,10 +642,12 @@ signon_auth_session_process_finish (SignonAuthSession *self, GAsyncResult *res,
     g_return_val_if_fail (SIGNON_IS_AUTH_SESSION (self), NULL);
 
     async_result = (GSimpleAsyncResult *)res;
+G_GNUC_BEGIN_IGNORE_DEPRECATIONS
     if (g_simple_async_result_propagate_error (async_result, error))
         return NULL;
 
     reply = g_simple_async_result_get_op_res_gpointer (async_result);
+G_GNUC_END_IGNORE_DEPRECATIONS
     return g_variant_ref (reply);
 }
 
