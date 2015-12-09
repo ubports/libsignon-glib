@@ -1,3 +1,9 @@
+libsignon-glib (1.12+15.04.20150420.1-0ubuntu2) wily; urgency=medium
+
+  * No change rebuild for missing ddebs
+
+ -- Sebastien Bacher <seb128@ubuntu.com>  Wed, 14 Oct 2015 11:53:29 +0100
+
 libsignon-glib (1.12+15.04.20150420.1-0ubuntu1) vivid; urgency=medium
 
   [ Alberto Mardegan ]
