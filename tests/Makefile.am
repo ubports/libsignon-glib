@@ -13,4 +13,7 @@ signon_glib_testsuite_LDADD = \
 	$(DEPS_LIBS) \
 	$(CHECK_LIBS)
 
+TESTS_ENVIRONMENT = \
+	TESTDIR=$(top_srcdir)/tests/; export TESTDIR;
+
 TESTS = signon-glib-test.sh
