@@ -121,7 +121,7 @@ _signon_object_call_when_ready (gpointer object, GQuark quark, SignonReadyCb cal
 }
 
 void
-_signon_object_ready (gpointer object, GQuark quark, const GError *error)
+_signon_object_ready (gpointer object, GQuark quark, GError *error)
 {
     SignonReadyData *rd;
 
@@ -129,7 +129,7 @@ _signon_object_ready (gpointer object, GQuark quark, const GError *error)
 
     if(error)
         g_object_set_qdata_full ((GObject *)object, _signon_object_error_quark(),
-                                  g_error_copy(error),
+                                 error,
                                  (GDestroyNotify)g_error_free);
 
     /* steal the qdata so the callbacks won't be invoked again, even if the
