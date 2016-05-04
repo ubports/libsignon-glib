@@ -535,6 +535,86 @@ START_TEST(test_auth_session_process)
 END_TEST
 
 static void
+test_auth_session_process_async_cb (GObject *source_object,
+                                    GAsyncResult *res,
+                                    gpointer user_data)
+{
+    SignonAuthSession *auth_session = SIGNON_AUTH_SESSION (source_object);
+    GVariant **v_reply = user_data;
+    GError *error = NULL;
+
+    fail_unless (SIGNON_IS_AUTH_SESSION (source_object));
+
+    *v_reply = signon_auth_session_process_finish (auth_session, res, &error);
+    fail_unless (error == NULL);
+
+    g_main_loop_quit (main_loop);
+}
+
+START_TEST(test_auth_session_process_async)
+{
+    gint state_counter = 0;
+    GError *err = NULL;
+    GVariantBuilder builder;
+    GVariant *session_data, *reply;
+    gchar *username, *realm;
+    gboolean ok;
+
+    g_debug("%s", G_STRFUNC);
+    SignonIdentity *idty = signon_identity_new(NULL, NULL);
+    fail_unless (idty != NULL, "Cannot create Iddentity object");
+
+    SignonAuthSession *auth_session = signon_identity_create_session(idty,
+                                                                     "ssotest",
+                                                                     &err);
+
+    fail_unless (auth_session != NULL, "Cannot create AuthSession object");
+
+    g_clear_error(&err);
+
+    g_signal_connect(auth_session, "state-changed",
+                     G_CALLBACK(test_auth_session_states_cb), &state_counter);
+
+    g_variant_builder_init (&builder, G_VARIANT_TYPE_VARDICT);
+    g_variant_builder_add (&builder, "{sv}",
+                           SIGNON_SESSION_DATA_USERNAME,
+                           g_variant_new_string ("test_username"));
+    g_variant_builder_add (&builder, "{sv}",
+                           SIGNON_SESSION_DATA_SECRET,
+                           g_variant_new_string ("test_pw"));
+
+    session_data = g_variant_builder_end (&builder);
+
+    signon_auth_session_process_async (auth_session,
+                                       session_data,
+                                       "mech1",
+                                       NULL,
+                                       test_auth_session_process_async_cb,
+                                       &reply);
+    main_loop = g_main_loop_new (NULL, FALSE);
+    g_main_loop_run (main_loop);
+    fail_unless (state_counter == 12, "Wrong numer of state change signals: %d", state_counter);
+
+    fail_unless (reply != NULL);
+    session_data = NULL;
+
+    ok = g_variant_lookup (reply, SIGNON_SESSION_DATA_USERNAME, "&s", &username);
+    ck_assert (ok);
+    ck_assert_str_eq (username, "test_username");
+    ok = g_variant_lookup (reply, SIGNON_SESSION_DATA_REALM, "&s", &realm);
+    ck_assert (ok);
+    ck_assert_str_eq (realm, "testRealm_after_test");
+
+    g_variant_unref (reply);
+
+    g_object_unref (auth_session);
+    g_object_unref (idty);
+
+    end_test ();
+}
+END_TEST
+
+static void
 test_auth_session_process_failure_cb (GObject *source_object,
                                       GAsyncResult *res,
                                       gpointer user_data)
@@ -1460,6 +1540,7 @@ signon_suite(void)
     tcase_add_test (tc_core, test_auth_session_query_mechanisms);
     tcase_add_test (tc_core, test_auth_session_query_mechanisms_nonexisting);
     tcase_add_test (tc_core, test_auth_session_process);
+    tcase_add_test (tc_core, test_auth_session_process_async);
     tcase_add_test (tc_core, test_auth_session_process_failure);
     tcase_add_test (tc_core, test_auth_session_process_after_store);
     tcase_add_test (tc_core, test_store_credentials_identity);
