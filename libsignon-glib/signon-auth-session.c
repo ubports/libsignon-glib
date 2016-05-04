@@ -168,6 +168,7 @@ G_GNUC_BEGIN_IGNORE_DEPRECATIONS
      */
     g_simple_async_result_complete_in_idle (res_process);
 G_GNUC_END_IGNORE_DEPRECATIONS
+    g_object_unref (res_process);
     g_object_unref (self);
 }
 
@@ -188,6 +189,7 @@ G_GNUC_BEGIN_IGNORE_DEPRECATIONS
         DEBUG ("AuthSessionError: %s", error->message);
         g_simple_async_result_set_from_error (res, error);
         g_simple_async_result_complete (res);
+        g_object_unref (res);
         return;
     }
 
@@ -200,6 +202,7 @@ G_GNUC_BEGIN_IGNORE_DEPRECATIONS
                                          SIGNON_ERROR_SESSION_CANCELED,
                                          "Authentication session was canceled");
         g_simple_async_result_complete (res);
+        g_object_unref (res);
         return;
     }
 G_GNUC_END_IGNORE_DEPRECATIONS
@@ -254,7 +257,6 @@ process_async_cb_wrapper (GObject *object, GAsyncResult *res,
 
     g_slice_free (AuthSessionProcessCbData, cb_data);
     g_clear_error (&error);
-    g_object_unref (res);
 }
 
 static void

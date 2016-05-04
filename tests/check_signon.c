@@ -309,6 +309,7 @@ START_TEST(test_auth_session_query_mechanisms)
     g_main_loop_run (main_loop);
 
     g_free(patterns[0]);
+    g_object_unref(auth_session);
     g_object_unref(idty);
 
     end_test ();
@@ -366,6 +367,7 @@ START_TEST(test_auth_session_query_mechanisms_nonexisting)
     g_free(patterns[0]);
     g_free(patterns[1]);
     g_free(patterns[2]);
+    g_object_unref(auth_session);
     g_object_unref(idty);
 
     end_test ();
@@ -405,8 +407,6 @@ test_auth_session_process_cb (SignonAuthSession *self,
 
     fail_unless(g_strcmp0(g_value_get_string(usernameVa), "test_username") == 0, "Wrong value of username");
     fail_unless(g_strcmp0(g_value_get_string(realmVa), "testRealm_after_test") == 0, "Wrong value of realm");
-
-    g_hash_table_destroy(sessionData);
 
     g_free(usernameKey);
     g_free(realmKey);
@@ -528,6 +528,8 @@ START_TEST(test_auth_session_process)
     g_free(passwordVa);
     g_free(passwordKey);
 
+    g_hash_table_unref (sessionData);
+
     end_test ();
 }
 END_TEST
@@ -581,6 +583,7 @@ START_TEST(test_auth_session_process_failure)
     fail_unless (error->domain == SIGNON_ERROR);
     fail_unless (error->code == SIGNON_ERROR_METHOD_NOT_KNOWN);
 
+    g_error_free (error);
     g_object_unref (auth_session);
 
     end_test ();
@@ -610,7 +613,6 @@ test_auth_session_process_after_store_cb (SignonAuthSession *self,
     fail_unless (g_strcmp0 (g_value_get_string (v_username), "Nice user") == 0,
                  "Wrong value of username");
 
-    g_hash_table_unref (reply);
     g_object_unref (self);
 
     g_main_loop_quit (main_loop);
@@ -654,6 +656,7 @@ test_auth_session_process_after_store_start_session(SignonIdentity *self,
                                  "mech1",
                                  test_auth_session_process_after_store_cb,
                                  NULL);
+    g_hash_table_unref (session_data);
 }
 
 START_TEST(test_auth_session_process_after_store)
@@ -681,6 +684,7 @@ START_TEST(test_auth_session_process_after_store)
     g_main_loop_run (main_loop);
 
     g_object_unref (identity);
+    signon_identity_info_free (info);
 
     end_test ();
 }
@@ -722,6 +726,7 @@ static void new_identity_store_credentials_cb(SignonIdentity *self,
 
     *new_id = id;
 
+    g_object_unref (self);
     g_main_loop_quit (main_loop);
 }
 
@@ -1064,7 +1069,7 @@ static void identity_info_cb(SignonIdentity *self, const SignonIdentityInfo *inf
          fail_unless (_contains(mechs3, "mechanism3"));
      }
 
-     if (info)
+     if (info && pattern_ptr)
      {
          signon_identity_info_free (pattern);
          *pattern_ptr = signon_identity_info_copy (info);
@@ -1309,6 +1314,7 @@ START_TEST(test_unregistered_identity)
     signon_identity_query_info (idty, identity_info_cb, &info);
     g_main_loop_run (main_loop);
 
+    signon_identity_info_free (info);
     g_object_unref (idty);
     g_object_unref (idty2);
 
@@ -1425,6 +1431,7 @@ START_TEST(test_regression_unref)
                                  "mech1",
                                  test_regression_unref_process_cb,
                                  "Hi there!");
+    g_hash_table_unref (session_data);
     g_main_loop_run (main_loop);
 
     end_test ();
