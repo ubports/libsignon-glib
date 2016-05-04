@@ -93,7 +93,6 @@ typedef struct _AuthSessionProcessData
 {
     GVariant *session_data;
     gchar *mechanism;
-    GCancellable *cancellable;
 } AuthSessionProcessData;
 
 typedef struct _AuthSessionQueryAvailableMechanismsCbData
@@ -138,7 +137,7 @@ auth_session_process_reply (GObject *object, GAsyncResult *res,
 {
     SignonAuthSession *self;
     SsoAuthSession *proxy = SSO_AUTH_SESSION (object);
-    GSimpleAsyncResult *res_process = (GSimpleAsyncResult *)userdata;
+    GTask *res_process = userdata;
     GVariant *reply;
     GError *error = NULL;
 
@@ -146,30 +145,20 @@ auth_session_process_reply (GObject *object, GAsyncResult *res,
 
     sso_auth_session_call_process_finish (proxy, &reply, res, &error);
 
-G_GNUC_BEGIN_IGNORE_DEPRECATIONS
-    self = SIGNON_AUTH_SESSION (g_async_result_get_source_object (
-        (GAsyncResult *)res_process));
+    self = SIGNON_AUTH_SESSION (g_task_get_source_object (res_process));
     self->priv->busy = FALSE;
 
     if (G_LIKELY (error == NULL))
     {
-        g_simple_async_result_set_op_res_gpointer (res_process, reply,
-                                                   (GDestroyNotify)
-                                                   g_variant_unref);
+        g_task_return_pointer (res_process, reply,
+                               (GDestroyNotify) g_variant_unref);
     }
     else
     {
-        g_simple_async_result_take_error (res_process, error);
+        g_task_return_error (res_process, error);
     }
 
-    /* We use the idle variant in order to avoid the following critical
-     * message:
-     * g_main_context_pop_thread_default: assertion `g_queue_peek_head (stack) == context' failed
-     */
-    g_simple_async_result_complete_in_idle (res_process);
-G_GNUC_END_IGNORE_DEPRECATIONS
     g_object_unref (res_process);
-    g_object_unref (self);
 }
 
 static void
@@ -177,18 +166,16 @@ auth_session_process_ready_cb (gpointer object, const GError *error, gpointer us
 {
     SignonAuthSession *self = SIGNON_AUTH_SESSION (object);
     SignonAuthSessionPrivate *priv;
-    GSimpleAsyncResult *res = G_SIMPLE_ASYNC_RESULT (user_data);
+    GTask *res = G_TASK (user_data);
     AuthSessionProcessData *process_data;
 
     g_return_if_fail (self != NULL);
     priv = self->priv;
 
-G_GNUC_BEGIN_IGNORE_DEPRECATIONS
     if (error != NULL)
     {
         DEBUG ("AuthSessionError: %s", error->message);
-        g_simple_async_result_set_from_error (res, error);
-        g_simple_async_result_complete (res);
+        g_task_return_error (res, g_error_copy (error));
         g_object_unref (res);
         return;
     }
@@ -197,15 +184,13 @@ G_GNUC_BEGIN_IGNORE_DEPRECATIONS
     {
         priv->busy = FALSE;
         priv->canceled = FALSE;
-        g_simple_async_result_set_error (res,
-                                         signon_error_quark (),
-                                         SIGNON_ERROR_SESSION_CANCELED,
-                                         "Authentication session was canceled");
-        g_simple_async_result_complete (res);
+        g_task_return_new_error (res,
+                                 signon_error_quark (),
+                                 SIGNON_ERROR_SESSION_CANCELED,
+                                 "Authentication session was canceled");
         g_object_unref (res);
         return;
     }
-G_GNUC_END_IGNORE_DEPRECATIONS
 
     process_data = g_object_get_data ((GObject *)res, data_key_process);
     g_return_if_fail (process_data != NULL);
@@ -213,7 +198,7 @@ G_GNUC_END_IGNORE_DEPRECATIONS
     sso_auth_session_call_process (priv->proxy,
                                    process_data->session_data,
                                    process_data->mechanism,
-                                   process_data->cancellable,
+                                   g_task_get_cancellable (res),
                                    auth_session_process_reply,
                                    res);
 
@@ -591,23 +576,18 @@ signon_auth_session_process_async (SignonAuthSession *self,
 {
     SignonAuthSessionPrivate *priv;
     AuthSessionProcessData *process_data;
-    GSimpleAsyncResult *res;
+    GTask *res;
 
     g_return_if_fail (SIGNON_IS_AUTH_SESSION (self));
     priv = self->priv;
 
     g_return_if_fail (session_data != NULL);
 
-G_GNUC_BEGIN_IGNORE_DEPRECATIONS
-    res = g_simple_async_result_new ((GObject *)self, callback, user_data,
-                                     signon_auth_session_process_async);
-    g_simple_async_result_set_check_cancellable (res, cancellable);
-G_GNUC_END_IGNORE_DEPRECATIONS
+    res = g_task_new (self, cancellable, callback, user_data);
 
     process_data = g_slice_new0 (AuthSessionProcessData);
     process_data->session_data = g_variant_ref_sink (session_data);
     process_data->mechanism = g_strdup (mechanism);
-    process_data->cancellable = cancellable;
     g_object_set_data_full ((GObject *)res, data_key_process, process_data,
                             (GDestroyNotify)auth_session_process_data_free);
 
@@ -638,19 +618,12 @@ GVariant *
 signon_auth_session_process_finish (SignonAuthSession *self, GAsyncResult *res,
                                     GError **error)
 {
-    GSimpleAsyncResult *async_result;
-    GVariant *reply;
+    GTask *task;
 
     g_return_val_if_fail (SIGNON_IS_AUTH_SESSION (self), NULL);
 
-    async_result = (GSimpleAsyncResult *)res;
-G_GNUC_BEGIN_IGNORE_DEPRECATIONS
-    if (g_simple_async_result_propagate_error (async_result, error))
-        return NULL;
-
-    reply = g_simple_async_result_get_op_res_gpointer (async_result);
-G_GNUC_END_IGNORE_DEPRECATIONS
-    return g_variant_ref (reply);
+    task = G_TASK (res);
+    return g_task_propagate_pointer (task, error);
 }
 
 /**
