@@ -5,6 +5,7 @@ dist_check_SCRIPTS = signon-glib-test.sh
 
 signon_glib_testsuite_SOURCES = check_signon.c
 signon_glib_testsuite_CPPFLAGS = \
+	-I$(top_builddir) \
 	-I$(top_srcdir) \
 	$(DEPS_CFLAGS) \
 	$(CHECK_FLAGS)
@@ -13,5 +14,8 @@ signon_glib_testsuite_LDADD = \
 	$(CHECK_LIBS) \
 	$(DEPS_LIBS) \
 	-lpthread
+
+TESTS_ENVIRONMENT = \
+	TESTDIR=$(top_srcdir)/tests/; export TESTDIR;
 
 TESTS = signon-glib-test.sh

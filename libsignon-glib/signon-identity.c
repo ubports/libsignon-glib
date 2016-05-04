@@ -1202,7 +1202,7 @@ identity_info_ready_cb(gpointer object, const GError *error, gpointer user_data)
         }
     }
 
-    if (priv->updated == TRUE)
+    if (priv->updated || priv->removed)
         g_slice_free (IdentityInfoCbData, cb_data);
 
     g_slice_free (IdentityVoidData, operation_data);

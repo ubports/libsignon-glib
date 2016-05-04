@@ -25,7 +25,7 @@ GOBJECT_INTROSPECTION_CHECK([1.30.0])
 
 PKG_CHECK_MODULES(
     [DEPS],
-    [gio-2.0 >= 2.30
+    [gio-2.0 >= 2.36
      gio-unix-2.0
      glib-2.0 >= 2.32
      gobject-2.0 >= 2.35.1
