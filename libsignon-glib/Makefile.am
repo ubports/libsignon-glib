@@ -75,8 +75,7 @@ libsignon_glib_headers_with_enums = \
 	signon-auth-session.h \
 	signon-identity-info.h
 
-# This should come from `pkg-config --variable=interfaces_dir dbus-1`
-DBUS_INTERFACES_DIR = /usr/share/dbus-1/interfaces
+DBUS_INTERFACES_DIR = $(datadir)/dbus-1/interfaces
 
 sso-auth-service-gen.h sso-auth-service-gen.c: $(DBUS_INTERFACES_DIR)/com.google.code.AccountsSSO.SingleSignOn.AuthService.xml
 	$(AM_V_GEN)gdbus-codegen \
