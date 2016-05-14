@@ -144,9 +144,9 @@ signon-errors-enum.c: Makefile signon-errors.h
 	    --vtail "      { 0, NULL, NULL }\n    };\n    etype = g_@type@_register_static (g_intern_static_string (\"@EnumName@\"), values);\n  }\n  return etype;\n}\n" \
 	    signon-errors.h ) | \
 	    $(SED) -e 's/SEDSIGNON_ERROR_\([^,]*\)/SIGNOND_\1_ERR_NAME/' \
-	    > xgen-getc \
-	    && cp xgen-getc signon-errors-enum.c  \
-	    && rm -f xgen-getc
+	    > xgen-getc-enum \
+	    && cp xgen-getc-enum signon-errors-enum.c  \
+	    && rm -f xgen-getc-enum
 
 signon-errors-map.c: Makefile signon-errors.h
 	$(AM_V_GEN)( cd $(srcdir) && \
