@@ -12,6 +12,8 @@ if ENABLE_TESTS
 SUBDIRS += tests
 endif
 
+include $(top_srcdir)/Makefile.am.coverage
+
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_in_files = libsignon-glib.pc.in
 pkgconfig_DATA = $(pkgconfig_in_files:.pc.in=.pc)

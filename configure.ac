@@ -51,6 +51,13 @@ AS_IF([test "x$have_check" = "xyes"],
   [AS_IF([test "x$enable_tests" = "xyes"],
     [AC_MSG_ERROR([tests enabled but required dependencies were not found])])])
 
+# gcov coverage reporting
+m4_include([m4/gcov.m4])
+AC_TDD_GCOV
+AC_SUBST(COVERAGE_CFLAGS)
+AC_SUBST(COVERAGE_CXXFLAGS)
+AC_SUBST(COVERAGE_LDFLAGS)
+
 AM_CONDITIONAL([ENABLE_TESTS], [test "x$have_check" = "xyes"])
 
 GTK_DOC_CHECK([1.14], [--flavour no-tmpl])
@@ -74,11 +81,6 @@ AC_ARG_ENABLE([debug],
     [AS_HELP_STRING([--enable-debug], [enable printing of debug messages])])
 AS_IF([test "x$enable_debug" = "xyes"],
     [CFLAGS="$CFLAGS -DENABLE_DEBUG"])
-
-AC_ARG_ENABLE([coverage],
-    [AS_HELP_STRING([--enable-coverage], [compile with coverage info])])
-AS_IF([test "x$enable_coverage" = "xyes"],
-    [CFLAGS="$CFLAGS -g -fprofile-arcs -ftest-coverage"])
 
 # Python support.
 PYGOBJECT_REQUIRED=2.90

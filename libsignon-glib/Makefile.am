@@ -5,11 +5,14 @@ libsignon_glib_la_CPPFLAGS = \
 	-I$(top_srcdir) \
 	-I$(srcdir) \
 	-I$(top_builddir) \
-	-I$(builddir) \
+	-I$(builddir)
+libsignon_glib_la_CFLAGS = \
 	$(DEPS_CFLAGS) \
+	$(COVERAGE_CFLAGS) \
 	-Wall -Werror -Wno-error=deprecated-declarations
 libsignon_glib_la_LIBADD = $(DEPS_LIBS)
 libsignon_glib_la_LDFLAGS = \
+	$(COVERAGE_LDFLAGS) \
 	-version-info 1:0:0 \
 	-export-symbols-regex '^signon_'
 
