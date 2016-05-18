@@ -419,8 +419,6 @@ signon_auth_session_set_id(SignonAuthSession* self,
 {
     g_return_if_fail (SIGNON_IS_AUTH_SESSION (self));
 
-    SignonAuthSessionPrivate *priv = self->priv;
-    g_return_if_fail (priv != NULL);
     g_return_if_fail (id >= 0);
 
     auth_session_check_remote_object(self);
@@ -477,9 +475,6 @@ signon_auth_session_query_available_mechanisms (SignonAuthSession *self,
                                                 gpointer user_data)
 {
     g_return_if_fail (SIGNON_IS_AUTH_SESSION (self));
-    SignonAuthSessionPrivate* priv = self->priv;
-
-    g_return_if_fail (priv != NULL);
 
     AuthSessionQueryAvailableMechanismsCbData *cb_data = g_slice_new0 (AuthSessionQueryAvailableMechanismsCbData);
     cb_data->self = self;

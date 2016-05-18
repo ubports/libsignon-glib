@@ -949,9 +949,6 @@ identity_verify_data(SignonIdentity *self,
 {
     g_return_if_fail (SIGNON_IS_IDENTITY (self));
 
-    SignonIdentityPrivate *priv = self->priv;
-    g_return_if_fail (priv != NULL);
-
     DEBUG ("%s %d", G_STRFUNC, __LINE__);
 
     IdentityVerifyCbData *cb_data = g_slice_new0 (IdentityVerifyCbData);
@@ -1308,9 +1305,6 @@ identity_void_operation(SignonIdentity *self,
 {
     g_return_if_fail (SIGNON_IS_IDENTITY (self));
 
-    SignonIdentityPrivate *priv = self->priv;
-    g_return_if_fail (priv != NULL);
-
     DEBUG ("%s %d", G_STRFUNC, __LINE__);
 
     IdentityVoidData *operation_data = g_slice_new0 (IdentityVoidData);
@@ -1334,9 +1328,6 @@ void signon_identity_remove(SignonIdentity *self,
                            gpointer user_data)
 {
     g_return_if_fail (SIGNON_IS_IDENTITY (self));
-
-    SignonIdentityPrivate *priv = self->priv;
-    g_return_if_fail (priv != NULL);
 
     IdentityVoidCbData *cb_data = g_slice_new0 (IdentityVoidCbData);
     cb_data->self = self;
@@ -1368,9 +1359,6 @@ void signon_identity_signout(SignonIdentity *self,
 {
     g_return_if_fail (SIGNON_IS_IDENTITY (self));
 
-    SignonIdentityPrivate *priv = self->priv;
-    g_return_if_fail (priv != NULL);
-
     IdentityVoidCbData *cb_data = g_slice_new0 (IdentityVoidCbData);
     cb_data->self = self;
     cb_data->cb = (SignonIdentityVoidCb)cb;
@@ -1399,9 +1387,6 @@ void signon_identity_add_reference(SignonIdentity *self,
 {
     g_return_if_fail (SIGNON_IS_IDENTITY (self));
 
-    SignonIdentityPrivate *priv = self->priv;
-    g_return_if_fail (priv != NULL);
-
     //TODO implement
 
     if (cb)
@@ -1424,9 +1409,6 @@ void signon_identity_remove_reference(SignonIdentity *self,
 {
     g_return_if_fail (SIGNON_IS_IDENTITY (self));
 
-    SignonIdentityPrivate *priv = self->priv;
-    g_return_if_fail (priv != NULL);
-
     //TODO implement
 
     if (cb)
@@ -1447,9 +1429,6 @@ void signon_identity_query_info(SignonIdentity *self,
                                 gpointer user_data)
 {
     g_return_if_fail (SIGNON_IS_IDENTITY (self));
-
-    SignonIdentityPrivate *priv = self->priv;
-    g_return_if_fail (priv != NULL);
 
     IdentityInfoCbData *cb_data = g_slice_new0 (IdentityInfoCbData);
     cb_data->self = self;
