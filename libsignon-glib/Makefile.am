@@ -191,6 +191,7 @@ Signon_1_0_gir_SCANNERFLAGS = \
 	--warn-all
 Signon_1_0_gir_CFLAGS = \
 	-I$(top_srcdir) \
+	-I$(top_builddir) \
 	$(DEPS_CFLAGS)
 Signon_1_0_gir_LIBS = libsignon-glib.la
 Signon_1_0_gir_FILES = $(introspection_sources)
