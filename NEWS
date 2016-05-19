@@ -1,5 +1,16 @@
 libsignon-glib NEWS
 
+Version 1.14
+------------
+
+* Migrate to GTask
+* Fix memory leaks reported by valgrind
+* Enable CI in gitlab.com
+* Build: add test coverage reporting
+* Build: fix parallel builds and out-of-tree builds
+* Tests: add a test for signon_auth_session_process_async()
+* Tests: allow running tests with valgrind
+
 Version 1.13
 ------------
 
