@@ -1,5 +1,15 @@
 libsignon-glib NEWS
 
+Version 1.13
+------------
+
+* Build: don't emit a build error on deprecations
+* Build: ignore deprecations of GSimpleAsyncResult
+* pkg-config: remove unused variable
+  Fixes: https://gitlab.com/accounts-sso/libsignon-glib/issues/1
+* Tests: do not count on mechanisms being ordered
+* Introspection: mark ACL and realms as string lists, update Vala bindings
+
 Version 1.12
 ------------
 
