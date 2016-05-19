@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 AC_PREREQ([2.64])
 AC_INIT([libsignon-glib],
-        [1.13],
+        [1.14],
         [https://gitlab.com/accounts-sso/libsignon-glib/issues],
         [libsignon-glib],
         [https://gitlab.com/accounts-sso/libsignon-glib])
@@ -11,7 +11,7 @@ AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_SRCDIR([libsignon-glib.pc.in])
 AC_CONFIG_MACRO_DIR([m4])
 
-AM_INIT_AUTOMAKE([1.11 -Wall check-news nostdinc silent-rules subdir-objects])
+AM_INIT_AUTOMAKE([1.11 -Wall check-news nostdinc silent-rules subdir-objects foreign])
 
 AC_PROG_CC
 AC_PROG_CC_STDC
@@ -51,6 +51,13 @@ AS_IF([test "x$have_check" = "xyes"],
   [AS_IF([test "x$enable_tests" = "xyes"],
     [AC_MSG_ERROR([tests enabled but required dependencies were not found])])])
 
+# gcov coverage reporting
+m4_include([m4/gcov.m4])
+AC_TDD_GCOV
+AC_SUBST(COVERAGE_CFLAGS)
+AC_SUBST(COVERAGE_CXXFLAGS)
+AC_SUBST(COVERAGE_LDFLAGS)
+
 AM_CONDITIONAL([ENABLE_TESTS], [test "x$have_check" = "xyes"])
 
 GTK_DOC_CHECK([1.14], [--flavour no-tmpl])
@@ -74,11 +81,6 @@ AC_ARG_ENABLE([debug],
     [AS_HELP_STRING([--enable-debug], [enable printing of debug messages])])
 AS_IF([test "x$enable_debug" = "xyes"],
     [CFLAGS="$CFLAGS -DENABLE_DEBUG"])
-
-AC_ARG_ENABLE([coverage],
-    [AS_HELP_STRING([--enable-coverage], [compile with coverage info])])
-AS_IF([test "x$enable_coverage" = "xyes"],
-    [CFLAGS="$CFLAGS -g -fprofile-arcs -ftest-coverage"])
 
 # Python support.
 PYGOBJECT_REQUIRED=2.90
