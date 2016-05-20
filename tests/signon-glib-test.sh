@@ -10,9 +10,16 @@ export SSO_EXTENSIONS_DIR="/tmp" # this disables all extensions
 
 #Environment variables for the test application
 export G_MESSAGES_DEBUG=all
-export G_SLICE=debug-blocks
+# If running the test executable under a wrapper, setup the tests so that the
+# wrapper can debug them more easily.
+if [ -n "$WRAPPER" ]; then
+    export G_SLICE=always-malloc
+    export CK_FORK="no"
+else
+    export G_SLICE=debug-blocks
+fi
 
-TEST_APP=./signon-glib-testsuite
+TEST_APP="$TESTDIR/signon-glib-test-wrapper.sh"
 
 # If dbus-test-runner exists, use it to run the tests in a separate D-Bus
 # session

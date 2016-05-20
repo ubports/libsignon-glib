@@ -27,7 +27,7 @@
 
 #include <glib.h>
 #include <glib-object.h>
-#include "signon-enum-types.h"
+#include <libsignon-glib/signon-enum-types.h>
 
 #define SIGNON_ERROR (signon_error_quark())
 

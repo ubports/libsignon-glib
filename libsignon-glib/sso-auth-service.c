@@ -51,6 +51,13 @@ get_singleton ()
 }
 
 static void
+weak_ref_free(GWeakRef *ref)
+{
+    g_weak_ref_clear (ref);
+    g_slice_free (GWeakRef, ref);
+}
+
+static void
 set_singleton (SsoAuthService *object)
 {
     g_return_if_fail (IS_SSO_AUTH_SERVICE (object));
@@ -59,7 +66,8 @@ set_singleton (SsoAuthService *object)
 
     if (thread_objects == NULL)
     {
-        thread_objects = g_hash_table_new (g_direct_hash, g_direct_equal);
+        thread_objects = g_hash_table_new_full (g_direct_hash, g_direct_equal,
+                                                NULL, (GDestroyNotify) weak_ref_free);
     }
 
     if (object != NULL)

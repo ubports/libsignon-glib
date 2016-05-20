@@ -5,11 +5,14 @@ libsignon_glib_la_CPPFLAGS = \
 	-I$(top_srcdir) \
 	-I$(srcdir) \
 	-I$(top_builddir) \
-	-I$(builddir) \
+	-I$(builddir)
+libsignon_glib_la_CFLAGS = \
 	$(DEPS_CFLAGS) \
+	$(COVERAGE_CFLAGS) \
 	-Wall -Werror -Wno-error=deprecated-declarations
 libsignon_glib_la_LIBADD = $(DEPS_LIBS)
 libsignon_glib_la_LDFLAGS = \
+	$(COVERAGE_LDFLAGS) \
 	-version-info 1:0:0 \
 	-export-symbols-regex '^signon_'
 
@@ -75,8 +78,7 @@ libsignon_glib_headers_with_enums = \
 	signon-auth-session.h \
 	signon-identity-info.h
 
-# This should come from `pkg-config --variable=interfaces_dir dbus-1`
-DBUS_INTERFACES_DIR = /usr/share/dbus-1/interfaces
+DBUS_INTERFACES_DIR = $(datadir)/dbus-1/interfaces
 
 sso-auth-service-gen.h sso-auth-service-gen.c: $(DBUS_INTERFACES_DIR)/com.google.code.AccountsSSO.SingleSignOn.AuthService.xml
 	$(AM_V_GEN)gdbus-codegen \
@@ -145,9 +147,9 @@ signon-errors-enum.c: Makefile signon-errors.h
 	    --vtail "      { 0, NULL, NULL }\n    };\n    etype = g_@type@_register_static (g_intern_static_string (\"@EnumName@\"), values);\n  }\n  return etype;\n}\n" \
 	    signon-errors.h ) | \
 	    $(SED) -e 's/SEDSIGNON_ERROR_\([^,]*\)/SIGNOND_\1_ERR_NAME/' \
-	    > xgen-getc \
-	    && cp xgen-getc signon-errors-enum.c  \
-	    && rm -f xgen-getc
+	    > xgen-getc-enum \
+	    && cp xgen-getc-enum signon-errors-enum.c  \
+	    && rm -f xgen-getc-enum
 
 signon-errors-map.c: Makefile signon-errors.h
 	$(AM_V_GEN)( cd $(srcdir) && \
@@ -189,6 +191,7 @@ Signon_1_0_gir_SCANNERFLAGS = \
 	--warn-all
 Signon_1_0_gir_CFLAGS = \
 	-I$(top_srcdir) \
+	-I$(top_builddir) \
 	$(DEPS_CFLAGS)
 Signon_1_0_gir_LIBS = libsignon-glib.la
 Signon_1_0_gir_FILES = $(introspection_sources)

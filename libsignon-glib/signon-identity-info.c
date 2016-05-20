@@ -144,6 +144,7 @@ signon_identity_info_new_from_variant (GVariant *variant)
         {
             g_hash_table_insert (info->methods, method, mechanisms);
         }
+        g_variant_unref (method_map);
     }
 
     g_variant_lookup (variant,

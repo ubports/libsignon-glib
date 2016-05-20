@@ -106,7 +106,7 @@ GVariant *signon_hash_table_to_variant (const GHashTable *hash_table)
 
         if (G_VALUE_TYPE (value) == G_TYPE_VARIANT)
         {
-            val = g_value_get_variant (value);
+            val = g_value_dup_variant (value);
         }
         else
         {
@@ -115,6 +115,7 @@ GVariant *signon_hash_table_to_variant (const GHashTable *hash_table)
             val = g_dbus_gvalue_to_gvariant (value, type);
         }
         g_variant_builder_add (&builder, "{sv}", key, val);
+        g_variant_unref (val);
     }
     return g_variant_builder_end (&builder);
 }
