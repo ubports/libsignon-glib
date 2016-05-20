@@ -1,5 +1,6 @@
-libsignon-glib (1.14-0ubuntu1) UNRELEASED; urgency=medium
+libsignon-glib (1.14+16.10.20160520.1-0ubuntu1) yakkety; urgency=medium
 
+  [ Alberto Mardegan ]
   * New upstream release.
     - Migrate to GTask (LP: #1577373)
     - Fix memory leaks reported by valgrind
@@ -9,7 +10,10 @@ libsignon-glib (1.14-0ubuntu1) UNRELEASED; urgency=medium
     - Tests: add a test for signon_auth_session_process_async()
     - Tests: allow running tests with valgrind
 
- -- Alberto Mardegan <alberto.mardegan@canonical.com>  Thu, 19 May 2016 18:28:23 +0300
+  [ CI Train Bot ]
+  * No-change rebuild.
+
+ -- David Barth <david.barth@canonical.com>  Fri, 20 May 2016 12:15:54 +0000
 
 libsignon-glib (1.13+16.04.20151209.1-0ubuntu1) xenial; urgency=medium
 
