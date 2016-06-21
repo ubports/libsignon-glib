@@ -44,29 +44,29 @@ signon_proxy_default_init (SignonProxyInterface *iface)
 }
 
 static GQuark
-_signon_object_ready_quark()
+_signon_proxy_ready_quark()
 {
   static GQuark quark = 0;
 
   if (!quark)
-    quark = g_quark_from_static_string ("signon_object_ready_quark");
+    quark = g_quark_from_static_string ("signon_proxy_ready_quark");
 
   return quark;
 }
 
 static GQuark
-_signon_object_error_quark()
+_signon_proxy_error_quark()
 {
   static GQuark quark = 0;
 
   if (!quark)
-    quark = g_quark_from_static_string ("signon_object_error_quark");
+    quark = g_quark_from_static_string ("signon_proxy_error_quark");
 
   return quark;
 }
 
 static void
-signon_object_invoke_ready_callbacks (SignonReadyData *rd, const GError *error)
+signon_proxy_invoke_ready_callbacks (SignonReadyData *rd, const GError *error)
 {
     GSList *list;
 
@@ -87,7 +87,7 @@ signon_ready_data_free (SignonReadyData *rd)
     {
         //TODO: Signon error codes need be presented instead of 555 and 666
         GError error = { 555, 666, "Object disposed" };
-        signon_object_invoke_ready_callbacks (rd, &error);
+        signon_proxy_invoke_ready_callbacks (rd, &error);
     }
     g_slice_free (SignonReadyData, rd);
 }
@@ -118,11 +118,11 @@ signon_proxy_call_when_ready (gpointer object, GQuark quark, SignonReadyCb callb
     g_return_if_fail (callback != NULL);
 
     if (GPOINTER_TO_INT (g_object_get_qdata((GObject *)object,
-                           _signon_object_ready_quark())) == TRUE)
+                           _signon_proxy_ready_quark())) == TRUE)
     {
         //TODO: specify the last error in object initialization
         GError * err = g_object_get_qdata((GObject *)object,
-                                          _signon_object_error_quark());
+                                          _signon_proxy_error_quark());
         return (*callback)(object, err, user_data);
     }
 
@@ -150,10 +150,10 @@ signon_proxy_set_ready (gpointer object, GQuark quark, GError *error)
 
     g_return_if_fail (SIGNON_IS_PROXY (object));
 
-    g_object_set_qdata((GObject *)object, _signon_object_ready_quark(), GINT_TO_POINTER(TRUE));
+    g_object_set_qdata((GObject *)object, _signon_proxy_ready_quark(), GINT_TO_POINTER(TRUE));
 
     if(error)
-        g_object_set_qdata_full ((GObject *)object, _signon_object_error_quark(),
+        g_object_set_qdata_full ((GObject *)object, _signon_proxy_error_quark(),
                                  error,
                                  (GDestroyNotify)g_error_free);
 
@@ -165,7 +165,7 @@ signon_proxy_set_ready (gpointer object, GQuark quark, GError *error)
 
     g_object_ref (object);
 
-    signon_object_invoke_ready_callbacks (rd, error);
+    signon_proxy_invoke_ready_callbacks (rd, error);
     rd->self = NULL; /* so the callbacks won't be invoked again */
     signon_ready_data_free (rd);
 
@@ -180,11 +180,11 @@ signon_proxy_set_not_ready (gpointer object)
     g_return_if_fail (SIGNON_IS_PROXY (object));
 
     g_object_set_qdata ((GObject *)object,
-                        _signon_object_ready_quark(),
+                        _signon_proxy_ready_quark(),
                         GINT_TO_POINTER(FALSE));
 
     g_object_set_qdata ((GObject *)object,
-                        _signon_object_error_quark(),
+                        _signon_proxy_error_quark(),
                         NULL);
 }
 
@@ -194,5 +194,5 @@ signon_proxy_get_last_error (gpointer object)
     g_return_val_if_fail (SIGNON_IS_PROXY (object), NULL);
 
     return g_object_get_qdata((GObject *)object,
-                              _signon_object_error_quark());
+                              _signon_proxy_error_quark());
 }
