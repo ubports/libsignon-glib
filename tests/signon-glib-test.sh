@@ -3,9 +3,9 @@
 # Environment variables for the signon daemon
 export SSO_LOGGING_LEVEL=2
 export SSO_STORAGE_PATH="/tmp"
-export SSO_DAEMON_TIMEOUT=5
-export SSO_IDENTITY_TIMEOUT=5
-export SSO_AUTHSESSION_TIMEOUT=5
+export SSO_DAEMON_TIMEOUT=1
+export SSO_IDENTITY_TIMEOUT=3
+export SSO_AUTHSESSION_TIMEOUT=3
 export SSO_EXTENSIONS_DIR="/tmp" # this disables all extensions
 
 #Environment variables for the test application
@@ -25,7 +25,8 @@ TEST_APP="$TESTDIR/signon-glib-test-wrapper.sh"
 # session
 if command -v dbus-test-runner > /dev/null ; then
     echo "Using dbus-test-runner"
-    dbus-test-runner -m 180 -t signond -r \
+    dbus-test-runner -m 180 --keep-env \
+        -t signond -r \
         -t "$TEST_APP" -f com.google.code.AccountsSSO.SingleSignOn
 else
     echo "Using existing D-Bus session"
