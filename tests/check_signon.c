@@ -1396,7 +1396,7 @@ START_TEST(test_unregistered_identity)
     /*
      * give time to handle unregistered signal
      * */
-    run_main_loop_for_n_seconds(5);
+    //run_main_loop_for_n_seconds(5);
 
     signon_identity_query_info (idty, identity_info_cb, &info);
     g_main_loop_run (main_loop);
@@ -1411,6 +1411,12 @@ END_TEST
 
 START_TEST(test_unregistered_auth_session)
 {
+    GVariantBuilder builder;
+    GVariant *session_data;
+    GVariant *reply = NULL;
+    gchar *username;
+    gboolean ok;
+
     g_debug("%s", G_STRFUNC);
     SignonIdentity *idty = signon_identity_new();
     fail_unless (idty != NULL);
@@ -1432,8 +1438,32 @@ START_TEST(test_unregistered_auth_session)
     sleep(SIGNOND_IDLE_TIMEOUT);
     SignonIdentity *idty2 = signon_identity_new();
 
+    g_variant_builder_init (&builder, G_VARIANT_TYPE_VARDICT);
+    g_variant_builder_add (&builder, "{sv}",
+                           SIGNON_SESSION_DATA_USERNAME,
+                           g_variant_new_string ("test_username"));
+    g_variant_builder_add (&builder, "{sv}",
+                           SIGNON_SESSION_DATA_SECRET,
+                           g_variant_new_string ("test_pw"));
+
+    session_data = g_variant_builder_end (&builder);
+
+    signon_auth_session_process_async (as,
+                                       session_data,
+                                       "mech1",
+                                       NULL,
+                                       test_auth_session_process_async_cb,
+                                       &reply);
     g_main_loop_run (main_loop);
 
+    fail_unless (reply != NULL);
+    session_data = NULL;
+
+    ok = g_variant_lookup (reply, SIGNON_SESSION_DATA_USERNAME, "&s", &username);
+    ck_assert (ok);
+    ck_assert_str_eq (username, "test_username");
+
+    g_variant_unref (reply);
 
     gchar* patterns[4];
     patterns[0] = g_strdup("mech1");
@@ -1455,6 +1485,8 @@ START_TEST(test_unregistered_auth_session)
     g_free (patterns[1]);
     g_free (patterns[2]);
     g_free (patterns[3]);
+
+    end_test ();
 }
 END_TEST
 
