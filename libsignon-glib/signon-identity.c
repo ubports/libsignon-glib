@@ -34,7 +34,7 @@
 #include "signon-identity.h"
 #include "signon-auth-session.h"
 #include "signon-internals.h"
-#include "signon-dbus-queue.h"
+#include "signon-proxy.h"
 #include "signon-utils.h"
 #include "signon-errors.h"
 #include "sso-auth-service.h"

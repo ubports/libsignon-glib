@@ -40,9 +40,9 @@
 
 #include "signon-internals.h"
 #include "signon-auth-session.h"
-#include "signon-dbus-queue.h"
 #include "signon-errors.h"
 #include "signon-marshal.h"
+#include "signon-proxy.h"
 #include "signon-utils.h"
 #include "sso-auth-service.h"
 #include "sso-auth-session-gen.h"

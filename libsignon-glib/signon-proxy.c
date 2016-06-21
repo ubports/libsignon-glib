@@ -22,7 +22,7 @@
  * 02110-1301 USA
  */
 
-#include "signon-dbus-queue.h"
+#include "signon-proxy.h"
 
 typedef struct {
     SignonReadyCb callback;
