@@ -23,6 +23,9 @@
  */
 
 #include "signon-proxy.h"
+#include "signon-internals.h"
+
+G_DEFINE_INTERFACE (SignonProxy, signon_proxy, G_TYPE_OBJECT)
 
 typedef struct {
     SignonReadyCb callback;
@@ -33,6 +36,12 @@ typedef struct {
     gpointer self;
     GSList *callbacks;
 } SignonReadyData;
+
+static void
+signon_proxy_default_init (SignonProxyInterface *iface)
+{
+    /* add properties and signals to the interface here */
+}
 
 static GQuark
 _signon_object_ready_quark()
@@ -84,13 +93,27 @@ signon_ready_data_free (SignonReadyData *rd)
 }
 
 void
-_signon_object_call_when_ready (gpointer object, GQuark quark, SignonReadyCb callback,
-                                gpointer user_data)
+signon_proxy_setup (gpointer self)
+{
+    SignonProxyInterface *iface;
+
+    g_return_if_fail (SIGNON_IS_PROXY (self));
+
+    iface = SIGNON_PROXY_GET_IFACE (self);
+    if (iface->setup != NULL)
+    {
+        iface->setup (self);
+    }
+}
+
+void
+signon_proxy_call_when_ready (gpointer object, GQuark quark, SignonReadyCb callback,
+                              gpointer user_data)
 {
     SignonReadyData *rd;
     SignonReadyCbData *cb;
 
-    g_return_if_fail (G_IS_OBJECT (object));
+    g_return_if_fail (SIGNON_IS_PROXY (object));
     g_return_if_fail (quark != 0);
     g_return_if_fail (callback != NULL);
 
@@ -121,9 +144,11 @@ _signon_object_call_when_ready (gpointer object, GQuark quark, SignonReadyCb cal
 }
 
 void
-_signon_object_ready (gpointer object, GQuark quark, GError *error)
+signon_proxy_set_ready (gpointer object, GQuark quark, GError *error)
 {
     SignonReadyData *rd;
+
+    g_return_if_fail (SIGNON_IS_PROXY (object));
 
     g_object_set_qdata((GObject *)object, _signon_object_ready_quark(), GINT_TO_POINTER(TRUE));
 
@@ -150,8 +175,10 @@ _signon_object_ready (gpointer object, GQuark quark, GError *error)
 }
 
 void
-_signon_object_not_ready (gpointer object)
+signon_proxy_set_not_ready (gpointer object)
 {
+    g_return_if_fail (SIGNON_IS_PROXY (object));
+
     g_object_set_qdata ((GObject *)object,
                         _signon_object_ready_quark(),
                         GINT_TO_POINTER(FALSE));
@@ -162,8 +189,10 @@ _signon_object_not_ready (gpointer object)
 }
 
 const GError *
-_signon_object_last_error (gpointer object)
+signon_proxy_get_last_error (gpointer object)
 {
+    g_return_val_if_fail (SIGNON_IS_PROXY (object), NULL);
+
     return g_object_get_qdata((GObject *)object,
                               _signon_object_error_quark());
 }

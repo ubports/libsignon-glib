@@ -40,7 +40,11 @@
 #include "sso-auth-service.h"
 #include "sso-identity-gen.h"
 
-G_DEFINE_TYPE (SignonIdentity, signon_identity, G_TYPE_OBJECT);
+static void signon_identity_proxy_if_init (SignonProxyInterface *iface);
+
+G_DEFINE_TYPE_WITH_CODE (SignonIdentity, signon_identity, G_TYPE_OBJECT,
+                         G_IMPLEMENT_INTERFACE (SIGNON_TYPE_PROXY,
+                                                signon_identity_proxy_if_init))
 
 enum
 {
@@ -173,6 +177,12 @@ identity_object_quark ()
     quark = g_quark_from_static_string ("identity_object_quark");
 
   return quark;
+}
+
+static void
+signon_identity_proxy_if_init (SignonProxyInterface *iface)
+{
+    iface->setup = NULL;
 }
 
 static void
@@ -359,7 +369,7 @@ identity_remote_object_destroyed_cb(GDBusProxy *proxy,
 
     DEBUG ("%s %d", G_STRFUNC, __LINE__);
 
-    _signon_object_not_ready(self);
+    signon_proxy_set_not_ready (self);
 
     priv->registration_state = NOT_REGISTERED;
 
@@ -449,7 +459,7 @@ identity_registered (SignonIdentity *identity,
      * TODO: if we will add a new state for identity: "INVALID"
      * consider emission of another error, like "invalid"
      * */
-    _signon_object_ready (identity, identity_object_quark (), error);
+    signon_proxy_set_ready (identity, identity_object_quark (), error);
 
     /*
      * as the registration failed we do not
@@ -470,7 +480,7 @@ const GError *
 signon_identity_get_last_error (SignonIdentity *identity)
 {
     g_return_val_if_fail (SIGNON_IS_IDENTITY (identity), NULL);
-    return _signon_object_last_error(identity);
+    return signon_proxy_get_last_error (identity);
 }
 
 static void
@@ -708,10 +718,10 @@ signon_identity_store_credentials_with_info(SignonIdentity *self,
     operation_data->cb_data = cb_data;
 
     identity_check_remote_registration (self);
-    _signon_object_call_when_ready (self,
-                                    identity_object_quark(),
-                                    identity_store_credentials_ready_cb,
-                                    operation_data);
+    signon_proxy_call_when_ready (self,
+                                  identity_object_quark(),
+                                  identity_store_credentials_ready_cb,
+                                  operation_data);
 }
 
 /**
@@ -964,10 +974,10 @@ identity_verify_data(SignonIdentity *self,
     operation_data->cb_data = cb_data;
 
     identity_check_remote_registration (self);
-    _signon_object_call_when_ready (self,
-                                    identity_object_quark(),
-                                    identity_verify_ready_cb,
-                                    operation_data);
+    signon_proxy_call_when_ready (self,
+                                  identity_object_quark(),
+                                  identity_verify_ready_cb,
+                                  operation_data);
 }
 
 /**
@@ -1309,10 +1319,10 @@ identity_void_operation(SignonIdentity *self,
 
     IdentityVoidData *operation_data = g_slice_new0 (IdentityVoidData);
     operation_data->cb_data = cb_data;
-    _signon_object_call_when_ready (self,
-                                    identity_object_quark(),
-                                    identity_info_ready_cb,
-                                    operation_data);
+    signon_proxy_call_when_ready (self,
+                                  identity_object_quark(),
+                                  identity_info_ready_cb,
+                                  operation_data);
 }
 
 /**
@@ -1337,10 +1347,10 @@ void signon_identity_remove(SignonIdentity *self,
     DEBUG ("%s %d", G_STRFUNC, __LINE__);
 
     identity_check_remote_registration (self);
-    _signon_object_call_when_ready (self,
-                                    identity_object_quark(),
-                                    identity_remove_ready_cb,
-                                    cb_data);
+    signon_proxy_call_when_ready (self,
+                                  identity_object_quark(),
+                                  identity_remove_ready_cb,
+                                  cb_data);
 }
 
 /**
@@ -1365,10 +1375,10 @@ void signon_identity_signout(SignonIdentity *self,
     cb_data->user_data = user_data;
 
     identity_check_remote_registration (self);
-    _signon_object_call_when_ready (self,
-                                    identity_object_quark(),
-                                    identity_signout_ready_cb,
-                                    cb_data);
+    signon_proxy_call_when_ready (self,
+                                  identity_object_quark(),
+                                  identity_signout_ready_cb,
+                                  cb_data);
 }
 
 /**

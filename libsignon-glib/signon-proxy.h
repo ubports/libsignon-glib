@@ -22,24 +22,43 @@
  * 02110-1301 USA
  */
 
-#ifndef SIGNONDBUSQUEUEDDATA_H
-#define SIGNONDBUSQUEUEDDATA_H
+#ifndef _SIGNON_PROXY_H_
+#define _SIGNON_PROXY_H_
 
 #include <glib.h>
 #include <glib-object.h>
 
 G_BEGIN_DECLS
 
+#define SIGNON_TYPE_PROXY             (signon_proxy_get_type ())
+G_GNUC_INTERNAL
+G_DECLARE_INTERFACE(SignonProxy, signon_proxy, SIGNON, PROXY, GObject)
+
 typedef void (*SignonReadyCb) (gpointer object, const GError *error,
                                gpointer user_data);
 
-void _signon_object_call_when_ready (gpointer object, GQuark quark,
-                                    SignonReadyCb callback, gpointer user_data);
+struct _SignonProxyInterface
+{
+    GTypeInterface parent_iface;
 
-void _signon_object_ready (gpointer object, GQuark quark, GError *error);
-void _signon_object_not_ready (gpointer object);
+    void (*setup) (SignonProxy *self);
+};
 
-const GError *_signon_object_last_error (gpointer object);
+G_GNUC_INTERNAL
+void signon_proxy_setup (gpointer self);
+
+G_GNUC_INTERNAL
+void signon_proxy_call_when_ready (gpointer self, GQuark quark,
+                                   SignonReadyCb callback, gpointer user_data);
+
+G_GNUC_INTERNAL
+void signon_proxy_set_ready (gpointer self, GQuark quark, GError *error);
+
+G_GNUC_INTERNAL
+void signon_proxy_set_not_ready (gpointer self);
+
+G_GNUC_INTERNAL
+const GError *signon_proxy_get_last_error (gpointer self);
 
 G_END_DECLS
-#endif /* SIGNONDBUSQUEUEDDATA_H */
+#endif /* _SIGNON_PROXY_H_ */
