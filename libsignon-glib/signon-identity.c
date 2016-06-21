@@ -78,6 +78,7 @@ struct _SignonIdentityPrivate
     gboolean removed;
     gboolean signed_out;
     gboolean updated;
+    gboolean first_registration;
 
     guint id;
 
@@ -240,6 +241,7 @@ signon_identity_init (SignonIdentity *identity)
     priv->removed = FALSE;
     priv->signed_out = FALSE;
     priv->updated = FALSE;
+    priv->first_registration = TRUE;
 }
 
 static void
@@ -446,6 +448,27 @@ identity_registered (SignonIdentity *identity,
         }
 
         priv->updated = TRUE;
+    }
+    else if (error->domain == G_DBUS_ERROR &&
+             error->code == G_DBUS_ERROR_SERVICE_UNKNOWN)
+    {
+        /* This can happen if signond quits and the GDBusProxy is not notified
+         * about it -- typically because the main loop was not being run.
+         * We try the registration once more.
+         */
+        if (priv->first_registration)
+        {
+            DEBUG ("Service unknown; retrying registration");
+            g_error_free (error);
+            priv->first_registration = FALSE;
+            priv->registration_state = NOT_REGISTERED;
+            identity_check_remote_registration (identity);
+            return;
+        }
+        else
+        {
+            g_warning ("%s, second failure: %s", G_STRFUNC, error->message);
+        }
     }
     else
         g_warning ("%s: %s", G_STRFUNC, error->message);
