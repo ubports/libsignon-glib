@@ -437,7 +437,6 @@ signon_auth_session_set_id(SignonAuthSession* self,
 
     g_return_if_fail (id >= 0);
 
-    auth_session_check_remote_object(self);
     signon_proxy_call_when_ready (self,
                                   auth_session_object_quark(),
                                   auth_session_set_id_ready_cb,
@@ -501,7 +500,6 @@ signon_auth_session_query_available_mechanisms (SignonAuthSession *self,
     operation_data->wanted_mechanisms = g_strdupv ((gchar **)wanted_mechanisms);
     operation_data->cb_data = cb_data;
 
-    auth_session_check_remote_object(self);
     signon_proxy_call_when_ready (self,
                                   auth_session_object_quark(),
                                   auth_session_query_available_mechanisms_ready_cb,
@@ -604,7 +602,6 @@ signon_auth_session_process_async (SignonAuthSession *self,
 
     priv->busy = TRUE;
 
-    auth_session_check_remote_object(self);
     signon_proxy_call_when_ready (self,
                                   auth_session_object_quark(),
                                   auth_session_process_ready_cb,
@@ -650,8 +647,6 @@ signon_auth_session_cancel (SignonAuthSession *self)
     SignonAuthSessionPrivate *priv = self->priv;
 
     g_return_if_fail (priv != NULL);
-
-    auth_session_check_remote_object(self);
 
     if (!priv->busy)
         return;

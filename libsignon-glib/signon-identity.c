@@ -746,7 +746,6 @@ signon_identity_store_credentials_with_info(SignonIdentity *self,
     operation_data->info_variant = signon_identity_info_to_variant (info);
     operation_data->cb_data = cb_data;
 
-    identity_check_remote_registration (self);
     signon_proxy_call_when_ready (self,
                                   identity_object_quark(),
                                   identity_store_credentials_ready_cb,
@@ -1002,7 +1001,6 @@ identity_verify_data(SignonIdentity *self,
     operation_data->operation = operation;
     operation_data->cb_data = cb_data;
 
-    identity_check_remote_registration (self);
     signon_proxy_call_when_ready (self,
                                   identity_object_quark(),
                                   identity_verify_ready_cb,
@@ -1375,7 +1373,6 @@ void signon_identity_remove(SignonIdentity *self,
 
     DEBUG ("%s %d", G_STRFUNC, __LINE__);
 
-    identity_check_remote_registration (self);
     signon_proxy_call_when_ready (self,
                                   identity_object_quark(),
                                   identity_remove_ready_cb,
@@ -1403,7 +1400,6 @@ void signon_identity_signout(SignonIdentity *self,
     cb_data->cb = (SignonIdentityVoidCb)cb;
     cb_data->user_data = user_data;
 
-    identity_check_remote_registration (self);
     signon_proxy_call_when_ready (self,
                                   identity_object_quark(),
                                   identity_signout_ready_cb,
@@ -1474,7 +1470,6 @@ void signon_identity_query_info(SignonIdentity *self,
     cb_data->cb = cb;
     cb_data->user_data = user_data;
 
-    identity_check_remote_registration (self);
     identity_void_operation(self,
                             SIGNON_INFO,
                             cb_data);
