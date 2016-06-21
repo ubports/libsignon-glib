@@ -270,9 +270,15 @@ auth_session_object_quark ()
 }
 
 static void
+signon_auth_session_proxy_setup (SignonProxy *proxy)
+{
+    auth_session_check_remote_object (SIGNON_AUTH_SESSION (proxy));
+}
+
+static void
 signon_auth_session_proxy_if_init (SignonProxyInterface *iface)
 {
-    iface->setup = NULL;
+    iface->setup = signon_auth_session_proxy_setup;
 }
 
 static void

@@ -35,6 +35,7 @@ typedef struct {
 typedef struct {
     gpointer self;
     GSList *callbacks;
+    guint idle_id;
 } SignonReadyData;
 
 static void
@@ -69,15 +70,19 @@ static void
 signon_proxy_invoke_ready_callbacks (SignonReadyData *rd, const GError *error)
 {
     GSList *list;
+    /* Make a copy of the callbacks list and erase the pointer in the
+     * structure, to ensure that we won't invoke the same callback twice. */
+    GSList *callbacks = rd->callbacks;
+    rd->callbacks = NULL;
 
-    for (list = rd->callbacks; list != NULL; list = list->next)
+    for (list = callbacks; list != NULL; list = list->next)
     {
         SignonReadyCbData *cb = list->data;
 
         cb->callback (rd->self, error, cb->user_data);
         g_slice_free (SignonReadyCbData, cb);
     }
-    g_slist_free (rd->callbacks);
+    g_slist_free (callbacks);
 }
 
 static void
@@ -89,7 +94,32 @@ signon_ready_data_free (SignonReadyData *rd)
         GError error = { 555, 666, "Object disposed" };
         signon_proxy_invoke_ready_callbacks (rd, &error);
     }
+    if (rd->idle_id > 0)
+    {
+        g_source_remove (rd->idle_id);
+        rd->idle_id = 0;
+    }
     g_slice_free (SignonReadyData, rd);
+}
+
+static gboolean
+signon_proxy_call_when_ready_idle (SignonReadyData *rd)
+{
+    if (GPOINTER_TO_INT (g_object_get_qdata((GObject*)rd->self,
+                           _signon_proxy_ready_quark())) == TRUE)
+    {
+        //TODO: specify the last error in object initialization
+        GError * err = g_object_get_qdata((GObject*)rd->self,
+                                          _signon_proxy_error_quark());
+        signon_proxy_invoke_ready_callbacks (rd, err);
+    }
+    else
+    {
+        signon_proxy_setup (SIGNON_PROXY (rd->self));
+    }
+
+    rd->idle_id = 0;
+    return FALSE;
 }
 
 void
@@ -117,15 +147,6 @@ signon_proxy_call_when_ready (gpointer object, GQuark quark, SignonReadyCb callb
     g_return_if_fail (quark != 0);
     g_return_if_fail (callback != NULL);
 
-    if (GPOINTER_TO_INT (g_object_get_qdata((GObject *)object,
-                           _signon_proxy_ready_quark())) == TRUE)
-    {
-        //TODO: specify the last error in object initialization
-        GError * err = g_object_get_qdata((GObject *)object,
-                                          _signon_proxy_error_quark());
-        return (*callback)(object, err, user_data);
-    }
-
     cb = g_slice_new (SignonReadyCbData);
     cb->callback = callback;
     cb->user_data = user_data;
@@ -136,11 +157,17 @@ signon_proxy_call_when_ready (gpointer object, GQuark quark, SignonReadyCb callb
         rd = g_slice_new (SignonReadyData);
         rd->self = object;
         rd->callbacks = NULL;
+        rd->idle_id = 0;
         g_object_set_qdata_full ((GObject *)object, quark, rd,
                                  (GDestroyNotify)signon_ready_data_free);
     }
 
     rd->callbacks = g_slist_append (rd->callbacks, cb);
+    if (rd->idle_id == 0)
+    {
+        rd->idle_id =
+            g_idle_add ((GSourceFunc)signon_proxy_call_when_ready_idle, rd);
+    }
 }
 
 void
@@ -157,21 +184,14 @@ signon_proxy_set_ready (gpointer object, GQuark quark, GError *error)
                                  error,
                                  (GDestroyNotify)g_error_free);
 
-    /* steal the qdata so the callbacks won't be invoked again, even if the
-     * object becomes ready or is finalized while still invoking them */
-
-    rd = g_object_steal_qdata ((GObject *)object, quark);
+    rd = g_object_get_qdata ((GObject *)object, quark);
     if (!rd) return;
 
     g_object_ref (object);
 
     signon_proxy_invoke_ready_callbacks (rd, error);
-    rd->self = NULL; /* so the callbacks won't be invoked again */
-    signon_ready_data_free (rd);
 
     g_object_unref (object);
-
-    //TODO: set some sort of ready information
 }
 
 void

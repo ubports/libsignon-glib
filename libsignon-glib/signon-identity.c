@@ -181,9 +181,15 @@ identity_object_quark ()
 }
 
 static void
+signon_identity_proxy_setup (SignonProxy *proxy)
+{
+    identity_check_remote_registration (SIGNON_IDENTITY (proxy));
+}
+
+static void
 signon_identity_proxy_if_init (SignonProxyInterface *iface)
 {
-    iface->setup = NULL;
+    iface->setup = signon_identity_proxy_setup;
 }
 
 static void
