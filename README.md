@@ -1,7 +1,7 @@
 Single signon authentication library for GLib applications
 ==========================================================
 
-This project is a library for managing single signon credentilas which can be
+This project is a library for managing single signon credentials which can be
 used from GLib applications. It is effectively a GLib binding for the D-Bus API
 provided by [signond][].
 It is part of the accounts-sso project:

@@ -47,7 +47,6 @@ IGNORE_HFILES= \
 	signon-auth-session-client-glib-gen.h \
 	signon-client-glib-gen.h \
 	signon-identity-glib-gen.h \
-	signon-dbus-queue.h \
 	signon-internals.h \
 	signon-proxy.h \
 	signon-utils.h \

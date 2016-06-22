@@ -63,17 +63,20 @@ AM_CONDITIONAL([ENABLE_TESTS], [test "x$have_check" = "xyes"])
 GTK_DOC_CHECK([1.14], [--flavour no-tmpl])
 
 AC_ARG_ENABLE([cast-checks],
-    [AS_HELP_STRING([--disable-cast-checks], [compile with GLib cast checks disabled])])
+    [AS_HELP_STRING([--disable-cast-checks], [compile with GLib cast checks disabled])],
+    [], [enable_cast_checks=yes])
 AS_IF([test "x$enable_cast_checks" = "xno"],
     [CFLAGS="$CFLAGS -DG_DISABLE_CAST_CHECKS"])
 
 AC_ARG_ENABLE([asserts],
-    [AS_HELP_STRING([--disable-asserts], [compile with GLib assertions disabled])])
+    [AS_HELP_STRING([--disable-asserts], [compile with GLib assertions disabled])],
+    [], [enable_asserts=yes])
 AS_IF([test "x$enable_asserts" = "xno"],
     [CFLAGS="$CFLAGS -DG_DISABLE_ASSERTS"])
 
 AC_ARG_ENABLE([checks],
-    [AS_HELP_STRING([--disable-checks], [compile with GLib checks disabled])])
+    [AS_HELP_STRING([--disable-checks], [compile with GLib checks disabled])],
+    [], [enable_checks=yes])
 AS_IF([test "x$checks" = "xno"],
     [CFLAGS="$CFLAGS -DG_DISABLE_CHECKS"])
 

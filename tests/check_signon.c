@@ -3,7 +3,7 @@
  * This file is part of libsignon-glib
  *
  * Copyright (C) 2009-2011 Nokia Corporation.
- * Copyright (C) 2011-2012 Canonical Ltd.
+ * Copyright (C) 2011-2016 Canonical Ltd.
  *
  * Contact: Alberto Mardegan <alberto.mardegan@canonical.com>
  *
@@ -80,6 +80,23 @@ end_test ()
         g_main_loop_unref (main_loop);
         main_loop = NULL;
     }
+}
+
+static gboolean
+quit_loop (gpointer user_data)
+{
+    GMainLoop *loop = user_data;
+    g_main_loop_quit (loop);
+    return FALSE;
+}
+
+static void
+run_main_loop_for_n_seconds(guint seconds)
+{
+    GMainLoop *loop = g_main_loop_new (NULL, FALSE);
+    g_timeout_add_seconds (seconds, quit_loop, loop);
+    g_main_loop_run (loop);
+    g_main_loop_unref (loop);
 }
 
 START_TEST(test_init)
@@ -219,14 +236,6 @@ START_TEST(test_query_mechanisms)
     end_test ();
 }
 END_TEST
-
-
-static gboolean
-test_quit_main_loop_cb (gpointer data)
-{
-    g_main_loop_quit (main_loop);
-    return FALSE;
-}
 
 static void
 test_auth_session_query_mechanisms_cb (SignonAuthSession *self,
@@ -920,7 +929,7 @@ static void store_credentials_identity_cb(SignonIdentity *self,
     /* Wait some time to ensure that the info-updated signals are
      * processed
      */
-    g_timeout_add_seconds (2, test_quit_main_loop_cb, main_loop);
+    g_timeout_add_seconds (2, quit_loop, main_loop);
 }
 
 START_TEST(test_store_credentials_identity)
@@ -949,7 +958,6 @@ START_TEST(test_store_credentials_identity)
                                                  &last_id);
     g_hash_table_destroy (methods);
 
-    g_timeout_add (1000, test_quit_main_loop_cb, idty);
     g_main_loop_run (main_loop);
 
     g_object_unref(idty);
@@ -995,6 +1003,8 @@ START_TEST(test_verify_secret_identity)
     gchar secret[] = "007";
     gchar caption[] = "caption";
 
+    main_loop = g_main_loop_new (NULL, FALSE);
+
     signon_identity_store_credentials_with_args (idty,
                                                  username,
                                                  secret,
@@ -1006,7 +1016,7 @@ START_TEST(test_verify_secret_identity)
                                                  0,
                                                  store_credentials_identity_cb,
                                                  NULL);
-    main_loop = g_main_loop_new (NULL, FALSE);
+    g_main_loop_run (main_loop);
 
     signon_identity_verify_secret(idty,
                                  secret,
@@ -1264,12 +1274,10 @@ START_TEST(test_info_identity)
     signon_identity_remove(idty2, identity_remove_cb, NULL);
     g_main_loop_run (main_loop);
 
-    /*
-     * no main_loops required as
-     * the callback is executed immediately
-     * */
     signon_identity_query_info (idty2, identity_info_cb, NULL);
+    g_main_loop_run (main_loop);
     signon_identity_query_info (idty, identity_info_cb, NULL);
+    g_main_loop_run (main_loop);
 
     signon_identity_info_free (info);
     g_object_unref (idty);
@@ -1323,8 +1331,7 @@ START_TEST(test_signout_identity)
     SignonIdentity *idty2 = signon_identity_new_from_db (id);
 
     /* wait some more time to ensure that the object gets registered */
-    g_timeout_add_seconds (2, test_quit_main_loop_cb, main_loop);
-    g_main_loop_run (main_loop);
+    run_main_loop_for_n_seconds(2);
 
     signon_identity_info_free (info);
 
@@ -1389,7 +1396,7 @@ START_TEST(test_unregistered_identity)
     /*
      * give time to handle unregistered signal
      * */
-    g_timeout_add_seconds (5, test_quit_main_loop_cb, main_loop);
+    //run_main_loop_for_n_seconds(5);
 
     signon_identity_query_info (idty, identity_info_cb, &info);
     g_main_loop_run (main_loop);
@@ -1404,6 +1411,12 @@ END_TEST
 
 START_TEST(test_unregistered_auth_session)
 {
+    GVariantBuilder builder;
+    GVariant *session_data;
+    GVariant *reply = NULL;
+    gchar *username;
+    gboolean ok;
+
     g_debug("%s", G_STRFUNC);
     SignonIdentity *idty = signon_identity_new();
     fail_unless (idty != NULL);
@@ -1417,8 +1430,7 @@ START_TEST(test_unregistered_auth_session)
                                                           "ssotest",
                                                            &err);
     /* give time to register the objects */
-    g_timeout_add_seconds (2, test_quit_main_loop_cb, main_loop);
-    g_main_loop_run (main_loop);
+    run_main_loop_for_n_seconds(2);
 
     /*
      * give the time for identity to became idle
@@ -1426,12 +1438,32 @@ START_TEST(test_unregistered_auth_session)
     sleep(SIGNOND_IDLE_TIMEOUT);
     SignonIdentity *idty2 = signon_identity_new();
 
-    /*
-     * give time to handle unregistered signal
-     * */
-    g_timeout_add_seconds (5, test_quit_main_loop_cb, main_loop);
+    g_variant_builder_init (&builder, G_VARIANT_TYPE_VARDICT);
+    g_variant_builder_add (&builder, "{sv}",
+                           SIGNON_SESSION_DATA_USERNAME,
+                           g_variant_new_string ("test_username"));
+    g_variant_builder_add (&builder, "{sv}",
+                           SIGNON_SESSION_DATA_SECRET,
+                           g_variant_new_string ("test_pw"));
+
+    session_data = g_variant_builder_end (&builder);
+
+    signon_auth_session_process_async (as,
+                                       session_data,
+                                       "mech1",
+                                       NULL,
+                                       test_auth_session_process_async_cb,
+                                       &reply);
     g_main_loop_run (main_loop);
 
+    fail_unless (reply != NULL);
+    session_data = NULL;
+
+    ok = g_variant_lookup (reply, SIGNON_SESSION_DATA_USERNAME, "&s", &username);
+    ck_assert (ok);
+    ck_assert_str_eq (username, "test_username");
+
+    g_variant_unref (reply);
 
     gchar* patterns[4];
     patterns[0] = g_strdup("mech1");
@@ -1453,6 +1485,8 @@ START_TEST(test_unregistered_auth_session)
     g_free (patterns[1]);
     g_free (patterns[2]);
     g_free (patterns[3]);
+
+    end_test ();
 }
 END_TEST
 

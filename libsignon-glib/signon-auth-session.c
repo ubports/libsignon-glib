@@ -4,7 +4,7 @@
  * This file is part of libsignon-glib
  *
  * Copyright (C) 2009-2010 Nokia Corporation.
- * Copyright (C) 2012 Canonical Ltd.
+ * Copyright (C) 2012-2016 Canonical Ltd.
  *
  * Contact: Alberto Mardegan <alberto.mardegan@canonical.com>
  *
@@ -40,9 +40,9 @@
 
 #include "signon-internals.h"
 #include "signon-auth-session.h"
-#include "signon-dbus-queue.h"
 #include "signon-errors.h"
 #include "signon-marshal.h"
+#include "signon-proxy.h"
 #include "signon-utils.h"
 #include "sso-auth-service.h"
 #include "sso-auth-session-gen.h"
@@ -50,7 +50,11 @@
 /* SignonAuthSessionState is defined in signoncommon.h */
 #include <signoncommon.h>
 
-G_DEFINE_TYPE (SignonAuthSession, signon_auth_session, G_TYPE_OBJECT);
+static void signon_auth_session_proxy_if_init (SignonProxyInterface *iface);
+
+G_DEFINE_TYPE_WITH_CODE (SignonAuthSession, signon_auth_session, G_TYPE_OBJECT,
+                         G_IMPLEMENT_INTERFACE (SIGNON_TYPE_PROXY,
+                                                signon_auth_session_proxy_if_init))
 
 /* Signals */
 enum
@@ -266,6 +270,18 @@ auth_session_object_quark ()
 }
 
 static void
+signon_auth_session_proxy_setup (SignonProxy *proxy)
+{
+    auth_session_check_remote_object (SIGNON_AUTH_SESSION (proxy));
+}
+
+static void
+signon_auth_session_proxy_if_init (SignonProxyInterface *iface)
+{
+    iface->setup = signon_auth_session_proxy_setup;
+}
+
+static void
 signon_auth_session_init (SignonAuthSession *self)
 {
     self->priv = SIGNON_AUTH_SESSION_GET_PRIV (self);
@@ -421,11 +437,10 @@ signon_auth_session_set_id(SignonAuthSession* self,
 
     g_return_if_fail (id >= 0);
 
-    auth_session_check_remote_object(self);
-    _signon_object_call_when_ready (self,
-                                    auth_session_object_quark(),
-                                    auth_session_set_id_ready_cb,
-                                    GINT_TO_POINTER(id));
+    signon_proxy_call_when_ready (self,
+                                  auth_session_object_quark(),
+                                  auth_session_set_id_ready_cb,
+                                  GINT_TO_POINTER(id));
 }
 
 /**
@@ -485,11 +500,10 @@ signon_auth_session_query_available_mechanisms (SignonAuthSession *self,
     operation_data->wanted_mechanisms = g_strdupv ((gchar **)wanted_mechanisms);
     operation_data->cb_data = cb_data;
 
-    auth_session_check_remote_object(self);
-    _signon_object_call_when_ready (self,
-                                    auth_session_object_quark(),
-                                    auth_session_query_available_mechanisms_ready_cb,
-                                    operation_data);
+    signon_proxy_call_when_ready (self,
+                                  auth_session_object_quark(),
+                                  auth_session_query_available_mechanisms_ready_cb,
+                                  operation_data);
 }
 
 /**
@@ -588,11 +602,10 @@ signon_auth_session_process_async (SignonAuthSession *self,
 
     priv->busy = TRUE;
 
-    auth_session_check_remote_object(self);
-    _signon_object_call_when_ready (self,
-                                    auth_session_object_quark(),
-                                    auth_session_process_ready_cb,
-                                    res);
+    signon_proxy_call_when_ready (self,
+                                  auth_session_object_quark(),
+                                  auth_session_process_ready_cb,
+                                  res);
 }
 
 /**
@@ -635,16 +648,14 @@ signon_auth_session_cancel (SignonAuthSession *self)
 
     g_return_if_fail (priv != NULL);
 
-    auth_session_check_remote_object(self);
-
     if (!priv->busy)
         return;
 
     priv->canceled = TRUE;
-    _signon_object_call_when_ready (self,
-                                    auth_session_object_quark(),
-                                    auth_session_cancel_ready_cb,
-                                    NULL);
+    signon_proxy_call_when_ready (self,
+                                  auth_session_object_quark(),
+                                  auth_session_cancel_ready_cb,
+                                  NULL);
 }
 
 static void
@@ -717,7 +728,7 @@ auth_session_get_object_path_reply (GObject *object, GAsyncResult *res,
 
     DEBUG ("Object path received: %s", object_path);
     g_free (object_path);
-    _signon_object_ready (self, auth_session_object_quark (), error);
+    signon_proxy_set_ready (self, auth_session_object_quark (), error);
 }
 
 static void
@@ -748,7 +759,7 @@ static void auth_session_remote_object_destroyed_cb (GDBusProxy *proxy,
     if (priv->proxy)
         destroy_proxy (priv);
 
-    _signon_object_not_ready(self);
+    signon_proxy_set_not_ready (self);
 }
 
 static gboolean
