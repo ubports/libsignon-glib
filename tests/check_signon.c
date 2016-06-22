@@ -3,7 +3,7 @@
  * This file is part of libsignon-glib
  *
  * Copyright (C) 2009-2011 Nokia Corporation.
- * Copyright (C) 2011-2012 Canonical Ltd.
+ * Copyright (C) 2011-2016 Canonical Ltd.
  *
  * Contact: Alberto Mardegan <alberto.mardegan@canonical.com>
  *
