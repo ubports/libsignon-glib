@@ -1,3 +1,10 @@
+libsignon-glib (1.14+16.10.20160520.1-0ubuntu2) UNRELEASED; urgency=medium
+
+  * Merge from upstream proposed branch
+    - Handle signond quitting on inactivity (LP: #1593805)
+
+ -- Alberto Mardegan <alberto.mardegan@canonical.com>  Wed, 22 Jun 2016 10:58:15 +0300
+
 libsignon-glib (1.14+16.10.20160520.1-0ubuntu1) yakkety; urgency=medium
 
   [ Alberto Mardegan ]
