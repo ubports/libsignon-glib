@@ -774,14 +774,7 @@ auth_session_priv_init (SignonAuthSession *self, guint id,
     priv->id = id;
     priv->method_name = g_strdup (method_name);
 
-    priv->registering = TRUE;
-    sso_auth_service_call_get_auth_session_object_path (
-        priv->auth_service_proxy,
-        id,
-        method_name,
-        priv->cancellable,
-        auth_session_get_object_path_reply,
-        self);
+    priv->registering = FALSE;
     priv->busy = FALSE;
     priv->canceled = FALSE;
     return TRUE;
