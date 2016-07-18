@@ -44,16 +44,16 @@ libsignon_glib_la_SOURCES = \
 	signon-auth-service.h \
 	signon-identity-info.h \
 	signon-identity.h \
-	signon-dbus-queue.h \
 	signon-auth-session.h \
 	signon-internals.h \
 	signon-auth-service.c \
 	signon-identity-info.c \
 	signon-identity.c \
-	signon-dbus-queue.c \
 	signon-auth-session.c \
 	signon-errors.h \
 	signon-errors.c \
+	signon-proxy.c \
+	signon-proxy.h \
 	signon-utils.h \
 	signon-utils.c \
 	signon-types.h \
