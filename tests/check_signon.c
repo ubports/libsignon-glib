@@ -1064,29 +1064,6 @@ START_TEST(test_remove_identity)
     signon_identity_remove(idty, identity_remove_cb, NULL);
     g_main_loop_run (main_loop);
 
-    GHashTable *methods = create_methods_hashtable();
-
-    gchar username[] = "James Bond";
-    gchar secret[] = "007";
-    gchar caption[] = "caption";
-
-    signon_identity_store_credentials_with_args (idty,
-                                                 username,
-                                                 secret,
-                                                 1,
-                                                 methods,
-                                                 caption,
-                                                 NULL,
-                                                 NULL,
-                                                 0,
-                                                 store_credentials_identity_cb,
-                                                 NULL);
-    g_hash_table_destroy (methods);
-    g_main_loop_run (main_loop);
-
-    signon_identity_remove(idty, identity_remove_cb, NULL);
-    g_main_loop_run (main_loop);
-
     /*
      * Try to remove existing identy
      * */
