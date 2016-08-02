@@ -36,7 +36,7 @@ typedef struct {
 typedef struct {
     gpointer self;
     GSList *callbacks;
-    guint idle_id;
+    GSource *idle_source;
 } SignonReadyData;
 
 static void
@@ -95,10 +95,11 @@ signon_ready_data_free (SignonReadyData *rd)
         GError error = { 555, 666, "Object disposed" };
         signon_proxy_invoke_ready_callbacks (rd, &error);
     }
-    if (rd->idle_id > 0)
+    if (rd->idle_source)
     {
-        g_source_remove (rd->idle_id);
-        rd->idle_id = 0;
+        g_main_context_unref (g_source_get_context (rd->idle_source));
+        g_source_destroy (rd->idle_source);
+        rd->idle_source = NULL;
     }
     g_slice_free (SignonReadyData, rd);
 }
@@ -119,7 +120,8 @@ signon_proxy_call_when_ready_idle (SignonReadyData *rd)
         signon_proxy_setup (SIGNON_PROXY (rd->self));
     }
 
-    rd->idle_id = 0;
+    g_main_context_unref (g_source_get_context (rd->idle_source));
+    rd->idle_source = NULL;
     return FALSE;
 }
 
@@ -158,16 +160,20 @@ signon_proxy_call_when_ready (gpointer object, GQuark quark, SignonReadyCb callb
         rd = g_slice_new (SignonReadyData);
         rd->self = object;
         rd->callbacks = NULL;
-        rd->idle_id = 0;
+        rd->idle_source = NULL;
         g_object_set_qdata_full ((GObject *)object, quark, rd,
                                  (GDestroyNotify)signon_ready_data_free);
     }
 
     rd->callbacks = g_slist_append (rd->callbacks, cb);
-    if (rd->idle_id == 0)
+    if (!rd->idle_source)
     {
-        rd->idle_id =
-            g_idle_add ((GSourceFunc)signon_proxy_call_when_ready_idle, rd);
+        rd->idle_source = g_idle_source_new ();
+        g_source_set_callback (rd->idle_source,
+                               (GSourceFunc)signon_proxy_call_when_ready_idle,
+                               rd, NULL);
+        g_source_attach (rd->idle_source,
+                         g_main_context_ref_thread_default ());
     }
 }
 
