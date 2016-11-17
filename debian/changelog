@@ -1,9 +1,9 @@
-libsignon-glib (1.14+16.10.20160802.2-0ubuntu2) UNRELEASED; urgency=medium
+libsignon-glib (1.14+17.04.20161117-0ubuntu1) zesty; urgency=medium
 
   * debian/control:
     - GIR package should be in "introspection" section (LP: #1639050)
 
- -- Alberto Mardegan <alberto.mardegan@canonical.com>  Thu, 17 Nov 2016 11:51:58 +0300
+ -- Alberto Mardegan <mardy@users.sourceforge.net>  Thu, 17 Nov 2016 09:02:13 +0000
 
 libsignon-glib (1.14+16.10.20160802.2-0ubuntu1) yakkety; urgency=medium
 
