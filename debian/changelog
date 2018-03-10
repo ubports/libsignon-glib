@@ -1,3 +1,9 @@
+libsignon-glib (1.15+ubports) xenial; urgency=medium
+
+  * Imported to UBports
+
+ -- UBports auto importer <infra@ubports.com>  Sat, 10 Mar 2018 19:33:38 +0000
+
 libsignon-glib (1.14+17.04.20161117-0ubuntu1) zesty; urgency=medium
 
   * debian/control:
